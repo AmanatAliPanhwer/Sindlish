@@ -56,7 +56,10 @@ class Lexer:
         token_type = KEYWORDS.get(ident, TokenType.IDENTIFIER)
         return Token(token_type, ident, self.line, start_col)
 
-    
+    def skip_comment(self):
+        while self.peek() is not None and self.peek() != '\n':
+            self.advance()
+
     def generate_tokens(self):
         tokens = []
         
@@ -77,6 +80,10 @@ class Lexer:
             # Numbers
             if char.isdigit():
                 tokens.append(self.make_number())
+                continue
+
+            if char == "#":
+                self.skip_comment()
                 continue
 
             # Strings
