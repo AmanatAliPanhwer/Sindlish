@@ -1,0 +1,9 @@
+a = 12
+b = 34
+
+kaam salam():
+    likh("Salam, Dunian!")
+    likh(a + b)
+
+agar sach:
+    salam()
