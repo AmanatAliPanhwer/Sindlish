@@ -22,7 +22,7 @@ class Parser:
 
         while self.peek() and self.peek().type != TokenType.EOF:
             
-            if self.peek().type == TokenType.NEWLINE:
+            if self.peek().type in (TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT):
                 self.advance()
                 continue
 
@@ -30,6 +30,28 @@ class Parser:
             statements.append(stmt)
 
         return ProgramNode(statements)
+    
+    def parse_block(self):
+        statements = []
+
+        self.advance() # NEWLINE
+        self.advance() # INDENT
+
+
+        while True:
+            token = self.peek()
+
+            if token.type == TokenType.DEDENT:
+                self.advance()
+                break
+
+            if token.type == TokenType.NEWLINE:
+                self.advance()
+                continue
+
+            statements.append(self.parse_statement())
+
+        return statements
     
     def parse_statement(self):
         token = self.peek()
@@ -45,6 +67,9 @@ class Parser:
         
         if token.type == TokenType.IDENTIFIER:
             return self.parse_assignment()
+        
+        if token.type in (TokenType.DEDENT, TokenType.INDENT):
+            raise Exception(f"Unexpected block token {token}")
         
         raise Exception(f"Unexpected token {token}")
     
@@ -66,31 +91,15 @@ class Parser:
 
         self.advance() # :
 
-        self.advance() # NEWLINE
+        body = self.parse_block()
 
-        body = []
-        
-        # Parse If
-        while self.peek().type != TokenType.EOF and self.peek().type != TokenType.WARNA:
-            if self.peek().type == TokenType.NEWLINE:
-                self.advance()
-                continue
-
-            body.append(self.parse_statement())
-
-        else_body = []
+        else_body = None
 
         if self.peek().type == TokenType.WARNA:
             self.advance() # warna
             self.advance() # :
-            self.advance() # NEWLINE
 
-            while self.peek().type != TokenType.EOF:
-                if self.peek().type == TokenType.NEWLINE:
-                    self.advance()
-                    continue
-
-                else_body.append(self.parse_statement())
+            else_body = self.parse_block()
 
         return IfNode(condition, body, else_body)
 
@@ -135,16 +144,8 @@ class Parser:
         condition = self.parse_expression()
 
         self.advance() # :
-        self.advance() # NEWLINE
 
-        body = []
-
-        while self.peek().type not in (TokenType.EOF, TokenType.WARNA):
-            if self.peek().type == TokenType.NEWLINE:
-                self.advance()
-                continue
-
-            body.append(self.parse_statement())
+        body = self.parse_block()
         
         return WhileNode(condition, body)
     

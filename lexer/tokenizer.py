@@ -8,6 +8,7 @@ class Lexer:
         self.pos = 0
         self.line = 1
         self.column = 1
+        self.indent_stack = [0]
 
     def peek(self) -> str | None:
         if self.pos < len(self.code):
@@ -73,8 +74,31 @@ class Lexer:
                 
             # Newline
             if char == "\n":
-                tokens.append(Token(TokenType.NEWLINE, "\\n", self.line, self.column))
                 self.advance()
+                tokens.append(Token(TokenType.NEWLINE, "\\n", self.line, self.column))
+                
+                spaces = 0
+                while True:
+                    if self.peek() == " ":
+                        spaces += 1
+                        self.advance()
+                    elif self.peek() == "\t":
+                        spaces += 4
+                        self.advance()
+                    else:
+                        break
+                
+                if self.peek() == "\n":
+                    continue
+
+                if spaces > self.indent_stack[-1]:
+                    self.indent_stack.append(spaces)
+                    tokens.append(Token(TokenType.INDENT, None, self.line, self.column))
+                
+                while spaces < self.indent_stack[-1]:
+                    self.indent_stack.pop()
+                    tokens.append(Token(TokenType.DEDENT, None, self.line, self.column))
+
                 continue
         
             # Numbers
@@ -159,6 +183,10 @@ class Lexer:
             
             # Unknown character
             raise Exception(f"Illigal character `{char}` at line {self.line}")
+        
+        while len(self.indent_stack) > 1:
+            self.indent_stack.pop()
+            tokens.append(Token(TokenType.DEDENT, None, self.line, self.column))
         
         tokens.append(Token(TokenType.EOF, None, self.line, self.column))
         return tokens

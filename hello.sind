@@ -21,3 +21,13 @@ likh(z)
 
 Amanat = 2 ^ 3 ^ 2
 likh(Amanat)
+
+x = 0
+
+jistain x < 3:
+    agar x < 2:
+        likh("Inner")
+    warna:
+        likh("Else")
+
+    x = x + 1
