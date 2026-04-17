@@ -38,3 +38,8 @@ class AssignNode(Node):
     def __init__(self, name, value):
         self.name = name
         self.value = value
+
+class WhileNode(Node):
+    def __init__(self, condition, body):
+        self.condition = condition
+        self.body = body

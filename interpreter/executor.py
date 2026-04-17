@@ -58,3 +58,8 @@ class Interpreter:
     def visit_AssignNode(self, node):
         value = self.visit(node.value)
         self.variables[node.name] = value
+
+    def visit_WhileNode(self, node):
+        while self.visit(node.condition):
+            for stmt in node.body:
+                self.visit(stmt)

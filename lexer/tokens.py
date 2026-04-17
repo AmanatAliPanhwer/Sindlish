@@ -11,6 +11,7 @@ class TokenType(Enum):
     AGAR = auto()
     WARNA = auto()
     LIKH = auto()
+    JISTAIN = auto()
 
     # Operators
     PLUS = auto()

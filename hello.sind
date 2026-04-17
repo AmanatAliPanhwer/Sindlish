@@ -7,4 +7,7 @@ x = 2
 agar x > 5:
     likh("Big")
 warna:
-    likh("Small")
+  likh("Small")
+
+jistain x > 1:
+    likh("Salam, Duniay.")

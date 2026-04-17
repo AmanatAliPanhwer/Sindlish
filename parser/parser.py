@@ -25,6 +25,9 @@ class Parser:
         if token.type == TokenType.AGAR:
             return self.parse_if()
         
+        if token.type == TokenType.JISTAIN:
+            return self.parse_while()
+        
         if token.type == TokenType.IDENTIFIER:
             return self.parse_assignment()
         
@@ -126,4 +129,23 @@ class Parser:
         value = self.parse_expression()
 
         return AssignNode(name, value)
+    
+    def parse_while(self):
+        self.advance() # jistain
+
+        condition = self.parse_expression()
+
+        self.advance() # :
+        self.advance() # NEWLINE
+
+        body = []
+
+        while self.peek().type not in (TokenType.EOF, TokenType.WARNA):
+            if self.peek().type == TokenType.NEWLINE:
+                self.advance()
+                continue
+
+            body.append(self.parse_statement())
+        
+        return WhileNode(condition, body)
     
