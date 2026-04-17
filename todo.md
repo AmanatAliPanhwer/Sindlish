@@ -74,12 +74,12 @@
 
 ## ➕ Arithmetic
 
-* [ ] +
-* [ ] -
-* [ ] *
-* [ ] /
-* [ ] %
-* [ ] power (** optional)
+* [x] +
+* [x] -
+* [x] *
+* [x] /
+* [x] %
+* [x] power (^)
 
 ## ⚖️ Comparison
 

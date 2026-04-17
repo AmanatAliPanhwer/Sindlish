@@ -16,6 +16,21 @@ class Parser:
         self.pos += 1
         return token
     
+    
+    def parse(self):
+        statements = []
+
+        while self.peek() and self.peek().type != TokenType.EOF:
+            
+            if self.peek().type == TokenType.NEWLINE:
+                self.advance()
+                continue
+
+            stmt = self.parse_statement()
+            statements.append(stmt)
+
+        return ProgramNode(statements)
+    
     def parse_statement(self):
         token = self.peek()
 
@@ -32,20 +47,6 @@ class Parser:
             return self.parse_assignment()
         
         raise Exception(f"Unexpected token {token}")
-    
-    def parse(self):
-        statements = []
-
-        while self.peek() and self.peek().type != TokenType.EOF:
-            
-            if self.peek().type == TokenType.NEWLINE:
-                self.advance()
-                continue
-
-            stmt = self.parse_statement()
-            statements.append(stmt)
-
-        return ProgramNode(statements)
     
     def parse_print(self):
         self.advance() # likh
@@ -94,17 +95,9 @@ class Parser:
         return IfNode(condition, body, else_body)
 
     def parse_expression(self):
-        left = self.parse_term()
-
-        while self.peek().type in (TokenType.GT, TokenType.LT):
-            op = self.advance()
-            right = self.parse_term()
-
-            left = BinaryOpNode(left, op, right)
-        
-        return left
+        return self.parse_comparison()
     
-    def parse_term(self):
+    def parse_primary(self):
         token = self.peek()
 
         if token.type == TokenType.NUMBER:
@@ -118,6 +111,12 @@ class Parser:
         if token.type == TokenType.IDENTIFIER:
             self.advance()
             return VariableNode(token.value)
+        
+        if token.type == TokenType.LPAREN:
+            self.advance()
+            expr = self.parse_expression()
+            self.advance() # )
+            return expr
 
         raise Exception(f"Unexpected token `{token}`") 
     
@@ -148,4 +147,52 @@ class Parser:
             body.append(self.parse_statement())
         
         return WhileNode(condition, body)
+    
+    def parse_comparison(self):
+        left = self.parse_term()
+
+        while self.peek().type in (TokenType.GT, TokenType.LT):
+            op = self.advance()
+            right = self.parse_term()
+            left = BinaryOpNode(left, op, right)
+
+        return left
+    
+    def parse_term(self):
+        left = self.parse_factor()
+
+        while self.peek().type in (TokenType.PLUS, TokenType.MINUS):
+            op = self.advance()
+            right = self.parse_factor()
+            left = BinaryOpNode(left, op, right)
+        
+        return left
+    
+    def parse_factor(self):
+        left = self.parse_power()
+
+        while self.peek().type in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
+            op = self.advance()
+            right = self.parse_power()
+            left = BinaryOpNode(left, op, right)
+
+        return left
+    
+    def parse_power(self):
+        left = self.parse_unary()
+
+        while self.peek().type == TokenType.POW:
+            op = self.advance()
+            right = self.parse_power()
+            left = BinaryOpNode(left, op, right)
+
+        return left
+    
+    def parse_unary(self):
+        if self.peek().type == TokenType.MINUS:
+            op = self.advance()
+            value = self.parse_unary()
+            return BinaryOpNode(NumberNode(0), op, value)
+        
+        return self.parse_primary()
     

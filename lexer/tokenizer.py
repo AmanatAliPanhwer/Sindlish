@@ -117,6 +117,16 @@ class Lexer:
                 self.advance()
                 continue
 
+            if char == "%":
+                tokens.append(Token(TokenType.MOD, "%", self.line, self.column))
+                self.advance()
+                continue
+
+            if char == "^":
+                tokens.append(Token(TokenType.POW, "^", self.line, self.column))
+                self.advance()
+                continue
+
             if char == ">":
                 tokens.append(Token(TokenType.GT, ">", self.line, self.column))
                 self.advance()

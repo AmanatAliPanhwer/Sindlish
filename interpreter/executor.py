@@ -40,6 +40,18 @@ class Interpreter:
             return left > right
         if node.op.type == TokenType.LT:
             return left < right
+        if node.op.type == TokenType.PLUS:
+            return left + right
+        if node.op.type == TokenType.MINUS:
+            return left - right
+        if node.op.type == TokenType.MUL:
+            return left * right
+        if node.op.type == TokenType.DIV:
+            return left / right
+        if node.op.type == TokenType.MOD:
+            return left % right
+        if node.op.type == TokenType.POW:
+            return left ** right
         
         raise Exception("Unknown Opration") 
 

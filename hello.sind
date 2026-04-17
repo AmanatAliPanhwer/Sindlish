@@ -9,5 +9,15 @@ agar x > 5:
 warna:
   likh("Small")
 
-jistain x > 1:
-    likh("Salam, Duniay.")
+
+x = 2 + 3 * 4
+likh(x)
+
+y = (2 + 3) * 4
+likh(y)
+
+z = 2 ^ 3
+likh(z)
+
+Amanat = 2 ^ 3 ^ 2
+likh(Amanat)

@@ -18,9 +18,12 @@ class TokenType(Enum):
     MINUS = auto()
     MUL = auto()
     DIV = auto()
+    MOD = auto()
+    POW = auto()
     GT = auto()
     LT = auto()
     EQ = auto()
+
 
     # Symbols
     LPAREN = auto()
