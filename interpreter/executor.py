@@ -49,6 +49,11 @@ class Interpreter:
         if condition:
             for stmt in node.body:
                 self.visit(stmt)
+            
+        else:
+            if node.else_body:
+                for stmt in node.else_body:
+                    self.visit(stmt)
 
     def visit_AssignNode(self, node):
         value = self.visit(node.value)

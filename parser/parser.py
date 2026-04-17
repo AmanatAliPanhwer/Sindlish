@@ -65,7 +65,8 @@ class Parser:
         self.advance() # NEWLINE
 
         body = []
-
+        
+        # Parse If
         while self.peek().type != TokenType.EOF and self.peek().type != TokenType.WARNA:
             if self.peek().type == TokenType.NEWLINE:
                 self.advance()
@@ -73,7 +74,21 @@ class Parser:
 
             body.append(self.parse_statement())
 
-        return IfNode(condition, body)
+        else_body = []
+
+        if self.peek().type == TokenType.WARNA:
+            self.advance() # warna
+            self.advance() # :
+            self.advance() # NEWLINE
+
+            while self.peek().type != TokenType.EOF:
+                if self.peek().type == TokenType.NEWLINE:
+                    self.advance()
+                    continue
+
+                else_body.append(self.parse_statement())
+
+        return IfNode(condition, body, else_body)
 
     def parse_expression(self):
         left = self.parse_term()

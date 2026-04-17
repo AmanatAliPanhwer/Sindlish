@@ -1,3 +1,10 @@
 # He Duniay khe salam kando
 agar 10 > 5:
     likh("Salam, Duniay.")
+
+x = 2
+
+agar x > 5:
+    likh("Big")
+warna:
+    likh("Small")

@@ -25,9 +25,10 @@ class PrintNode(Node):
         self.value = value
 
 class IfNode(Node):
-    def __init__(self, condition, body):
+    def __init__(self, condition, body, else_body):
         self.condition = condition
         self.body = body
+        self.else_body = else_body
 
 class ProgramNode(Node):
     def __init__(self, statements):

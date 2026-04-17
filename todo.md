@@ -14,7 +14,7 @@
 * [ ] Add float support (`12.5`)
 * [ ] Add boolean literal recognition (`True/False → sach/koorh`)
 * [ ] Add null (`khali`)
-* [ ] Add comment support (`# ...`)
+* [x] Add comment support (`# ...`)
 * [ ] Improve error reporting (line + column highlight)
 
 ---
