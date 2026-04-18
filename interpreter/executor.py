@@ -53,6 +53,20 @@ class Interpreter:
             return left % right
         if node.op.type == TokenType.POW:
             return left**right
+        if node.op.type == TokenType.EQEQ:
+            return left == right
+        if node.op.type == TokenType.NOTEQ:
+            return left != right
+        if node.op.type == TokenType.LTEQ:
+            return left <= right
+        if node.op.type == TokenType.GTEQ:
+            return left >= right
+        if node.op.type == TokenType.AND:
+            return left and right
+        if node.op.type == TokenType.OR:
+            return left or right
+        if node.op.type == TokenType.NOT:
+            return not right
 
         raise Exception("Unknown Opration")
 

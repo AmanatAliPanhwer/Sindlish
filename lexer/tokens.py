@@ -23,6 +23,14 @@ class TokenType(Enum):
     GT = auto()
     LT = auto()
     EQ = auto()
+    EQEQ = auto()
+    NOTEQ = auto()
+    GTEQ = auto()
+    LTEQ = auto()
+    AND = auto()
+    OR = auto()
+    NOT = auto()
+
 
     # Symbols
     LPAREN = auto()

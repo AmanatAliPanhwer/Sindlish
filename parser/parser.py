@@ -109,7 +109,7 @@ class Parser:
         return IfNode(condition, body, else_body)
 
     def parse_expression(self):
-        return self.parse_comparison()
+        return self.parse_or()
     
     def parse_primary(self):
         token = self.peek()
@@ -154,10 +154,38 @@ class Parser:
         
         return WhileNode(condition, body)
     
+    def parse_or(self):
+        left = self.parse_and()
+        
+        while self.peek().type == TokenType.OR:
+            op = self.advance()
+            right = self.parse_and()
+            left = BinaryOpNode(left, op, right)
+        
+        return left
+    
+    def parse_and(self):
+        left = self.parse_not()
+
+        while self.peek().type == TokenType.AND:
+            op = self.advance()
+            right = self.parse_not() 
+            left = BinaryOpNode(left, op, right)
+        
+        return left
+    
+    def parse_not(self):
+        if self.peek().type == TokenType.NOT:
+            op = self.advance()
+            value = self.parse_not()
+            return BinaryOpNode(NumberNode(0), op, value)
+        return self.parse_comparison()
+
+    
     def parse_comparison(self):
         left = self.parse_term()
 
-        while self.peek().type in (TokenType.GT, TokenType.LT):
+        while self.peek().type in (TokenType.GT, TokenType.LT, TokenType.EQEQ, TokenType.NOTEQ, TokenType.GTEQ, TokenType.LTEQ):
             op = self.advance()
             right = self.parse_term()
             left = BinaryOpNode(left, op, right)

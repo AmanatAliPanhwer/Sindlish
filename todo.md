@@ -1,9 +1,5 @@
 # 🚀 SINDLISH — MASTER DEVELOPMENT TODO LIST
 
-## (Full Programming Language Roadmap)
-
----
-
 # 🧠 1. CORE LANGUAGE FOUNDATION
 
 ## 🟢 Lexer (DONE ✔ → but extend it)
@@ -63,7 +59,7 @@
 ## 🔵 Data Types (NEW CORE FEATURE)
 
 * [ ] int → `adad`
-* [ ] float → `ashari`
+* [ ] float → `dehai`
 * [ ] string → `lafz`
 * [ ] bool → `sach / koorh`
 * [ ] null → `khali`
@@ -88,16 +84,16 @@
 
 ### ADD:
 
-* [ ] ==
-* [ ] !=
-* [ ] >=
-* [ ] <=
+* [x] ==
+* [x] !=
+* [x] >=
+* [x] <=
 
 ## 🔗 Logical
 
-* [ ] and → `aen`
-* [ ] or → `ya`
-* [ ] not → `nah`
+* [x] and → `aen`
+* [x] or → `ya`
+* [x] not → `nah`
 
 ---
 
@@ -111,14 +107,14 @@
 ### ADD:
 
 * [ ] elif → `yawari`
-* [ ] nested if support (full stability)
+* [x] nested if support (full stability)
 * [ ] multi-branch condition parsing
 
 ---
 
 ## 🔁 Loops (HIGH PRIORITY 🔥)
 
-* [ ] while → `jistain`
+* [x] while → `jistain`
 * [ ] for → `har`
 * [ ] break → `tor`
 * [ ] continue → `halando`

@@ -26,6 +26,11 @@ class Lexer:
             self.column += 1
 
         return char
+    
+    def peek_ahead(self) -> str | None:
+        if self.pos + 1 < len(self.code):
+            return self.code[self.pos + 1]
+        return None
 
     def make_number(self):
         num = ""
@@ -138,19 +143,48 @@ class Lexer:
                 continue
 
             if char == ">":
-                tokens.append(Token(TokenType.GT, ">", self.line, self.column))
-                self.advance()
-                continue
+                if self.peek_ahead() == "=":
+                    tokens.append(Token(TokenType.GTEQ, ">=", self.line, self.column))
+                    self.advance()
+                    self.advance()
+                    continue
+                else:
+                    tokens.append(Token(TokenType.GT, ">", self.line, self.column))
+                    self.advance()
+                    continue
 
             if char == "<":
-                tokens.append(Token(TokenType.LT, "<", self.line, self.column))
-                self.advance()
-                continue
+                if self.peek_ahead() == "=":
+                    tokens.append(Token(TokenType.LTEQ, "<=", self.line, self.column))
+                    self.advance()
+                    self.advance()
+                    continue
+                else:
+                    tokens.append(Token(TokenType.LT, "<", self.line, self.column))
+                    self.advance()
+                    continue
 
             if char == "=":
-                tokens.append(Token(TokenType.EQ, "=", self.line, self.column))
-                self.advance()
-                continue
+                if self.peek_ahead() == "=":
+                    tokens.append(Token(TokenType.EQEQ, "==", self.line, self.column))
+                    self.advance()
+                    self.advance()
+                    continue
+                else:
+                    tokens.append(Token(TokenType.EQ, "=", self.line, self.column))
+                    self.advance()
+                    continue
+
+            if char == "!":
+                if self.peek_ahead() == "=":
+                    tokens.append(Token(TokenType.NOTEQ, "!=", self.line, self.column))
+                    self.advance()
+                    self.advance()
+                    continue
+                else:
+                    tokens.append(Token(TokenType.NOT, "!", self.line, self.column))
+                    self.advance()
+                    continue
 
             if char == "(":
                 tokens.append(Token(TokenType.LPAREN, "(", self.line, self.column))
@@ -159,11 +193,6 @@ class Lexer:
 
             if char == ")":
                 tokens.append(Token(TokenType.RPAREN, ")", self.line, self.column))
-                self.advance()
-                continue
-
-            if char == ":":
-                tokens.append(Token(TokenType.COLON, ":", self.line, self.column))
                 self.advance()
                 continue
 

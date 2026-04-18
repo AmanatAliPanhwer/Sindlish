@@ -20,6 +20,7 @@ likh(y)
 z = 2 ^ 3
 likh(z)
 
+
 Amanat = 2 ^ 3 ^ 2
 likh(Amanat)
 
@@ -38,4 +39,39 @@ jistain x < 3 {
         likh("Bahir")
     }
     x = x + 1
+}
+
+agar 3 == 3 {
+    likh("Barabar")
+} warna {
+    likh("Barabar kone")
+}
+
+agar 3 != 4 {
+    likh("Barabar kone")
+} warna {
+    likh("Barabar")
+}
+
+agar 3 <= 4 {
+    likh("3 nando yan baraber ahi 4 je")
+} warna {
+    likh("3 nando yan baraber na ahi 4 je")
+}
+agar 5 >= 5 {
+    likh("5 vado yan baraber kone 5 je")
+} warna {
+    likh("5 vado yan baraber na ahi 5 je")
+}
+
+agar x > 5 aen y < 10 {
+    likh("OK")
+} warna {
+    likh("Not OK")
+}
+agar nah x == 0 {
+    likh("Not zero")
+}
+agar x > 5 ya y > 5 {
+    likh("One is big")
 }
