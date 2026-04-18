@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
-class TokenType(Enum):
 
+class TokenType(Enum):
     # Data Types
     NUMBER = auto()
     STRING = auto()
@@ -24,15 +24,15 @@ class TokenType(Enum):
     LT = auto()
     EQ = auto()
 
-
     # Symbols
     LPAREN = auto()
     RPAREN = auto()
     COLON = auto()
     NEWLINE = auto()
-    INDENT = auto()
-    DEDENT = auto()
+    LBRACE = auto()
+    RBRACE = auto()
     EOF = auto()
+
 
 class Token:
     def __init__(self, type_, value, line, column):

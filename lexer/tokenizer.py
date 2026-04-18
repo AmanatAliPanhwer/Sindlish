@@ -2,19 +2,19 @@ import re
 from .tokens import Token, TokenType
 from .keywords import KEYWORDS
 
+
 class Lexer:
     def __init__(self, code):
         self.code = code
         self.pos = 0
         self.line = 1
         self.column = 1
-        self.indent_stack = [0]
 
     def peek(self) -> str | None:
         if self.pos < len(self.code):
             return self.code[self.pos]
         return None
-    
+
     def advance(self):
         char = self.peek()
         self.pos += 1
@@ -24,17 +24,17 @@ class Lexer:
             self.column = 1
         else:
             self.column += 1
-        
+
         return char
-    
+
     def make_number(self):
         num = ""
         start_col = self.column
         while self.peek() and self.peek().isdigit():
             num += self.advance()
-        
+
         return Token(TokenType.NUMBER, int(num), self.line, start_col)
-    
+
     def make_string(self):
         quote = self.advance()
         string = ""
@@ -42,11 +42,11 @@ class Lexer:
 
         while self.peek() and self.peek() != quote:
             string += self.advance()
-        
+
         self.advance()
 
         return Token(TokenType.STRING, string, self.line, start_col)
-    
+
     def make_identifier(self):
         ident = ""
         start_col = self.column
@@ -58,49 +58,35 @@ class Lexer:
         return Token(token_type, ident, self.line, start_col)
 
     def skip_comment(self):
-        while self.peek() is not None and self.peek() != '\n':
+        while self.peek() is not None and self.peek() != "\n":
             self.advance()
 
     def generate_tokens(self):
         tokens = []
-        
+
         while self.pos < len(self.code):
             char = self.peek()
 
-            # Skip spaces
+            # Skip spaces and NEWLINES
             if char in " \t":
                 self.advance()
                 continue
-                
-            # Newline
+
             if char == "\n":
-                self.advance()
                 tokens.append(Token(TokenType.NEWLINE, "\\n", self.line, self.column))
-                
-                spaces = 0
-                while True:
-                    if self.peek() == " ":
-                        spaces += 1
-                        self.advance()
-                    elif self.peek() == "\t":
-                        spaces += 4
-                        self.advance()
-                    else:
-                        break
-                
-                if self.peek() == "\n":
-                    continue
-
-                if spaces > self.indent_stack[-1]:
-                    self.indent_stack.append(spaces)
-                    tokens.append(Token(TokenType.INDENT, None, self.line, self.column))
-                
-                while spaces < self.indent_stack[-1]:
-                    self.indent_stack.pop()
-                    tokens.append(Token(TokenType.DEDENT, None, self.line, self.column))
-
+                self.advance()
                 continue
-        
+
+            if char == "{":
+                tokens.append(Token(TokenType.LBRACE, "{", self.line, self.column))
+                self.advance()
+                continue
+
+            if char == "}":
+                tokens.append(Token(TokenType.RBRACE, "}", self.line, self.column))
+                self.advance()
+                continue
+
             # Numbers
             if char.isdigit():
                 tokens.append(self.make_number())
@@ -180,14 +166,9 @@ class Lexer:
                 tokens.append(Token(TokenType.COLON, ":", self.line, self.column))
                 self.advance()
                 continue
-            
+
             # Unknown character
             raise Exception(f"Illigal character `{char}` at line {self.line}")
-        
-        while len(self.indent_stack) > 1:
-            self.indent_stack.pop()
-            tokens.append(Token(TokenType.DEDENT, None, self.line, self.column))
-        
+
         tokens.append(Token(TokenType.EOF, None, self.line, self.column))
         return tokens
-

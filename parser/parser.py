@@ -16,13 +16,16 @@ class Parser:
         self.pos += 1
         return token
     
+    def skip_newlines(self):
+        while self.peek() and self.peek().type == TokenType.NEWLINE:
+            self.advance()
     
     def parse(self):
         statements = []
 
         while self.peek() and self.peek().type != TokenType.EOF:
             
-            if self.peek().type in (TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT):
+            if self.peek().type == TokenType.NEWLINE:
                 self.advance()
                 continue
 
@@ -34,20 +37,19 @@ class Parser:
     def parse_block(self):
         statements = []
 
-        self.advance() # NEWLINE
-        self.advance() # INDENT
-
-
         while True:
             token = self.peek()
-
-            if token.type == TokenType.DEDENT:
-                self.advance()
-                break
 
             if token.type == TokenType.NEWLINE:
                 self.advance()
                 continue
+
+            if token.type in (TokenType.EOF, TokenType.WARNA):
+                break
+
+            if token.type == TokenType.RBRACE:
+                self.advance() # }
+                break
 
             statements.append(self.parse_statement())
 
@@ -68,9 +70,6 @@ class Parser:
         if token.type == TokenType.IDENTIFIER:
             return self.parse_assignment()
         
-        if token.type in (TokenType.DEDENT, TokenType.INDENT):
-            raise Exception(f"Unexpected block token {token}")
-        
         raise Exception(f"Unexpected token {token}")
     
     def parse_print(self):
@@ -89,15 +88,21 @@ class Parser:
 
         condition = self.parse_expression()
 
-        self.advance() # :
+        if self.peek().type != TokenType.LBRACE:
+            raise Exception("Expected '{' after condition")
+        self.advance() # {
 
         body = self.parse_block()
+
+        self.skip_newlines()
 
         else_body = None
 
         if self.peek().type == TokenType.WARNA:
             self.advance() # warna
-            self.advance() # :
+            if self.peek().type != TokenType.LBRACE:
+                raise Exception("Expected '{' after condition")
+            self.advance() # {
 
             else_body = self.parse_block()
 
@@ -143,7 +148,7 @@ class Parser:
 
         condition = self.parse_expression()
 
-        self.advance() # :
+        self.advance() # {
 
         body = self.parse_block()
         
@@ -182,7 +187,7 @@ class Parser:
     def parse_power(self):
         left = self.parse_unary()
 
-        while self.peek().type == TokenType.POW:
+        if self.peek().type == TokenType.POW:
             op = self.advance()
             right = self.parse_power()
             left = BinaryOpNode(left, op, right)

@@ -1,14 +1,15 @@
 # He Duniay khe salam kando
-agar 10 > 5:
+agar 10 > 5 {
     likh("Salam, Duniay.")
+}
 
 x = 2
 
-agar x > 5:
+agar x > 5 {
     likh("Big")
-warna:
+} warna {
   likh("Small")
-
+}
 
 x = 2 + 3 * 4
 likh(x)
@@ -24,10 +25,17 @@ likh(Amanat)
 
 x = 0
 
-jistain x < 3:
-    agar x < 2:
-        likh("Inner")
-    warna:
-        likh("Else")
-
+jistain x < 3 {
+    agar x < 2 {
+        agar x < 1 {
+            likh("Amanat")
+        } 
+        warna {
+            likh("inder")
+        }
+    } 
+    warna {
+        likh("Bahir")
+    }
     x = x + 1
+}

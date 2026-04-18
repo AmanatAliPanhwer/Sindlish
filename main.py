@@ -9,12 +9,19 @@ args = parser.parse_args()
 
 if not args.input.endswith(".sind"):
     raise Exception("file must have .sind extension.")
-    
-with open(args.input, 'r', encoding="utf-8") as f:
+
+with open(args.input, "r", encoding="utf-8") as f:
     code = f.read()
 
 lexer = Lexer(code)
 tokens = lexer.generate_tokens()
+
+# for t in tokens:
+#     print(t)
+
+# print()
+# print("-"*10)
+# print()
 
 parser = Parser(tokens)
 ast = parser.parse()

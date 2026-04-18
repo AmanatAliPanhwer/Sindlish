@@ -4,5 +4,5 @@ KEYWORDS = {
     "agar": TokenType.AGAR,
     "warna": TokenType.WARNA,
     "likh": TokenType.LIKH,
-    "jistain": TokenType.JISTAIN
+    "jistain": TokenType.JISTAIN,
 }
