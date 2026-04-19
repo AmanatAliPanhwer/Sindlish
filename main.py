@@ -7,8 +7,8 @@ parser = argparse.ArgumentParser(description="Sindlish interptater")
 parser.add_argument("input", help="The .sind file to process")
 args = parser.parse_args()
 
-if not args.input.endswith(".sind"):
-    raise Exception("file must have .sind extension.")
+if not args.input.endswith(".sd"):
+    raise Exception("file must have .sd extension.")
 
 with open(args.input, "r", encoding="utf-8") as f:
     code = f.read()
