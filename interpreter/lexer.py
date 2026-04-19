@@ -2,7 +2,7 @@ import re
 import codecs
 from .tokens import Token, TokenType
 from .keywords import KEYWORDS
-
+from .errors import LikhaiJeGhalti
 
 class Lexer:
     def __init__(self, code):
@@ -278,7 +278,7 @@ class Lexer:
                 continue
 
             # Unknown character
-            raise Exception(f"Illigal character `{char}` at line {self.line}")
+            raise LikhaiJeGhalti(f"Illigal Akhr `{char}`", self.line, self.column, self.code)
 
         tokens.append(Token(TokenType.EOF, None, self.line, self.column))
         return tokens

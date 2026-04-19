@@ -1,12 +1,1 @@
-# Keys must be strings, values must be numbers
-bank: lughat[lafz, adad] = { "balance": 5000, "debt": 2000 }
-
-# This triggers your immutability error
-# bad_data = { [1, 2]: "error" }
-
-likh(bank["balance"])  # 5000
-likh(bank["debt"])     # 2000
-
-fehrist[adad] a = [1, 2, 3, 4, 5]
-likh(a[0])  # 1
-
+likh

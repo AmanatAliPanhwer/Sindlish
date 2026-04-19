@@ -2,7 +2,10 @@ from .tokens import TokenType
 
 
 class Node:
-    pass
+    def set_pos(self, line, column):
+        self.line = line
+        self.column = column
+        return self
 
 
 class NumberNode(Node):

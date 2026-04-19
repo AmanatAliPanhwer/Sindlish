@@ -23,9 +23,9 @@ tokens = lexer.generate_tokens()
 # print("-"*10)
 # print()
 
-parser = Parser(tokens)
+parser = Parser(tokens, code)
 ast = parser.parse()
 
-interpreter = Interpreter()
+interpreter = Interpreter(code)
 
 interpreter.visit(ast)

@@ -14,6 +14,7 @@ class TokenType(Enum):
     FEHRIST = auto()  # LIST
     LUGHAT = auto()  # DICT
     MAJMUO = auto()  # SET
+    KAAM = auto()  # FUNCTION
     IDENTIFIER = auto()
 
     # Keywords
