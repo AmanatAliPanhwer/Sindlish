@@ -7,9 +7,9 @@
 * [x] Token system
 * [x] Keyword mapping (Sindlish → Python)
 * [x] Number, string, identifier support
-* [ ] Add float support (`12.5`)
-* [ ] Add boolean literal recognition (`True/False → sach/koorh`)
-* [ ] Add null (`khali`)
+* [x] Add float support (`12.5`)
+* [x] Add boolean literal recognition (`True/False → sach/koorh`)
+* [x] Add null (`khali`)
 * [x] Add comment support (`# ...`)
 * [ ] Improve error reporting (line + column highlight)
 
@@ -24,13 +24,13 @@
 
 ### 🔧 MUST ADD:
 
-* [ ] Operator precedence system
+* [x] Operator precedence system
 
   * `* /` before `+ -`
-* [ ] Parentheses grouping `( )`
+* [x] Parentheses grouping `( )`
 * [ ] Multi-line expression parsing
-* [ ] Block parsing using INDENT / DEDENT (Python-style)
-* [ ] Expression chaining:
+* [x] Block parsing using BRACES
+* [x] Expression chaining:
 
   * `x + y - z`
 
@@ -44,25 +44,25 @@
 
 ### 🔧 ADD:
 
-* [ ] Type system (soft typing)
+* [x] Type system (soft typing)
 
   * int
   * float
   * string
   * bool
-* [ ] Type checking (optional strict mode)
-* [ ] Variable re-declaration rules
-* [ ] Constants (`const x = 10` optional future)
+* [x] Type checking (optional strict mode)
+* [x] Variable re-declaration rules
+* [x] Constants (`const x = 10` optional future)
 
 ---
 
 ## 🔵 Data Types (NEW CORE FEATURE)
 
-* [ ] int → `adad`
-* [ ] float → `dehai`
-* [ ] string → `lafz`
-* [ ] bool → `sach / koorh`
-* [ ] null → `khali`
+* [x] int → `adad`
+* [x] float → `dehai`
+* [x] string → `lafz`
+* [x] bool → `sach / koorh`
+* [x] null → `khali`
 
 ---
 

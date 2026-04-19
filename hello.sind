@@ -223,3 +223,37 @@ likh("11. Alaghahe (disjoint)?", s1.alaghahe({10, 20}))
 s1.kadh()                    # kadh - remove random element
 s1.saf()                     # saf - empty the set
 likh("12-13 (Kadh, Saf):", s1)
+
+/* ============================================
+# PART 15: NEW LEXER FEATURES
+# ============================================
+This is a multiline comment! 
+It can span across as many lines as you want.
+The lexer will completely ignore all of this text,
+including all the newlines and symbols in here.
+============================================ */
+
+# --- MULTILINE STRINGS ---
+lafz kahani = """Hikk dafay jo zikr ahe,
+Sindlish language mein nawa features achi waya!
+Ab ap asani se lambay text likh sakte hain."""
+
+
+likh("--- Multiline Strings Demo ---")
+likh(kahani)
+
+
+# --- ESCAPE SEQUENCES ---
+/* Because we routed strings through Python's codecs,
+you now have access to standard escape sequences:
+\n (newline), \t (tab), \" (quotes), and even Unicode! 
+*/
+
+lafz escapes = "Name:\tSindlish\nStatus:\tActive\nQuote:\t\"Zabardast!\""
+
+likh("\n--- Escape Sequences Demo ---")
+likh(escapes)
+
+# Fun with Unicode escapes ( \uXXXX )
+lafz dil = "\nSindlish pyari ahe \u2764"  # \u2764 is a Unicode heart!
+likh(dil)

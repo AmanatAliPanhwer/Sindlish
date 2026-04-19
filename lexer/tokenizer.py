@@ -1,4 +1,5 @@
 import re
+import codecs
 from .tokens import Token, TokenType
 from .keywords import KEYWORDS
 
@@ -50,15 +51,41 @@ class Lexer:
 
     def make_string(self):
         quote = self.advance()
-        string = ""
         start_col = self.column
+        start_line = self.line
 
-        while self.peek() and self.peek() != quote:
-            string += self.advance()
+        is_multiline = False
+        if self.peek() == quote and self.peek_ahead() == quote:
+            self.advance()
+            self.advance()
+            is_multiline = True
 
-        self.advance()
+        string_content = ""
 
-        return Token(TokenType.LAFZ, string, self.line, start_col)
+        while self.peek() is not None:
+            if self.peek() == quote and self.pos + 2 < len(self.code) and self.code[self.pos+1] == quote and self.code[self.pos+2] == quote:
+                self.advance()
+                self.advance()
+                self.advance()
+                break
+            else:
+                if self.peek() == quote:
+                    self.advance()
+                    break
+            
+            if self.peek() == "\\":
+                string_content += self.advance()
+                if self.peek() is not None:
+                    string_content += self.advance()
+                continue
+
+            string_content += self.advance()
+
+        try:
+            final_string = codecs.decode(string_content, 'unicode_escape')
+        except UnicodeDecodeError:
+            final_string = string_content
+        return Token(TokenType.LAFZ, final_string, start_line, start_col)
 
     def make_identifier(self):
         ident = ""
@@ -72,6 +99,14 @@ class Lexer:
 
     def skip_comment(self):
         while self.peek() is not None and self.peek() != "\n":
+            self.advance()
+
+    def skip_multiline_comments(self):
+        while self.peek() is not None:
+            if self.peek() == "*" and self.peek_ahead() == "/":
+                self.advance() # *
+                self.advance() # /
+                break
             self.advance()
 
     def generate_tokens(self):
@@ -136,9 +171,15 @@ class Lexer:
                 continue
 
             if char == "/":
-                tokens.append(Token(TokenType.DIV, "/", self.line, self.column))
-                self.advance()
-                continue
+                if self.peek_ahead() == "*":
+                    self.advance()
+                    self.advance()
+                    self.skip_multiline_comments()
+                    continue
+                else:
+                    tokens.append(Token(TokenType.DIV, "/", self.line, self.column))
+                    self.advance()
+                    continue
 
             if char == "%":
                 tokens.append(Token(TokenType.MOD, "%", self.line, self.column))

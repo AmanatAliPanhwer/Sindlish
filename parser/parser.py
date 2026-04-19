@@ -46,12 +46,12 @@ class Parser:
         statements = []
 
         while self.peek() and self.peek().type != TokenType.EOF:
-            if self.peek().type == TokenType.NEWLINE:
-                self.advance()
-                continue
+            self.skip_newlines()
+            if self.peek().type == TokenType.EOF: break
 
             stmt = self.parse_statement()
             statements.append(stmt)
+            self.skip_newlines()
 
         return ProgramNode(statements)
 
@@ -88,7 +88,7 @@ class Parser:
         if token.type == TokenType.JISTAIN:
             return self.parse_while()
 
-        if token.type == token.type == TokenType.PAKKO or token.type in DATATYPES:
+        if token.type == TokenType.PAKKO or token.type in DATATYPES:
             return self.parse_assignment()
         
         if token.type == TokenType.IDENTIFIER:
@@ -107,7 +107,6 @@ class Parser:
                     raise SyntaxError("Syntax Error: Invalid assignment target.")
             
             return expr
-        
 
         raise Exception(f"Unexpected token {token} at line {token.line}")
 
