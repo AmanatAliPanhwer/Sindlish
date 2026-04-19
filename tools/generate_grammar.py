@@ -50,17 +50,20 @@ def generate_grammar():
         "repository": {
             "comments": {
                 "patterns": [
+                    # Change this if you change your multiline comments
                     {
                         "begin": "/\\*",
                         "end": "\\*/",
                         "name": "comment.block.sindlish"
                     },
+                    # Change this if you change your single-line comment (#)
                     {
                         "match": "#.*$",
                         "name": "comment.line.number-sign.sindlish"
                     }
                 ]
             },
+            # Change these if you define new string modifiers like backticks (`)
             "strings": {
                 "patterns": [
                     {
@@ -146,6 +149,39 @@ def generate_grammar():
         json.dump(defs, f, indent=4)
         
     print(f"Definitions successfully written to {defs_path}")
+
+    # Generate VS Code Native Language Configuration
+    # This controls editor behavior like Ctrl+/ and auto-closing brackets!
+    lang_config = {
+        "comments": {
+            "lineComment": "#",               # If you change this, Ctrl+/ will still work!
+            "blockComment": ["/*", "*/"]      # Same with Shift+Alt+A
+        },
+        "brackets": [
+            ["{", "}"],  # Add custom block wrappers here if you invent them
+            ["[", "]"],
+            ["(", ")"]
+        ],
+        "autoClosingPairs": [
+            {"open": "{", "close": "}"},
+            {"open": "[", "close": "]"},
+            {"open": "(", "close": ")"},
+            {"open": "\"", "close": "\"", "notIn": ["string"]},
+            {"open": "'", "close": "'", "notIn": ["string", "comment"]}
+        ],
+        "surroundingPairs": [
+            ["{", "}"],
+            ["[", "]"],
+            ["(", ")"],
+            ["\"", "\""],
+            ["'", "'"]
+        ]
+    }
+    lang_path = os.path.join(os.path.dirname(__file__), '..', 'vscode-extension', 'language-configuration.json')
+    with open(lang_path, 'w', encoding='utf-8') as f:
+        json.dump(lang_config, f, indent=4)
+        
+    print(f"Language configuration successfully written to {lang_path}")
 
 if __name__ == "__main__":
     generate_grammar()
