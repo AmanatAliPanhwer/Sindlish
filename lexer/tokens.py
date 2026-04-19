@@ -1,10 +1,18 @@
 from enum import Enum, auto
 
-
 class TokenType(Enum):
     # Data Types
-    NUMBER = auto()
-    STRING = auto()
+    ADAD = auto()    # INT
+    LAFZ = auto()    # STRING
+    DAHAI = auto()   # FLOAT
+    FAISLO = auto()  # BOOL
+    SACH = auto()    # TRUE
+    KOORE = auto()   # FALSE
+    KHALI = auto()   # NULL
+    PAKKO = auto()   # Const
+    FEHRIST = auto() # LIST
+    LUGHAT = auto()  # DICT
+    MAJMUO = auto()  # SET
     IDENTIFIER = auto()
 
     # Keywords
@@ -35,15 +43,19 @@ class TokenType(Enum):
     # Symbols
     LPAREN = auto()
     RPAREN = auto()
-    COLON = auto()
-    NEWLINE = auto()
     LBRACE = auto()
     RBRACE = auto()
+    LBRACKET = auto()
+    RBRACKET = auto()
+    COLON = auto()
+    COMMA = auto()
+    NEWLINE = auto()
     EOF = auto()
+    DOT = auto()
 
 
 class Token:
-    def __init__(self, type_, value, line, column):
+    def __init__(self, type_: TokenType, value, line, column):
         self.type = type_
         self.value = value
         self.line = line

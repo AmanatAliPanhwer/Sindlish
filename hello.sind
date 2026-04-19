@@ -1,77 +1,225 @@
-# He Duniay khe salam kando
-agar 10 > 5 {
-    likh("Salam, Duniay.")
-}
+# ============================================
+# SINDLISH LANGUAGE DEMO
+# ============================================
+# A beginner-friendly showcase of Sindlish's key features
+# Fun Fact: The first-ever file written in Sindlish!
 
+# --- PART 1: HELLO WORLD & BASIC OUTPUT ---
+likh("Salam, Duniay!")  # Hello, World!
+# --- PART 2: CONDITIONALS (IF/ELSE) ---
 x = 2
-
 agar x > 5 {
     likh("Big")
 } warna {
-  likh("Small")
+    likh("Small")
 }
 
+# --- PART 3: ARITHMETIC & OPERATORS ---
+# Basic arithmetic with operator precedence (*, / before +, -)
 x = 2 + 3 * 4
-likh(x)
+likh(x)  # Output: 14
 
 y = (2 + 3) * 4
-likh(y)
+likh(y)  # Output: 20
 
-z = 2 ^ 3
-likh(z)
+z = 2 ^ 3  # Exponentiation
+likh(z)  # Output: 8
 
-
-Amanat = 2 ^ 3 ^ 2
-likh(Amanat)
-
+# --- PART 4: LOOPS & NESTED CONDITIONALS ---
+# While loop with nested if-else statements
 x = 0
-
 jistain x < 3 {
-    agar x < 2 {
-        agar x < 1 {
-            likh("Amanat")
-        } 
-        warna {
-            likh("inder")
-        }
-    } 
-    warna {
+    agar x < 1 {
+        likh("Amanat")
+    } agar x < 2 {
+        likh("inder")
+    } warna {
         likh("Bahir")
     }
     x = x + 1
 }
 
+# --- PART 5: COMPARISON OPERATORS ---
 agar 3 == 3 {
-    likh("Barabar")
-} warna {
-    likh("Barabar kone")
+    likh("Barabar")  # Equal
 }
 
 agar 3 != 4 {
-    likh("Barabar kone")
-} warna {
-    likh("Barabar")
+    likh("Barabar kone")  # Not equal
 }
 
 agar 3 <= 4 {
-    likh("3 nando yan baraber ahi 4 je")
-} warna {
-    likh("3 nando yan baraber na ahi 4 je")
-}
-agar 5 >= 5 {
-    likh("5 vado yan baraber kone 5 je")
-} warna {
-    likh("5 vado yan baraber na ahi 5 je")
+    likh("3 nando yan baraber ahi 4 je")  # Less than or equal
 }
 
-agar x > 5 aen y < 10 {
+agar 5 >= 5 {
+    likh("5 vado yan baraber kone 5 je")  # Greater than or equal
+}
+
+# --- PART 6: LOGICAL OPERATORS (AND, OR, NOT) ---
+x = 0
+y = 5
+
+agar x > 5 aen y < 10 {  # AND operator
     likh("OK")
 } warna {
     likh("Not OK")
 }
-agar nah x == 0 {
+
+agar nah x == 0 {  # NOT operator
     likh("Not zero")
 }
-agar x > 5 ya y > 5 {
+
+agar x > 5 ya y > 5 {  # OR operator
     likh("One is big")
 }
+
+# --- PART 7: DATA TYPES & DEFAULT VALUES ---
+# Sindlish has type keywords with automatic default values
+adad a        # Number type: defaults to 0
+dahai b       # Float type: defaults to 0.0
+lafz c        # String type: defaults to ""
+faislo e      # Boolean type: defaults to koorh (False)
+khali d       # None type: defaults to None
+
+likh("--- Default Values ---")
+likh(a)
+likh(b)
+likh(c)
+likh(e)
+likh(d)
+
+# --- PART 8: NULLABILITY (OPTIONAL VALUES) ---
+khali score  # Variable can be None
+likh("--- Nullability Demo ---")
+likh(score)   # None
+score = 100
+likh(score)   # 100
+
+# --- PART 9: FLOATING POINT NUMBERS ---
+pi = 3.14
+nando = .5  # Can omit leading zero
+likh("--- Decimals ---")
+likh(pi)      # 3.14
+likh(nando)   # 0.5
+
+# --- PART 10: CONSTANTS (IMMUTABLE VALUES) ---
+pakko lafz Salam = "Salam, Sindh!"  # pakko makes it constant
+likh("--- Constants ---")
+likh(Salam)
+
+# --- PART 11: DYNAMIC TYPING ---
+# Variable types can change at runtime
+x = 10
+likh("--- Dynamic Typing ---")
+likh(x)       # 10 (number)
+x = "Sindhu"
+likh(x)       # Sindhu (string)
+
+# --- PART 12: BOOLEANS (TRUE/FALSE) ---
+faislo imtehan_pass = sach  # sach means True
+agar !imtehan_pass {
+    likh("Pass thi wayo!")  # Passed!
+} warna {
+    likh("Fail thi wayo!")  # Failed!
+}
+
+# --- PART 13: LISTS (ARRAYS) ---
+l = ["Amanat", "Sindlish", 2024]
+likh("--- Lists ---")
+likh(lambi(l))  # Length: 3
+likh(l[-1])     # Negative indexing: 2024
+
+l = l.wadha("Sindh")   # Append to list
+likh(l)
+
+l = l.hata("Sindh")    # Remove from list
+likh(l)
+
+l = l.kadh(0)          # Delete by index
+likh(l)
+
+# ============================================
+# PART 14: ADVANCED COLLECTIONS
+# ============================================
+# Demonstration of methods for Lists, Dictionaries, and Sets
+
+# --- LIST METHODS (11 operations) ---
+likh("\n--- [LIST METHODS] ---")
+f = [10, 30]
+
+f.wadha(40)                  # append - add to end
+f.wadhayo([50, 60])          # extend - add multiple items
+f.wajh(1, 20)                # insert - add at position
+likh("1-3 (Wadha, Wadhayo, Wajh):", f)
+
+likh("4. Index of 30:", f.index(30))     # Find position
+likh("5. Garn (count) of 20:", f.garn(20))  # Count occurrences
+
+f.ulto()                     # reverse - flip list
+likh("6. Ulto (reverse):", f)
+
+f.tarteeb()                  # sort - arrange in order
+likh("7. Tarteeb (sort):", f)
+
+f.hata(60)                   # remove - delete by value
+val = f.kadh(0)              # pop - remove by index
+likh("8-9 (Hata, Kadh):", f, "| Popped:", val)
+
+f_copy = f.nakal()           # copy - duplicate list
+f.saf()                      # clear - empty list
+likh("10-11 (Nakal, Saf):", "Original:", f, "| Copy:", f_copy)
+
+
+# --- DICTIONARY METHODS (11 operations) ---
+likh("\n--- [DICTIONARY METHODS] ---")
+l = {"naam": "Sindlish", "ver": 1}
+
+l.update({"saal": 2024})     # update - merge with new items
+likh("1. Update:", l)
+
+likh("2. Hasil (get) 'naam':", l.hasil("naam"))  # get - retrieve value
+likh("3. Cabeyon (keys):", l.cabeyon())  # keys - get all keys
+likh("4. Raqamon (values):", l.raqamon())  # values - get all values
+likh("5. Syon (items):", l.syon())  # items - get key-value pairs
+
+l.defaultrakh("status", "active")  # setdefault - add if not exists
+likh("6. Defaultrakh:", l)
+
+l.kadh("ver")                # pop - remove and return value
+pair = l.syonkadh()          # popitem - remove last item
+likh("7-8 (Kadh, Syonkadh):", l)
+
+l_copy = l.nakal()           # copy - duplicate dictionary
+l.saf()                      # clear - empty dictionary
+likh("9-10 (Nakal, Saf):", "Original:", l, "| Copy:", l_copy)
+
+# Note: keyma (fromkeys) is typically a static method
+# likh("11. Keyma (fromkeys):", l.keyma(["x", "y"], 0))
+
+
+# --- SET METHODS (13 operations) ---
+likh("\n--- [SET METHODS] ---")
+s1 = {1, 2, 3}
+s2 = {3, 4, 5}
+
+s1.addkar(6)                 # addkar - add single element
+s1.update({7, 8})            # update - add multiple elements
+likh("1-2 (Addkar, Update):", s1)
+
+s1.hata(1)                   # hata - remove element
+s1.chad(99)                  # chad - discard element (no error if missing)
+likh("3-4 (Hata, Chad):", s1)
+
+likh("5. Bade (union):", s1.bade(s2))  # All items from both sets
+likh("6. Milap (intersection):", s1.milap(s2))  # Items in both sets
+likh("7. Farq (difference):", s1.farq(s2))  # Items in s1 but not s2
+likh("8. Symmetric Farq:", s1.symmetric_farq(s2))  # Items in either but not both
+
+likh("9. Nandohiso (subset)?", s1.nandohisoahe({1,2,3,4,5,6,7,8,9}))
+likh("10. Wadohiso (superset)?", s1.wadohisoahe({2,3}))
+likh("11. Alaghahe (disjoint)?", s1.alaghahe({10, 20}))
+
+s1.kadh()                    # kadh - remove random element
+s1.saf()                     # saf - empty the set
+likh("12-13 (Kadh, Saf):", s1)

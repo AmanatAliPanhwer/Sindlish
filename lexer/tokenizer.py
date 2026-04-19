@@ -34,11 +34,19 @@ class Lexer:
 
     def make_number(self):
         num = ""
+        dot_count = 0
         start_col = self.column
-        while self.peek() and self.peek().isdigit():
+        while self.peek() and (self.peek().isdigit() or self.peek() == "."):
+            if self.peek() == ".":
+                if dot_count == 1:
+                    break
+                dot_count += 1
             num += self.advance()
 
-        return Token(TokenType.NUMBER, int(num), self.line, start_col)
+        if dot_count == 0:
+            return Token(TokenType.ADAD, int(num), self.line, self.column)
+        else:
+            return Token(TokenType.DAHAI, float(num), self.line, self.column)
 
     def make_string(self):
         quote = self.advance()
@@ -50,7 +58,7 @@ class Lexer:
 
         self.advance()
 
-        return Token(TokenType.STRING, string, self.line, start_col)
+        return Token(TokenType.LAFZ, string, self.line, start_col)
 
     def make_identifier(self):
         ident = ""
@@ -93,7 +101,7 @@ class Lexer:
                 continue
 
             # Numbers
-            if char.isdigit():
+            if char.isdigit() or (char == "." and self.peek_ahead() and self.peek_ahead().isdigit()):
                 tokens.append(self.make_number())
                 continue
 
@@ -193,6 +201,31 @@ class Lexer:
 
             if char == ")":
                 tokens.append(Token(TokenType.RPAREN, ")", self.line, self.column))
+                self.advance()
+                continue
+
+            if char == ":":
+                tokens.append(Token(TokenType.COLON, ":", self.line, self.column))
+                self.advance()
+                continue
+
+            if char == ",":
+                tokens.append(Token(TokenType.COMMA, ",", self.line, self.column))
+                self.advance()
+                continue
+
+            if char == "[":
+                tokens.append(Token(TokenType.LBRACKET, "[", self.line, self.column))
+                self.advance()
+                continue
+
+            if char == "]":
+                tokens.append(Token(TokenType.RBRACKET, "]", self.line, self.column))
+                self.advance()
+                continue
+
+            if char == ".":
+                tokens.append(Token(TokenType.DOT, ".", self.line, self.column))
                 self.advance()
                 continue
 

@@ -3,9 +3,30 @@ from .tokens import TokenType
 KEYWORDS = {
     "agar": TokenType.AGAR,
     "warna": TokenType.WARNA,
-    "likh": TokenType.LIKH,
     "jistain": TokenType.JISTAIN,
     "aen": TokenType.AND,
     "ya": TokenType.OR,
-    "nah": TokenType.NOT
+    "nah": TokenType.NOT,
+    "adad": TokenType.ADAD,
+    "lafz": TokenType.LAFZ,
+    "dahai": TokenType.DAHAI,
+    "faislo": TokenType.FAISLO,
+    "sach": TokenType.SACH,
+    "koorh": TokenType.KOORE,
+    "khali": TokenType.KHALI,
+    "pakko": TokenType.PAKKO,
+    "fehrist": TokenType.FEHRIST,
+    "lughat": TokenType.LUGHAT,
+    "majmuo": TokenType.MAJMUO
 }
+
+DATATYPES = (
+    TokenType.ADAD,
+    TokenType.LAFZ,
+    TokenType.DAHAI,
+    TokenType.FAISLO,
+    TokenType.KHALI,
+    TokenType.FEHRIST,
+    TokenType.LUGHAT,
+    TokenType.MAJMUO
+)
