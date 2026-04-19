@@ -1,0 +1,57 @@
+{
+    "name": "sindlish-lang",
+    "displayName": "Sindlish",
+    "description": "Language support for Sindlish (Singlish)",
+    "version": "1.0.0",
+    "publisher": "sindlish-dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Sindlish/sindlish-lang"
+    },
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Snippets",
+        "Linters"
+    ],
+    "activationEvents": [
+        "onLanguage:sindlish"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "sindlish",
+                "aliases": [
+                    "Sindlish",
+                    "sind"
+                ],
+                "extensions": [
+                    ".sd",
+                    ".sind"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "sindlish",
+                "scopeName": "source.sindlish",
+                "path": "./syntaxes/sindlish.tmLanguage.json"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -b",
+        "watch": "tsc -b -w",
+        "postinstall": "npm run compile"
+    },
+    "devDependencies": {
+        "@types/node": "18.x",
+        "@types/vscode": "^1.80.0",
+        "typescript": "^5.1.3"
+    }
+}

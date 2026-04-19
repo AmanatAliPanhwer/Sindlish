@@ -1,0 +1,103 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Sindlish",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#builtins"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "begin": "/\\*",
+                    "end": "\\*/",
+                    "name": "comment.block.sindlish"
+                },
+                {
+                    "match": "#.*$",
+                    "name": "comment.line.number-sign.sindlish"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "begin": "\"\"\"",
+                    "end": "\"\"\"",
+                    "name": "string.quoted.triple.sindlish"
+                },
+                {
+                    "begin": "\"",
+                    "end": "\"",
+                    "name": "string.quoted.double.sindlish",
+                    "patterns": [
+                        {
+                            "match": "\\\\.",
+                            "name": "constant.character.escape.sindlish"
+                        }
+                    ]
+                },
+                {
+                    "begin": "'",
+                    "end": "'",
+                    "name": "string.quoted.single.sindlish",
+                    "patterns": [
+                        {
+                            "match": "\\\\.",
+                            "name": "constant.character.escape.sindlish"
+                        }
+                    ]
+                }
+            ]
+        },
+        "numbers": {
+            "match": "\\b[0-9]+(?:\\.[0-9]+)?\\b|\\B\\.[0-9]+\\b",
+            "name": "constant.numeric.sindlish"
+        },
+        "types": {
+            "match": "\\b(?:adad|lafz|dahai|faislo|khali|fehrist|lughat|majmuo)\\b",
+            "name": "support.type.sindlish"
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "match": "\\b(?:agar|warna|jistain|sach|koorh|pakko)\\b",
+                    "name": "keyword.control.sindlish"
+                },
+                {
+                    "match": "\\b(?:aen|ya|nah)\\b",
+                    "name": "keyword.operator.logical.sindlish"
+                }
+            ]
+        },
+        "builtins": {
+            "patterns": [
+                {
+                    "match": "\\b(?:lambi|likh)\\b",
+                    "name": "support.function.sindlish"
+                },
+                {
+                    "match": "\\.\\s*(?:wadha|wadhayo|wajh|hata|kadh|saf|index|garn|tarteeb|ulto|nakal|hasil|syon|cabeyon|raqamon|syonkadh|defaultrakh|update|addkar|chad|bade|milap|farq|symmetric_farq|nandohisoahe|wadohisoahe|alaghahe)\\b",
+                    "name": "entity.name.function.sindlish"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.sindlish"
+}

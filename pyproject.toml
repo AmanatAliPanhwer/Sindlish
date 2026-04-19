@@ -4,4 +4,6 @@ version = "0.3.0"
 description = "Sindlish is a interpreted programming language Inspired by Python"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "pygls>=2.1.1",
+]
