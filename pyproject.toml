@@ -1,9 +1,7 @@
 [project]
 name = "sindlish"
-version = "0.3.0"
+version = "0.5.0"
 description = "Sindlish is a interpreted programming language Inspired by Python"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "pygls>=2.1.1",
-]
+dependencies = []
