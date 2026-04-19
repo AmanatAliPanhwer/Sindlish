@@ -2,6 +2,7 @@
 
 import pytest
 from tests.helpers import run
+from interpreter.errors import HalndeVaktGhalti, LikhaiJeGhalti
 
 
 class TestConstantDeclaration:
@@ -23,15 +24,15 @@ class TestConstantDeclaration:
 
 class TestConstantReassignment:
     def test_const_cannot_be_reassigned(self):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(HalndeVaktGhalti):
             run("pakko adad x = 10\nx = 20")
 
     def test_const_string_cannot_be_reassigned(self):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(HalndeVaktGhalti):
             run('pakko lafz s = "a"\ns = "b"')
 
 
 class TestConstantMustBeInitialized:
     def test_const_without_value_raises(self):
-        with pytest.raises(SyntaxError):
+        with pytest.raises(LikhaiJeGhalti):
             run("pakko adad x")

@@ -219,10 +219,10 @@ class Interpreter:
         
         var_entry = self.variables[node.name]
 
-        if var_entry.type != TokenType.KAAM:
+        if var_entry["type"] != TokenType.KAAM:
             raise QisamJeGhalti(f"`{node.name}` kaam (function) na aahe, par `{var_entry['type'].name}` aahe", node.line, node.column, self.code)
 
-        func = var_entry.value
+        func = var_entry["value"]
         args = [self.visit(arg) for arg in node.args]
         return func(self.simple_handler, args)
 

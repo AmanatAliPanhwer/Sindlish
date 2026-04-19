@@ -2,6 +2,7 @@
 
 import pytest
 from tests.helpers import run
+from interpreter.errors import QisamJeGhalti
 
 
 class TestAdad:
@@ -14,11 +15,11 @@ class TestAdad:
         assert interp.variables["x"]["value"] == 42
 
     def test_adad_rejects_string(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run('adad x = "hello"')
 
     def test_adad_rejects_float(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run("adad x = 3.14")
 
 
@@ -32,11 +33,11 @@ class TestDahai:
         assert interp.variables["x"]["value"] == 3.14
 
     def test_dahai_rejects_string(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run('dahai x = "hello"')
 
     def test_dahai_rejects_int(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run("dahai x = 42")
 
 
@@ -50,7 +51,7 @@ class TestLafz:
         assert interp.variables["x"]["value"] == "hello"
 
     def test_lafz_rejects_int(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run("lafz x = 42")
 
 
@@ -88,5 +89,5 @@ class TestPostfixTypeAnnotation:
         assert interp.variables["x"]["value"] == "hi"
 
     def test_postfix_type_mismatch(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run('x: adad = "hello"')

@@ -2,6 +2,7 @@
 
 from tests.helpers import run
 import pytest
+from interpreter.errors import QisamJeGhalti
 
 
 class TestListLiteral:
@@ -42,7 +43,7 @@ class TestTypedList:
         assert interp.variables["x"]["value"] == [1, 2, 3]
 
     def test_typed_list_rejects_wrong_type(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run('fehrist[adad] x = [1, "two", 3]')
 
 

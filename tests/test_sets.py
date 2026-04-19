@@ -2,6 +2,7 @@
 
 import pytest
 from tests.helpers import run
+from interpreter.errors import QisamJeGhalti
 
 
 class TestSetLiteral:
@@ -24,5 +25,5 @@ class TestTypedSet:
         assert interp.variables["x"]["value"] == {1, 2, 3}
 
     def test_typed_majmuo_rejects_wrong_type(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run('majmuo[adad] x = {1, "two", 3}')

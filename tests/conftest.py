@@ -20,10 +20,10 @@ def run(code: str) -> tuple[Interpreter, str]:
     """
     lexer = Lexer(code)
     tokens = lexer.generate_tokens()
-    parser = Parser(tokens)
+    parser = Parser(tokens, code)
     ast = parser.parse()
 
-    interp = Interpreter()
+    interp = Interpreter(code)
 
     old_stdout = sys.stdout
     sys.stdout = buffer = io.StringIO()

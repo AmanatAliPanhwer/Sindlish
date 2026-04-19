@@ -2,6 +2,7 @@
 
 import pytest
 from tests.helpers import run
+from interpreter.errors import QisamJeGhalti
 
 
 class TestDictLiteral:
@@ -38,9 +39,9 @@ class TestTypedDict:
         assert interp.variables["x"]["value"] == {"score": 100}
 
     def test_typed_lughat_wrong_key_type(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run('lughat[lafz, adad] x = {1: 100}')
 
     def test_typed_lughat_wrong_value_type(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(QisamJeGhalti):
             run('lughat[lafz, adad] x = {"score": "high"}')
