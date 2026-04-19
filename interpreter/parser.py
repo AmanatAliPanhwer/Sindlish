@@ -1,10 +1,6 @@
-from ast import arg
-from operator import is_
-from time import sleep
-
-from ast_sind.nodes import *
-from lexer.tokens import TokenType
-from lexer.keywords import DATATYPES
+from .ast_nodes import *
+from .tokens import TokenType
+from .keywords import DATATYPES
 
 
 class Parser:
@@ -47,7 +43,8 @@ class Parser:
 
         while self.peek() and self.peek().type != TokenType.EOF:
             self.skip_newlines()
-            if self.peek().type == TokenType.EOF: break
+            if self.peek().type == TokenType.EOF:
+                break
 
             stmt = self.parse_statement()
             statements.append(stmt)
@@ -90,22 +87,24 @@ class Parser:
 
         if token.type == TokenType.PAKKO or token.type in DATATYPES:
             return self.parse_assignment()
-        
-        if token.type == TokenType.IDENTIFIER:
 
-            if self.peek_ahead() and self.peek_ahead().type in (TokenType.EQ, TokenType.COLON):
+        if token.type == TokenType.IDENTIFIER:
+            if self.peek_ahead() and self.peek_ahead().type in (
+                TokenType.EQ,
+                TokenType.COLON,
+            ):
                 return self.parse_assignment()
             expr = self.parse_expression()
 
             if self.peek() and self.peek().type == TokenType.EQ:
-                self.advance() # =
+                self.advance()  # =
                 value_node = self.parse_expression()
 
                 if isinstance(expr, IndexNode):
                     return IndexNode(expr.left, expr.index, value_node)
                 else:
                     raise SyntaxError("Syntax Error: Invalid assignment target.")
-            
+
             return expr
 
         raise Exception(f"Unexpected token {token} at line {token.line}")
@@ -187,10 +186,10 @@ class Parser:
         if token.type == TokenType.KHALI:
             self.advance()
             return NullNode()
-        
+
         if token.type == TokenType.LBRACKET:
             return self.parse_list()
-        
+
         if token.type == TokenType.LBRACE:
             return self.parse_dict_set()
 
@@ -204,16 +203,16 @@ class Parser:
 
                 if not self.peek() or self.peek().type != TokenType.LPAREN:
                     raise SyntaxError(f"Expected '(' after method {method_name}")
-                
+
                 args = self.parse_call_arguments()
                 return MethodCallNode(node, method_name, args)
-            
+
             if self.peek() and self.peek().type == TokenType.LPAREN:
                 args = self.parse_call_arguments()
                 return CallNode(name, args)
 
             if self.peek() and self.peek().type == TokenType.LBRACKET:
-                self.advance() # [
+                self.advance()  # [
                 index = self.parse_expression()
                 self.advance()
                 return IndexNode(node, index)
@@ -238,30 +237,42 @@ class Parser:
 
         if self.peek().type in DATATYPES:
             _type = self.advance().type
-            if _type in (TokenType.FEHRIST, TokenType.MAJMUO) and self.peek() and self.peek().type == TokenType.LBRACKET:
-                self.advance() # [
+            if (
+                _type in (TokenType.FEHRIST, TokenType.MAJMUO)
+                and self.peek()
+                and self.peek().type == TokenType.LBRACKET
+            ):
+                self.advance()  # [
                 if self.peek() and self.peek().type in DATATYPES:
                     element_type = self.advance().type
                 else:
-                    raise SyntaxError(f"Expected data type inside [] for {"fehrist" if _type == TokenType.FEHRIST else "majmuo"}")
-                
-                if self.peek() and self.peek().type != TokenType.RBRACKET:
-                    raise SyntaxError(f"Expected ']' after {"fehrist" if _type == TokenType.FEHRIST else "majmuo"} element type")
-                self.advance() # ]
+                    raise SyntaxError(
+                        f"Expected data type inside [] for {'fehrist' if _type == TokenType.FEHRIST else 'majmuo'}"
+                    )
 
-            if _type == TokenType.LUGHAT and self.peek() and self.peek().type == TokenType.LBRACKET:
-                self.advance() # [
+                if self.peek() and self.peek().type != TokenType.RBRACKET:
+                    raise SyntaxError(
+                        f"Expected ']' after {'fehrist' if _type == TokenType.FEHRIST else 'majmuo'} element type"
+                    )
+                self.advance()  # ]
+
+            if (
+                _type == TokenType.LUGHAT
+                and self.peek()
+                and self.peek().type == TokenType.LBRACKET
+            ):
+                self.advance()  # [
                 if self.peek() and self.peek().type in DATATYPES:
                     key_type = self.advance().type
                     if self.peek().type != TokenType.COMMA:
                         raise SyntaxError("Expected ',' after lughat key type")
-                    self.advance() # ,
+                    self.advance()  # ,
                     if self.peek() and self.peek().type in DATATYPES:
                         val_type = self.advance().type
                         element_type = [key_type, val_type]
                 if self.peek() and self.peek().type != TokenType.RBRACKET:
                     raise SyntaxError("Expected ']' after lughat element types")
-                self.advance()# ]
+                self.advance()  # ]
 
         if self.peek().type != TokenType.IDENTIFIER:
             raise SyntaxError(f"Expected variable name, got {self.peek().type.name}")
@@ -271,30 +282,42 @@ class Parser:
             self.advance()  # :
             if self.peek().type in DATATYPES:
                 _type = self.advance().type
-                if _type in (TokenType.FEHRIST, TokenType.MAJMUO) and self.peek() and self.peek().type == TokenType.LBRACKET:
-                    self.advance() # [
+                if (
+                    _type in (TokenType.FEHRIST, TokenType.MAJMUO)
+                    and self.peek()
+                    and self.peek().type == TokenType.LBRACKET
+                ):
+                    self.advance()  # [
                     if self.peek() and self.peek().type in DATATYPES:
                         element_type = self.advance().type
                     else:
-                        raise SyntaxError(f"Expected data type inside [] for {"fehrist" if _type == TokenType.FEHRIST else "majmuo"}")
-                    
-                    if self.peek() and self.peek().type != TokenType.RBRACKET:
-                        raise SyntaxError(f"Expected ']' after {"fehrist" if _type == TokenType.FEHRIST else "majmuo"} element type")
-                    self.advance() # ]
+                        raise SyntaxError(
+                            f"Expected data type inside [] for {'fehrist' if _type == TokenType.FEHRIST else 'majmuo'}"
+                        )
 
-                if _type == TokenType.LUGHAT and self.peek() and self.peek().type == TokenType.LBRACKET:
-                    self.advance() # [
+                    if self.peek() and self.peek().type != TokenType.RBRACKET:
+                        raise SyntaxError(
+                            f"Expected ']' after {'fehrist' if _type == TokenType.FEHRIST else 'majmuo'} element type"
+                        )
+                    self.advance()  # ]
+
+                if (
+                    _type == TokenType.LUGHAT
+                    and self.peek()
+                    and self.peek().type == TokenType.LBRACKET
+                ):
+                    self.advance()  # [
                     if self.peek() and self.peek().type in DATATYPES:
                         key_type = self.advance().type
                         if self.peek().type != TokenType.COMMA:
                             raise SyntaxError("Expected ',' after lughat key type")
-                        self.advance() # ,
+                        self.advance()  # ,
                         if self.peek() and self.peek().type in DATATYPES:
                             val_type = self.advance().type
                             element_type = [key_type, val_type]
                     if self.peek() and self.peek().type != TokenType.RBRACKET:
                         raise SyntaxError("Expected ']' after lughat element types")
-                    self.advance()# ]
+                    self.advance()  # ]
 
         if self.peek() and self.peek().type == TokenType.EQ:
             self.advance()  # =
@@ -403,37 +426,37 @@ class Parser:
         return self.parse_primary()
 
     def parse_list(self):
-        self.advance() # [
+        self.advance()  # [
         elements = []
 
         if self.peek().type != TokenType.RBRACKET:
             elements.append(self.parse_expression())
             while self.peek().type == TokenType.COMMA:
-                self.advance() # ,
+                self.advance()  # ,
                 elements.append(self.parse_expression())
-        
+
         if self.peek().type != TokenType.RBRACKET:
             raise SyntaxError("Expected ']' at end of list")
-        self.advance() # ]
+        self.advance()  # ]
 
         return ListNode(elements)
 
     def parse_call_arguments(self):
-        self.advance() # (
+        self.advance()  # (
         args = []
         if self.peek().type != TokenType.RPAREN:
             args.append(self.parse_expression())
             while self.peek().type == TokenType.COMMA:
-                self.advance() # ,
+                self.advance()  # ,
                 args.append(self.parse_expression())
-        
+
         if self.peek().type != TokenType.RPAREN:
             raise SyntaxError("Expected ')' after arguments")
-        self.advance() # )
+        self.advance()  # )
         return args
-    
+
     def parse_dict_set(self):
-        self.advance() # {
+        self.advance()  # {
 
         if self.peek() and self.peek().type == TokenType.RBRACE:
             self.advance()
@@ -442,19 +465,19 @@ class Parser:
         first_expr = self.parse_expression()
 
         if self.peek() and self.peek().type == TokenType.COLON:
-            self.advance() # :
-            first_val  = self.parse_expression()
+            self.advance()  # :
+            first_val = self.parse_expression()
             pairs = [(first_expr, first_val)]
 
             while self.peek().type == TokenType.COMMA:
-                self.advance() # ,
+                self.advance()  # ,
                 key = self.parse_expression()
                 if self.peek().type != TokenType.COLON:
                     raise SyntaxError("Lughat error: Expected ':' after key")
                 self.advance()
                 val = self.parse_expression()
                 pairs.append((key, val))
-            
+
             if self.peek().type != TokenType.RBRACE:
                 raise SyntaxError("Expected '}' at end of lughat")
             self.advance()
@@ -462,10 +485,10 @@ class Parser:
         else:
             elements = [first_expr]
             while self.peek().type == TokenType.COMMA:
-                self.advance() # ,
+                self.advance()  # ,
                 elements.append(self.parse_expression())
-            
+
             if self.peek().type != TokenType.RBRACE:
                 raise SyntaxError("Expected '}' at end of majmuo")
-            self.advance() # }
+            self.advance()  # }
             return SetNode(elements)

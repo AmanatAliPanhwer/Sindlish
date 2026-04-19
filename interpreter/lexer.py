@@ -27,7 +27,7 @@ class Lexer:
             self.column += 1
 
         return char
-    
+
     def peek_ahead(self) -> str | None:
         if self.pos + 1 < len(self.code):
             return self.code[self.pos + 1]
@@ -63,7 +63,12 @@ class Lexer:
         string_content = ""
 
         while self.peek() is not None:
-            if self.peek() == quote and self.pos + 2 < len(self.code) and self.code[self.pos+1] == quote and self.code[self.pos+2] == quote:
+            if (
+                self.peek() == quote
+                and self.pos + 2 < len(self.code)
+                and self.code[self.pos + 1] == quote
+                and self.code[self.pos + 2] == quote
+            ):
                 self.advance()
                 self.advance()
                 self.advance()
@@ -72,7 +77,7 @@ class Lexer:
                 if self.peek() == quote:
                     self.advance()
                     break
-            
+
             if self.peek() == "\\":
                 string_content += self.advance()
                 if self.peek() is not None:
@@ -82,7 +87,7 @@ class Lexer:
             string_content += self.advance()
 
         try:
-            final_string = codecs.decode(string_content, 'unicode_escape')
+            final_string = codecs.decode(string_content, "unicode_escape")
         except UnicodeDecodeError:
             final_string = string_content
         return Token(TokenType.LAFZ, final_string, start_line, start_col)
@@ -104,8 +109,8 @@ class Lexer:
     def skip_multiline_comments(self):
         while self.peek() is not None:
             if self.peek() == "*" and self.peek_ahead() == "/":
-                self.advance() # *
-                self.advance() # /
+                self.advance()  # *
+                self.advance()  # /
                 break
             self.advance()
 
@@ -136,7 +141,9 @@ class Lexer:
                 continue
 
             # Numbers
-            if char.isdigit() or (char == "." and self.peek_ahead() and self.peek_ahead().isdigit()):
+            if char.isdigit() or (
+                char == "." and self.peek_ahead() and self.peek_ahead().isdigit()
+            ):
                 tokens.append(self.make_number())
                 continue
 

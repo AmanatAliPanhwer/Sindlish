@@ -113,7 +113,6 @@ class MethodBuiltins:
     def nakal(self, obj, args):  # copy (Common)
         return obj.copy()
 
-
     @register(methods)
     def hasil(self, obj, args):  # get
         if not isinstance(obj, dict):
@@ -127,7 +126,7 @@ class MethodBuiltins:
         return list(obj.items())
 
     @register(methods)
-    def cabeyon(self, obj, args): 
+    def cabeyon(self, obj, args):
         if not isinstance(obj, dict):
             raise TypeError("Needs a lughat")
         return list(obj.keys())

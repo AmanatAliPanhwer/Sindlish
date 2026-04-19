@@ -17,7 +17,7 @@ KEYWORDS = {
     "pakko": TokenType.PAKKO,
     "fehrist": TokenType.FEHRIST,
     "lughat": TokenType.LUGHAT,
-    "majmuo": TokenType.MAJMUO
+    "majmuo": TokenType.MAJMUO,
 }
 
 DATATYPES = (
@@ -28,5 +28,5 @@ DATATYPES = (
     TokenType.KHALI,
     TokenType.FEHRIST,
     TokenType.LUGHAT,
-    TokenType.MAJMUO
+    TokenType.MAJMUO,
 )

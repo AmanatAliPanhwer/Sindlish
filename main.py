@@ -1,5 +1,5 @@
-from lexer.tokenizer import Lexer
-from parser.parser import Parser
+from interpreter.lexer import Lexer
+from interpreter.parser import Parser
 from interpreter.executor import Interpreter
 import argparse
 

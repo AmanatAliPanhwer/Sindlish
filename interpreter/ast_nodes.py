@@ -1,4 +1,4 @@
-from lexer.tokens import TokenType
+from .tokens import TokenType
 
 
 class Node:
@@ -51,12 +51,14 @@ class ProgramNode(Node):
 
 
 class AssignNode(Node):
-    def __init__(self, name, value, type = None, is_const: bool = False, element_type = None):
+    def __init__(
+        self, name, value, type=None, is_const: bool = False, element_type=None
+    ):
         self.name = name
         self.value = value
         self.type = type
         self.is_const = is_const
-        self.element_type = element_type 
+        self.element_type = element_type
 
 
 class WhileNode(Node):
@@ -64,16 +66,19 @@ class WhileNode(Node):
         self.condition = condition
         self.body = body
 
+
 class BoolNode(Node):
     def __init__(self, value: bool):
         self.value = value
-    
+
     def get_type(self):
         return TokenType.FAISLO
+
 
 class NullNode(Node):
     def __init__(self):
         self.value = None
+
 
 class ListNode(Node):
     def __init__(self, elements):
@@ -82,27 +87,31 @@ class ListNode(Node):
     def get_type(self):
         return TokenType.FEHRIST
 
+
 class IndexNode(Node):
-    def __init__(self, left, index, value = None):
+    def __init__(self, left, index, value=None):
         self.left = left
         self.index = index
-        self.value =  value
+        self.value = value
+
 
 class CallNode(Node):
     def __init__(self, name, args):
-        self.name = name 
+        self.name = name
         self.args = args
+
 
 class MethodCallNode(Node):
     def __init__(self, instance, method_name, args):
         self.instance = instance
         self.method_name = method_name
         self.args = args
-        
+
 
 class DictNode(Node):
     def __init__(self, pairs):
         self.pairs = pairs
+
 
 class SetNode(Node):
     def __init__(self, elements):

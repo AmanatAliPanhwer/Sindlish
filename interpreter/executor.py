@@ -1,5 +1,5 @@
-from ast_sind.nodes import *
-from lexer.tokens import TokenType
+from .ast_nodes import *
+from .tokens import TokenType
 from .builtins import SimpleBuiltins, MethodBuiltins
 
 
@@ -16,25 +16,27 @@ class Interpreter:
             raise TypeError(f"`{name}` is locked to dehai (float).")
         if expected_type == TokenType.LAFZ and not isinstance(value, str):
             raise TypeError(f"`{name}` is locked to lafz (string).")
-        
+
         if expected_type == TokenType.FEHRIST:
             if not isinstance(value, list):
                 raise TypeError(f"`{name}` is locked to fehrist (list).")
-            
+
             # If an inner type was specified (like fehrist[adad]), check every item
             if element_type is not None:
                 for index, item in enumerate(value):
                     # Reuse check_type_match to validate each element
                     self.check_type_match(f"{name}[{index}]", item, element_type)
-        
+
         if expected_type == TokenType.MAJMUO:
-            if not isinstance(value, set): raise TypeError(f"{name} must be a majmuo")
+            if not isinstance(value, set):
+                raise TypeError(f"{name} must be a majmuo")
             if element_type:
                 for item in value:
                     self.check_type_match(f"element of {name}", item, element_type)
 
         if expected_type == TokenType.LUGHAT:
-            if not isinstance(value, dict): raise TypeError(f"{name} must be a lughat")
+            if not isinstance(value, dict):
+                raise TypeError(f"{name} must be a lughat")
             if element_type and len(element_type) == 2:
                 k_type, v_type = element_type
                 for k, v in value.items():
@@ -43,7 +45,9 @@ class Interpreter:
 
     def ensure_immutable(self, value, container_name):
         if isinstance(value, (list, dict, set)):
-            raise TypeError(f"A `{type(value).__name__}` cannot be a key/member in a `{container_name}` (it's mutable).")
+            raise TypeError(
+                f"A `{type(value).__name__}` cannot be a key/member in a `{container_name}` (it's mutable)."
+            )
         return value
 
     def visit(self, node):
@@ -134,12 +138,16 @@ class Interpreter:
                 )
 
             if var_data["type"] is not None:
-                self.check_type_match(node.name, new_value, var_data["type"], var_data.get("element_type"))
+                self.check_type_match(
+                    node.name, new_value, var_data["type"], var_data.get("element_type")
+                )
 
             var_data["value"] = new_value
         else:
             if node.type is not None:
-                self.check_type_match(node.name, new_value, node.type, node.element_type)
+                self.check_type_match(
+                    node.name, new_value, node.type, node.element_type
+                )
 
             self.variables[node.name] = {
                 "value": new_value,
@@ -161,7 +169,7 @@ class Interpreter:
 
     def visit_ListNode(self, node):
         return [self.visit(element) for element in node.elements]
-    
+
     def visit_IndexNode(self, node):
         left_val: list = self.visit(node.left)
         index_val = self.visit(node.index)
@@ -185,16 +193,16 @@ class Interpreter:
         else:
             raise TypeError("Only fehrist and lughat support index assignment")
         return left_val[index_val]
-        
+
     def visit_CallNode(self, node):
         args = [self.visit(arg) for arg in node.args]
 
         func = SimpleBuiltins.functions.get(node.name)
         if func:
             return func(self.simple_handler, args)
-        
+
         raise RuntimeError(f"Function `{node.name}` is not defined")
-    
+
     def visit_MethodCallNode(self, node):
         obj = self.visit(node.instance)
         args = [self.visit(arg) for arg in node.args]
@@ -202,9 +210,9 @@ class Interpreter:
         method = MethodBuiltins.methods.get(node.method_name)
         if method:
             return method(self.method_handler, obj, args)
-            
+
         raise RuntimeError(f"Function `{node.method_name}` is not defined")
-    
+
     def visit_DictNode(self, node):
         return {self.visit(k): self.visit(v) for k, v in node.pairs}
 

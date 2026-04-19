@@ -1,16 +1,17 @@
 from enum import Enum, auto
 
+
 class TokenType(Enum):
     # Data Types
-    ADAD = auto()    # INT
-    LAFZ = auto()    # STRING
-    DAHAI = auto()   # FLOAT
+    ADAD = auto()  # INT
+    LAFZ = auto()  # STRING
+    DAHAI = auto()  # FLOAT
     FAISLO = auto()  # BOOL
-    SACH = auto()    # TRUE
-    KOORE = auto()   # FALSE
-    KHALI = auto()   # NULL
-    PAKKO = auto()   # Const
-    FEHRIST = auto() # LIST
+    SACH = auto()  # TRUE
+    KOORE = auto()  # FALSE
+    KHALI = auto()  # NULL
+    PAKKO = auto()  # Const
+    FEHRIST = auto()  # LIST
     LUGHAT = auto()  # DICT
     MAJMUO = auto()  # SET
     IDENTIFIER = auto()
@@ -38,7 +39,6 @@ class TokenType(Enum):
     AND = auto()
     OR = auto()
     NOT = auto()
-
 
     # Symbols
     LPAREN = auto()
