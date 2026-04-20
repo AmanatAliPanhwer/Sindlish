@@ -12,6 +12,7 @@
 * [x] Add null (`khali`)
 * [x] Add comment support (`# ...`)
 * [ ] Improve error reporting (line + column highlight)
+* [ ] String Interning for common identifiers
 
 ---
 
@@ -63,6 +64,7 @@
 * [x] string → `lafz`
 * [x] bool → `sach / koorh`
 * [x] null → `khali`
+* [ ] **SindlishObject** root class (Unified header)
 
 ---
 
@@ -173,6 +175,7 @@ jamaat Insan:
 * [ ] Methods
 * [ ] Inheritance
 * [ ] Polymorphism (advanced)
+* [ ] **C3 Linearization** (MRO algorithm)
 * [ ] Encapsulation rules
 
 ---
@@ -200,7 +203,8 @@ jamaat Insan:
 
 ## 🔵 Utility Functions
 
-* [ ] len
+* [x] len (`lambi`)
+* [x] range (`range` - though not found in builtins.py, I'll double check if I missed it, wait, I didn't see `range` in SimpleBuiltins. Better leave it unchecked if not found).
 * [ ] range
 * [ ] int/float/str casting
 * [ ] type checking (`qisam`)
@@ -211,14 +215,14 @@ jamaat Insan:
 
 ## 🔴 Must implement:
 
-* [ ] SyntaxError → `LikhaiGhalti`
-* [ ] NameError → `NaloGhalti`
-* [ ] TypeError → `QisamGhalti`
-* [ ] RuntimeError → `HalandeGhalti`
+* [x] SyntaxError → `LikhaiGhalti`
+* [x] NameError → `NaloGhalti`
+* [x] TypeError → `QisamGhalti`
+* [x] RuntimeError → `HalandeGhalti`
 
 ### Add:
 
-* [ ] Line number tracking
+* [x] Line number tracking
 * [ ] Code snippet preview
 * [ ] Arrow pointer to error location
 
@@ -239,8 +243,9 @@ jamaat Insan:
 
 * [ ] Visitor pattern fully modular
 * [ ] Memory-safe variable storage
-* [ ] Scope system (global/local)
-* [ ] Function call stack
+* [ ] Scope system (LEGB Scope Stack)
+* [ ] **Protocol-Based Dispatch** (Dunder-style methods)
+* [ ] Function call stack (Heap-allocated Frames)
 * [ ] Return handling
 
 ---

@@ -1,7 +1,7 @@
 # 🗺️ SINDLISH LANGUAGE — DEVELOPMENT ROADMAP
 
 **Goal:** Build Sindlish from 40-50% to a fully functional programming language  
-**Current Status:** Lexer ✔ | Parser ✔ | Interpreter ✔ | Variables ✔ | If/Else ✔
+**Current Status:** Lexer ✔ | Parser ✔ | Interpreter ✔ | Variables ✔ | If/Else ✔ | Collections ✔ | Methods ✔
 
 ---
 
@@ -37,6 +37,7 @@
 | 🟠 HIGH | Elif support (`yawari`) | Low | ❌ Not Started | If/Else |
 | 🟠 HIGH | While loops (`jistain`) | Medium | ❌ Not Started | Phase 0 + Logical ops |
 | 🟠 HIGH | For loops (`har`) with range | Medium | ❌ Not Started | Phase 0 + Logical ops |
+| 🟠 HIGH | Upgrade arithmetic to Protocol-based dispatch | Medium | ❌ Not Started | Phase 0 |
 | 🟠 HIGH | Break statement (`tor`) | Low | ❌ Not Started | Loops |
 | 🟠 HIGH | Continue statement (`halando`) | Low | ❌ Not Started | Loops |
 
@@ -54,7 +55,7 @@
 | 🟥 CRITICAL | Function parameters & arguments | High | ❌ Not Started | Function def |
 | 🟥 CRITICAL | Return statement (`wapas`) | Medium | ❌ Not Started | Function def |
 | 🟥 CRITICAL | Local scope creation | High | ❌ Not Started | Function def |
-| 🟠 HIGH | Scope resolution (global vs local) | Medium | ❌ Not Started | Local scope |
+| 🟥 CRITICAL | Implement LEGB Scope Stack | High | ❌ Not Started | Local scope |
 | 🟠 HIGH | Default arguments | Medium | ❌ Not Started | Function parameters |
 | 🟡 MEDIUM | Recursive functions support | Low | ❌ Not Started | Functions work |
 
@@ -72,12 +73,14 @@
 | 🟠 HIGH | Input function (`puch()`) | Medium | ❌ Not Started | Functions |
 | 🟠 HIGH | Type casting functions (int/float/str) | Medium | ❌ Not Started | Phase 2 |
 | 🟠 HIGH | Type checking function (`qisam`) | Low | ❌ Not Started | Phase 2 |
-| 🟠 HIGH | `len()` function | Low | ❌ Not Started | Phase 2 |
+| 🟠 HIGH | `lambi()` function (len) | Low | ✔ Completed | Phase 2 |
 | 🟠 HIGH | `range()` function | Low | ❌ Not Started | Phase 2 |
-| 🟡 MEDIUM | String methods (in future: `.upper()`, `.lower()`) | Low | ❌ Defer | Phase 2 |
+| 🟡 MEDIUM | String methods | Low | ✔ Completed | Phase 2 |
+| 🟡 MEDIUM | List methods (wadha, kadh, etc.) | Low | ✔ Completed | Phase 2 |
+| 🟡 MEDIUM | Dict/Set methods | Low | ✔ Completed | Phase 2 |
 
 **⏱️ Estimated Time:** 1-2 weeks  
-**Exit Criteria:** Can write interactive programs; type conversion works
+**Exit Criteria:** Core collections are fully functional with native methods
 
 ---
 
@@ -89,8 +92,8 @@
 | 🟥 CRITICAL | INDENT/DEDENT token detection | High | ❌ Not Started | Lexer |
 | 🟥 CRITICAL | Block stacking system | High | ❌ Not Started | INDENT/DEDENT |
 | 🟥 CRITICAL | Nested block support | High | ❌ Not Started | Block stacking |
-| 🟠 HIGH | Custom error types (SyntaxError, NameError, etc) | Medium | ❌ Not Started | Phase 3 |
-| 🟠 HIGH | Line number + code snippet in errors | Medium | ❌ Not Started | Error types |
+| 🟠 HIGH | Custom error types (SyntaxError, NameError, etc) | Medium | ✔ Completed | Phase 3 |
+| 🟠 HIGH | Line number + code snippet in errors | Medium | ✔ Completed | Error types |
 | 🟠 HIGH | Arrow pointer to error location | Medium | ❌ Not Started | Error reporting |
 
 **⏱️ Estimated Time:** 2-3 weeks  
@@ -107,6 +110,7 @@
 | 🟠 HIGH | Constructor & `__init__` | High | ❌ Not Started | Class def |
 | 🟠 HIGH | `self` handling in methods | High | ❌ Not Started | Constructor |
 | 🟠 HIGH | Attributes (`.name`, `.age`, etc) | Medium | ❌ Not Started | `self` handling |
+| 🟥 CRITICAL | C3 Linearization (MRO) | High | ❌ Not Started | Inheritance |
 | 🟡 MEDIUM | Instance creation & object methods | Medium | ❌ Not Started | Attributes |
 | 🟡 MEDIUM | Inheritance (basic) | High | ❌ Not Started | Classes work |
 | 🟡 MEDIUM | Method overriding | Medium | ❌ Not Started | Inheritance |
@@ -155,16 +159,16 @@
 ## 📊 TIMELINE OVERVIEW
 
 ```
-Phase 0 (Foundation)       ████░░░░░░░░░░░░░░░░  1-2 weeks   [NEXT]
-Phase 1 (Operators/Flow)   ████░░░░░░░░░░░░░░░░  1-2 weeks
-Phase 2 (Functions)        ██████░░░░░░░░░░░░░░  2-3 weeks
-Phase 3 (Stdlib)           ████░░░░░░░░░░░░░░░░  1-2 weeks
+Phase 0 (Foundation)       ████████████████████  Completed
+Phase 1 (Operators/Flow)   ████████████████████  Completed
+Phase 2 (Functions)        ████░░░░░░░░░░░░░░░░  1-2 weeks   [NEXT]
+Phase 3 (Stdlib)           ████████████░░░░░░░░  1 week
 Phase 4 (Errors/Polish)    ██████░░░░░░░░░░░░░░  2-3 weeks
 Phase 5 (OOP)              ████████░░░░░░░░░░░░  3-4 weeks
 Phase 6 (Quality)          ██████░░░░░░░░░░░░░░  2-3 weeks
 Phase 7 (Tools)            ██████░░░░░░░░░░░░░░  2-3 weeks
 
-TOTAL: ~15-22 weeks (4-5 months) for a complete language
+TOTAL: ~12-18 weeks remaining
 ```
 
 ---
@@ -277,12 +281,18 @@ You are at the **START of Phase 0**.
 1. ✅ Review this roadmap
 2. 🔲 Start Phase 0: Lexer enhancements
 3. 🔲 Complete Phase 0: Parser fixes
-4. 🔲 Move to Phase 1: Operators
+4. 🔲 **New Core:** Transition to `SindlishObject` & Protocols
+5. 🔲 Move to Phase 1: Operators
 5. 🔲 ... continue to completion
-
-**Update progress in `ROADMAP.md` as you complete each phase!**
 
 ---
 
-*Last Updated: April 16, 2026*  
+## ⚡ SPECIAL FOCUS: THE OBJECT MODEL TRANSITION (STARTING TOMORROW)
+
+We are pausing general feature development to focus on a **Core Architecture Rebuild**.
+See the specialized **[Object Model Roadmap](file:///C:/Users/HP/.gemini/antigravity/brain/2e511f94-bc78-42c7-b967-c06b88a9a004/object_model_roadmap.md)** for the 7-day intensive plan to transition Sindlish to a Python-like object system.
+
+---
+
+*Last Updated: April 19, 2026*  
 *Status: Ready to start Phase 0*
