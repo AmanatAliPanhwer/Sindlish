@@ -1,6 +1,6 @@
 """Tests for builtin functions: lambi and likh (as function call)."""
 
-from tests.helpers import run
+from tests.helpers import run, extract_value
 
 
 class TestLambi:
@@ -8,19 +8,19 @@ class TestLambi:
 
     def test_lambi_list(self):
         interp, _ = run("x = [1, 2, 3]\nval = lambi(x)")
-        assert interp.variables["val"]["value"] == 3
+        assert extract_value(interp.variables["val"]["value"]) == 3
 
     def test_lambi_string(self):
         interp, _ = run('val = lambi("hello")')
-        assert interp.variables["val"]["value"] == 5
+        assert extract_value(interp.variables["val"]["value"]) == 5
 
     def test_lambi_empty_list(self):
         interp, _ = run("val = lambi([])")
-        assert interp.variables["val"]["value"] == 0
+        assert extract_value(interp.variables["val"]["value"]) == 0
 
     def test_lambi_empty_string(self):
         interp, _ = run('val = lambi("")')
-        assert interp.variables["val"]["value"] == 0
+        assert extract_value(interp.variables["val"]["value"]) == 0
 
 
 class TestLikhFunction:

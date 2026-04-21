@@ -1,10 +1,11 @@
 from interpreter.lexer import Lexer
 from interpreter.parser import Parser
+from interpreter.resolver import Resolver
 from interpreter.executor import Interpreter
 import argparse
 
 parser = argparse.ArgumentParser(description="Sindlish interptater")
-parser.add_argument("input", help="The .sind file to process")
+parser.add_argument("input", help="The .sd file to process")
 args = parser.parse_args()
 
 if not args.input.endswith(".sd"):
@@ -16,16 +17,11 @@ with open(args.input, "r", encoding="utf-8") as f:
 lexer = Lexer(code)
 tokens = lexer.generate_tokens()
 
-# for t in tokens:
-#     print(t)
-
-# print()
-# print("-"*10)
-# print()
-
 parser = Parser(tokens, code)
 ast = parser.parse()
 
-interpreter = Interpreter(code)
+resolver = Resolver(code)
+resolver.resolve(ast)
 
+interpreter = Interpreter(code)
 interpreter.visit(ast)

@@ -27,6 +27,8 @@ class StringNode(Node):
 class VariableNode(Node):
     def __init__(self, name):
         self.name = name
+        self.slot_index = None
+        self.scope_level = None
 
 
 class BinaryOpNode(Node):
@@ -62,6 +64,8 @@ class AssignNode(Node):
         self.type = type
         self.is_const = is_const
         self.element_type = element_type
+        self.slot_index = None
+        self.scope_level = None
 
 
 class WhileNode(Node):
@@ -119,3 +123,15 @@ class DictNode(Node):
 class SetNode(Node):
     def __init__(self, elements):
         self.elements = elements
+
+class BlockNode(Node):
+    def __init__(self, statements):
+        self.statements = statements
+
+class GlobalNode(Node):
+    def __init__(self, name):
+        self.name = name
+
+class NonLocalNode(Node):
+    def __init__(self, name):
+        self.name = name

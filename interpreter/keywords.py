@@ -18,6 +18,8 @@ KEYWORDS = {
     "fehrist": TokenType.FEHRIST,
     "lughat": TokenType.LUGHAT,
     "majmuo": TokenType.MAJMUO,
+    "bahari": TokenType.BAHARI,
+    "aalmi": TokenType.AALMI
 }
 
 DATATYPES = (

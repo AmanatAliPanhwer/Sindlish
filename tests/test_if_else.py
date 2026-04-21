@@ -1,6 +1,6 @@
 """Tests for agar (if) / warna (else) control flow."""
 
-from tests.helpers import run
+from tests.helpers import run, extract_value
 
 
 class TestIfTrue:

@@ -1,16 +1,16 @@
 """Tests for boolean values (sach / koorh)."""
 
-from tests.helpers import run
+from tests.helpers import run, extract_value
 
 
 class TestBooleanLiterals:
     def test_sach(self):
         interp, _ = run("x = sach")
-        assert interp.variables["x"]["value"] is True
+        assert extract_value(interp.variables["x"]["value"]) is True
 
     def test_koorh(self):
         interp, _ = run("x = koorh")
-        assert interp.variables["x"]["value"] is False
+        assert extract_value(interp.variables["x"]["value"]) is False
 
 
 class TestBooleanInCondition:
@@ -26,12 +26,12 @@ class TestBooleanInCondition:
 class TestBooleanFromComparison:
     def test_equality_true(self):
         interp, _ = run("x = 5 == 5")
-        assert interp.variables["x"]["value"] is True
+        assert extract_value(interp.variables["x"]["value"]) is True
 
     def test_equality_false(self):
         interp, _ = run("x = 5 == 3")
-        assert interp.variables["x"]["value"] is False
+        assert extract_value(interp.variables["x"]["value"]) is False
 
     def test_inequality_true(self):
         interp, _ = run("x = 5 != 3")
-        assert interp.variables["x"]["value"] is True
+        assert extract_value(interp.variables["x"]["value"]) is True

@@ -1,6 +1,6 @@
 """Tests for jistain (while) loops."""
 
-from tests.helpers import run
+from tests.helpers import run, extract_value
 
 
 class TestBasicWhile:
@@ -12,7 +12,7 @@ jistain x < 3 {
 }
 """
         interp, _ = run(code)
-        assert interp.variables["x"]["value"] == 3
+        assert extract_value(interp.variables["x"]["value"]) == 3
 
     def test_while_never_runs(self):
         code = """
@@ -22,7 +22,7 @@ jistain x < 0 {
 }
 """
         interp, _ = run(code)
-        assert interp.variables["x"]["value"] == 10
+        assert extract_value(interp.variables["x"]["value"]) == 10
 
 
 class TestWhileWithPrint:
@@ -65,4 +65,4 @@ jistain i <= 5 {
 }
 """
         interp, _ = run(code)
-        assert interp.variables["total"]["value"] == 15
+        assert extract_value(interp.variables["total"]["value"]) == 15

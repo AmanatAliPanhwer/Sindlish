@@ -1,6 +1,6 @@
 """Tests for list literals, indexing, and typed lists."""
 
-from tests.helpers import run
+from tests.helpers import run, extract_value
 import pytest
 from interpreter.errors import QisamJeGhalti
 
@@ -8,19 +8,19 @@ from interpreter.errors import QisamJeGhalti
 class TestListLiteral:
     def test_empty_list(self):
         interp, _ = run("x = []")
-        assert interp.variables["x"]["value"] == []
+        assert extract_value(interp.variables["x"]["value"]) == []
 
     def test_int_list(self):
         interp, _ = run("x = [1, 2, 3]")
-        assert interp.variables["x"]["value"] == [1, 2, 3]
+        assert extract_value(interp.variables["x"]["value"]) == [1, 2, 3]
 
     def test_string_list(self):
         interp, _ = run('x = ["a", "b", "c"]')
-        assert interp.variables["x"]["value"] == ["a", "b", "c"]
+        assert extract_value(interp.variables["x"]["value"]) == ["a", "b", "c"]
 
     def test_mixed_list(self):
         interp, _ = run('x = [1, "two", 3]')
-        assert interp.variables["x"]["value"] == [1, "two", 3]
+        assert extract_value(interp.variables["x"]["value"]) == [1, "two", 3]
 
 
 class TestListIndexing:
@@ -40,7 +40,7 @@ class TestListIndexing:
 class TestTypedList:
     def test_typed_list_adad(self):
         interp, _ = run("fehrist[adad] x = [1, 2, 3]")
-        assert interp.variables["x"]["value"] == [1, 2, 3]
+        assert extract_value(interp.variables["x"]["value"]) == [1, 2, 3]
 
     def test_typed_list_rejects_wrong_type(self):
         with pytest.raises(QisamJeGhalti):
@@ -50,4 +50,4 @@ class TestTypedList:
 class TestListAssignment:
     def test_index_assignment(self):
         interp, _ = run("x = [1, 2, 3]\nx[0] = 99")
-        assert interp.variables["x"]["value"] == [99, 2, 3]
+        assert extract_value(interp.variables["x"]["value"]) == [99, 2, 3]

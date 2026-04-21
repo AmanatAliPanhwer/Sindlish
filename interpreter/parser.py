@@ -72,7 +72,7 @@ class Parser:
 
             statements.append(self.parse_statement())
 
-        return statements
+        return BlockNode(statements).set_pos(token.line, token.column)
 
     def parse_statement(self):
         token = self.peek()
@@ -107,6 +107,25 @@ class Parser:
                     raise LikhaiJeGhalti("Ghalat assignment target.", token.line, token.column, self.code)
 
             return expr
+        
+        if token.type == TokenType.LBRACE:
+            self.advance() # {
+            statements = self.parse_block()
+            return statements
+        
+        if token.type == TokenType.AALMI:
+            self.advance() # aalmi
+            if self.peek() and self.peek().type != TokenType.IDENTIFIER:
+                raise LikhaiJeGhalti("aalmi khan poe variable jo naalo lazmi aahe", token.line, token.column, self.code)
+            name = self.advance().value
+            return GlobalNode(name).set_pos(token.line, token.column)
+        
+        if token.type == TokenType.BAHARI:
+            self.advance() # bahari
+            if self.peek() and self.peek().type != TokenType.IDENTIFIER:
+                raise LikhaiJeGhalti("bahari khan poe variable jo naalo lazmi aahe", token.line, token.column, self.code)
+            name = self.advance().value
+            return NonLocalNode(name).set_pos(token.line, token.column)
 
         raise LikhaiJeGhalti(f"Achanak {token.value} milyo", token.line, token.column, self.code)
 

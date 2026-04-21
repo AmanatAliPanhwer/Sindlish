@@ -1,6 +1,6 @@
 """Tests for list method calls."""
 
-from tests.helpers import run
+from tests.helpers import run, extract_value
 
 
 class TestWadha:
@@ -8,11 +8,11 @@ class TestWadha:
 
     def test_wadha_adds_element(self):
         interp, _ = run("x = [1, 2]\nx.wadha(3)")
-        assert interp.variables["x"]["value"] == [1, 2, 3]
+        assert extract_value(interp.variables["x"]["value"]) == [1, 2, 3]
 
     def test_wadha_string(self):
         interp, _ = run('x = ["a"]\nx.wadha("b")')
-        assert interp.variables["x"]["value"] == ["a", "b"]
+        assert extract_value(interp.variables["x"]["value"]) == ["a", "b"]
 
 
 class TestWadhayo:
@@ -20,7 +20,7 @@ class TestWadhayo:
 
     def test_wadhayo_extends(self):
         interp, _ = run("x = [1, 2]\nx.wadhayo([3, 4])")
-        assert interp.variables["x"]["value"] == [1, 2, 3, 4]
+        assert extract_value(interp.variables["x"]["value"]) == [1, 2, 3, 4]
 
 
 class TestWajh:
@@ -28,11 +28,11 @@ class TestWajh:
 
     def test_wajh_at_beginning(self):
         interp, _ = run("x = [2, 3]\nx.wajh(0, 1)")
-        assert interp.variables["x"]["value"] == [1, 2, 3]
+        assert extract_value(interp.variables["x"]["value"]) == [1, 2, 3]
 
     def test_wajh_at_middle(self):
         interp, _ = run("x = [1, 3]\nx.wajh(1, 2)")
-        assert interp.variables["x"]["value"] == [1, 2, 3]
+        assert extract_value(interp.variables["x"]["value"]) == [1, 2, 3]
 
 
 class TestHata:
@@ -40,7 +40,7 @@ class TestHata:
 
     def test_hata_removes_value(self):
         interp, _ = run("x = [1, 2, 3]\nx.hata(2)")
-        assert interp.variables["x"]["value"] == [1, 3]
+        assert extract_value(interp.variables["x"]["value"]) == [1, 3]
 
 
 class TestKadh:
@@ -48,13 +48,13 @@ class TestKadh:
 
     def test_kadh_last(self):
         interp, _ = run("x = [1, 2, 3]\nval = x.kadh()")
-        assert interp.variables["x"]["value"] == [1, 2]
-        assert interp.variables["val"]["value"] == 3
+        assert extract_value(interp.variables["x"]["value"]) == [1, 2]
+        assert extract_value(interp.variables["val"]["value"]) == 3
 
     def test_kadh_by_index(self):
         interp, _ = run("x = [1, 2, 3]\nval = x.kadh(0)")
-        assert interp.variables["x"]["value"] == [2, 3]
-        assert interp.variables["val"]["value"] == 1
+        assert extract_value(interp.variables["x"]["value"]) == [2, 3]
+        assert extract_value(interp.variables["val"]["value"]) == 1
 
 
 class TestTarteeb:
@@ -62,7 +62,7 @@ class TestTarteeb:
 
     def test_tarteeb_sorts(self):
         interp, _ = run("x = [3, 1, 2]\nx.tarteeb()")
-        assert interp.variables["x"]["value"] == [1, 2, 3]
+        assert extract_value(interp.variables["x"]["value"]) == [1, 2, 3]
 
 
 class TestUlto:
@@ -70,7 +70,7 @@ class TestUlto:
 
     def test_ulto_reverses(self):
         interp, _ = run("x = [1, 2, 3]\nx.ulto()")
-        assert interp.variables["x"]["value"] == [3, 2, 1]
+        assert extract_value(interp.variables["x"]["value"]) == [3, 2, 1]
 
 
 class TestGarn:
@@ -78,11 +78,11 @@ class TestGarn:
 
     def test_garn_counts(self):
         interp, _ = run("x = [1, 2, 2, 3]\nval = x.garn(2)")
-        assert interp.variables["val"]["value"] == 2
+        assert extract_value(interp.variables["val"]["value"]) == 2
 
     def test_garn_zero(self):
         interp, _ = run("x = [1, 2, 3]\nval = x.garn(99)")
-        assert interp.variables["val"]["value"] == 0
+        assert extract_value(interp.variables["val"]["value"]) == 0
 
 
 class TestIndex:
@@ -90,7 +90,7 @@ class TestIndex:
 
     def test_index_finds(self):
         interp, _ = run("x = [10, 20, 30]\nval = x.index(20)")
-        assert interp.variables["val"]["value"] == 1
+        assert extract_value(interp.variables["val"]["value"]) == 1
 
 
 class TestNakal:
@@ -98,7 +98,7 @@ class TestNakal:
 
     def test_nakal_copies(self):
         interp, _ = run("x = [1, 2, 3]\ny = x.nakal()")
-        assert interp.variables["y"]["value"] == [1, 2, 3]
+        assert extract_value(interp.variables["y"]["value"]) == [1, 2, 3]
 
 
 class TestSaf:
@@ -106,4 +106,4 @@ class TestSaf:
 
     def test_saf_clears(self):
         interp, _ = run("x = [1, 2, 3]\nx.saf()")
-        assert interp.variables["x"]["value"] == []
+        assert extract_value(interp.variables["x"]["value"]) == []

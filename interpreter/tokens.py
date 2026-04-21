@@ -22,6 +22,8 @@ class TokenType(Enum):
     WARNA = auto()
     LIKH = auto()
     JISTAIN = auto()
+    BAHARI = auto()
+    AALMI = auto()
 
     # Operators
     PLUS = auto()
