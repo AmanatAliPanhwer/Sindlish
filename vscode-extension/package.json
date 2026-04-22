@@ -2,7 +2,7 @@
     "name": "sindlish-lang",
     "displayName": "Sindlish",
     "description": "Language support for Sindlish (Singlish)",
-    "version": "1.0.1",
+    "version": "2.0.0",
     "publisher": "sindlish-dev",
     "repository": {
         "type": "git",

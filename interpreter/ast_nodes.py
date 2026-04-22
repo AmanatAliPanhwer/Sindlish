@@ -38,6 +38,12 @@ class BinaryOpNode(Node):
         self.right = right
 
 
+class UnaryOpNode(Node):
+    def __init__(self, op, right):
+        self.op = op
+        self.right = right
+
+
 class PrintNode(Node):
     def __init__(self, value):
         self.value = value

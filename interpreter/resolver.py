@@ -7,28 +7,7 @@ class Resolver:
         self.scopes = [{}]
         self.slot_indices = {}
         self.next_slot = 0
-
-    def push_scope(self):
-        self.scopes.append({})
-
-    def pop_scope(self):
-        self.scopes.pop()
-
-    def define(self, name):
-        if name in self.scopes[-1]:
-            return self.scopes[-1][name]
-        
-        slot = self.next_slot
-        self.next_slot += 1
-        
-        self.scopes[-1][name] = slot
-        return slot
-
-    def lookup(self, name):
-        for scope in reversed(self.scopes):
-            if name in scope:
-                return scope[name]
-        return None
+        self.slot_metadata = {}  # slot_index -> {"is_const": bool, "type": TokenType, "element_type": any}
 
     def resolve(self, node):
         if node is None:
@@ -66,11 +45,43 @@ class Resolver:
         self.resolve(node.value)
         
         slot = self.lookup(node.name)
-        if slot is None or node.type is not None:
+        if slot is None:
             slot = self.define(node.name)
         
         node.slot_index = slot
         node.scope_level = 0
+        
+        if slot not in self.slot_metadata:
+            self.slot_metadata[slot] = {
+                "is_const": node.is_const,
+                "type": node.type,
+                "element_type": node.element_type
+            }
+
+    def push_scope(self):
+        self.scopes.append({})
+
+    def pop_scope(self):
+        self.scopes.pop()
+
+    def define(self, name):
+        if name in self.scopes[-1]:
+            return self.scopes[-1][name]
+        
+        slot = self.next_slot
+        self.next_slot += 1
+        
+        self.scopes[-1][name] = slot
+        return slot
+
+    def lookup(self, name):
+        for scope in reversed(self.scopes):
+            if name in scope:
+                return scope[name]
+        return None
+    
+    def get_slot_metadata(self):
+        return self.slot_metadata
 
     def resolve_VariableNode(self, node):
         slot = self.lookup(node.name)

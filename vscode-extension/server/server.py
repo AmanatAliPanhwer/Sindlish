@@ -1,7 +1,6 @@
 import os
 import sys
 
-# Add parent to path to find `interpreter` module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from pygls.server import LanguageServer
@@ -22,33 +21,53 @@ from pygls.workspace import Document
 
 from interpreter.lexer import Lexer
 from interpreter.parser import Parser
+from interpreter.resolver import Resolver
+from interpreter.compiler import Compiler
+from interpreter.vm import VM
+from interpreter.env import Environment
+from interpreter.tokens import TokenType
 from interpreter.keywords import KEYWORDS, DATATYPES
 from interpreter.builtins import SimpleBuiltins, MethodBuiltins
 
 server = LanguageServer("sindlish-lsp", "v1.0")
 
+def create_globals_env():
+    globals_env = Environment()
+    simple_handler = SimpleBuiltins()
+    for name, func in simple_handler.get_all().items():
+        globals_env.define(name, value=func, var_type=TokenType.KAAM, is_const=True)
+    return globals_env
+
 def _validate(ls: LanguageServer, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
     source = text_doc.source
     diagnostics = []
-    
-    # Run Lexer
+
     try:
         lexer = Lexer(source)
         tokens = lexer.generate_tokens()
-        
-        # Run Parser
-        parser = Parser(tokens)
-        _ = parser.parse()
+
+        parser = Parser(tokens, source)
+        ast = parser.parse()
+
+        resolver = Resolver(source)
+        resolver.resolve(ast)
+
+        compiler = Compiler(source)
+        instructions, constants = compiler.compile(ast)
+
+        globals_env = create_globals_env()
+        vm = VM(source, instructions, constants, globals_env, getattr(ast, "slot_count", 0))
+        vm.run()
+
     except Exception as e:
         msg = str(e)
-        # We try to extract line from standard interpreter errors
         line = 1
         import re
         m = re.search(r'line (\d+)', msg)
         if m:
             line = int(m.group(1))
-            
+
         d = Diagnostic(
             range=Range(
                 start=Position(line=line-1, character=0),
@@ -73,23 +92,20 @@ def did_change(ls, params):
 @server.feature("textDocument/completion")
 def completions(ls, params: CompletionParams):
     items = []
-    
-    # Keywords
+
     for k in KEYWORDS:
         items.append(CompletionItem(
             label=k,
             kind=CompletionItemKind.Keyword
         ))
-        
-    # Simple Builtins
+
     simple = SimpleBuiltins().get_all()
     for f in simple:
         items.append(CompletionItem(
             label=f,
             kind=CompletionItemKind.Function
         ))
-        
-    # Method Builtins
+
     methods = MethodBuiltins().get_all()
     for m in methods:
         items.append(CompletionItem(

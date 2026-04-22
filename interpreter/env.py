@@ -30,10 +30,16 @@ class Environment:
         
         if self.parent:
             return self.parent.lookup_record(name, node, code)
-        raise NaleJeGhalti(
-            details=f"Nalo '{name}' na milio. Cha tawaan sahi likhyo aahe?",
-            line=node.line, column=node.column, code_string=code
-        )
+        if node:
+            raise NaleJeGhalti(
+                details=f"Nalo '{name}' na milio. Cha tawaan sahi likhyo aahe?",
+                line=node.line, column=node.column, code_string=code
+            )
+        else:
+            raise NaleJeGhalti(
+                details=f"Nalo '{name}' na milio. Cha tawaan sahi likhyo aahe?",
+                line=1, column=1, code_string=code
+            )
     
     def get_value(self, name: str, node, code: str) -> Any:
         """Returns just the value of a variable."""

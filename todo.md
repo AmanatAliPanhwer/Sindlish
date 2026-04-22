@@ -264,8 +264,8 @@ jamaat Insan:
 ## 🚀 Compiler Expansion
 
 * [ ] Sindlish → Python transpiler mode
-* [ ] Bytecode compiler (optional)
-* [ ] Virtual Machine (advanced stage)
+* [x] Bytecode compiler (optional)
+* [x] Virtual Machine (advanced stage)
 
 ## 💻 Developer Tools
 

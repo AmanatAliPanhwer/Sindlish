@@ -398,7 +398,7 @@ class Parser:
         if self.peek().type == TokenType.NOT:
             op = self.advance()
             value = self.parse_not()
-            return BinaryOpNode(NumberNode(0), op, value).set_pos(op.line, op.column)
+            return UnaryOpNode(op, value).set_pos(op.line, op.column)
         return self.parse_comparison()
 
     def parse_comparison(self):
@@ -452,7 +452,11 @@ class Parser:
         if self.peek().type == TokenType.MINUS:
             op = self.advance()
             value = self.parse_unary()
-            return BinaryOpNode(NumberNode(0), op, value).set_pos(op.line, op.column)
+            return UnaryOpNode(op, value).set_pos(op.line, op.column)
+        if self.peek().type == TokenType.NOT:
+            op = self.advance()
+            value = self.parse_unary()
+            return UnaryOpNode(op, value).set_pos(op.line, op.column)
 
         return self.parse_primary()
 
