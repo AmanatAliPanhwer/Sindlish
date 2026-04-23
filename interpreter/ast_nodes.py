@@ -63,13 +63,14 @@ class ProgramNode(Node):
 
 class AssignNode(Node):
     def __init__(
-        self, name, value, type=None, is_const: bool = False, element_type=None
+        self, name, value, type=None, is_const: bool = False, element_type=None, has_explicit_type: bool = False
     ):
         self.name = name
         self.value = value
         self.type = type
         self.is_const = is_const
         self.element_type = element_type
+        self.has_explicit_type = has_explicit_type
         self.slot_index = None
         self.scope_level = None
 

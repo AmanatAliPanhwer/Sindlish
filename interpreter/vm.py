@@ -120,7 +120,8 @@ class VM:
             if metadata.get("is_const") and self.slots[arg] is not None:
                 raise HalndeVaktGhalti("pakko (const) variable badli natho saghjay.", line, column, self.code_string)
             expected_type = metadata.get("type")
-            if expected_type is not None:
+            has_explicit = metadata.get("has_explicit_type", False)
+            if has_explicit and expected_type is not None:
                 self._check_type(value, expected_type, metadata.get("element_type"), line=line, column=column)
             self.slots[arg] = value
             

@@ -358,7 +358,7 @@ class Parser:
 
             value_node = self.get_default_value_node(_type)
 
-        return AssignNode(name, value_node, _type, is_const, element_type).set_pos(token.line, token.column)
+        return AssignNode(name, value_node, _type, is_const, element_type, _type is not None).set_pos(token.line, token.column)
 
     def parse_while(self):
         token = self.peek()

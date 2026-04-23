@@ -1,5 +1,5 @@
 from .ast_nodes import *
-from .errors import NaleJeGhalti, HalndeVaktGhalti
+from .errors import NaleJeGhalti, HalndeVaktGhalti, QisamJeGhalti
 
 class Resolver:
     def __init__(self, code):
@@ -8,6 +8,29 @@ class Resolver:
         self.slot_indices = {}
         self.next_slot = 0
         self.slot_metadata = {}  # slot_index -> {"is_const": bool, "type": TokenType, "element_type": any}
+
+    def infer_type(self, node):
+        if isinstance(node, NumberNode):
+            return TokenType.ADAD if isinstance(node.value, int) else TokenType.DAHAI
+        elif isinstance(node, StringNode):
+            return TokenType.LAFZ
+        elif isinstance(node, BoolNode):
+            return TokenType.FAISLO
+        elif isinstance(node, NullNode):
+            return TokenType.KHALI
+        elif isinstance(node, ListNode):
+            return TokenType.FEHRIST
+        elif isinstance(node, DictNode):
+            return TokenType.LUGHAT
+        elif isinstance(node, SetNode):
+            return TokenType.MAJMUO
+        elif isinstance(node, VariableNode):
+            slot = self.lookup(node.name)
+            if slot is not None:
+                meta = self.slot_metadata.get(slot, {})
+                return meta.get("type")
+            return None
+        return None
 
     def resolve(self, node):
         if node is None:
@@ -44,6 +67,38 @@ class Resolver:
     def resolve_AssignNode(self, node):
         self.resolve(node.value)
         
+        if node.has_explicit_type and node.type is not None:
+            inferred_type = self.infer_type(node.value)
+            if inferred_type is not None and inferred_type != node.type:
+                line = getattr(node, 'line', 0)
+                column = getattr(node, 'column', 0)
+                raise QisamJeGhalti(
+                    f"qisam jhared: `{node.type.name}` aahe, magar value jo milyo wo `{inferred_type.name}` aahe.",
+                    line, column, self.code
+                )
+            
+            if node.type in (TokenType.FEHRIST, TokenType.MAJMUO) and node.element_type is not None:
+                if isinstance(node.value, ListNode):
+                    for elem in node.value.elements:
+                        elem_type = self.infer_type(elem)
+                        if elem_type != node.element_type:
+                            line = getattr(elem, 'line', 0)
+                            column = getattr(elem, 'column', 0)
+                            raise QisamJeGhalti(
+                                f"fehrist je elements laai `{node.element_type.name}` qisam lazmi aahe, magar `{elem_type.name}` milyo.",
+                                line, column, self.code
+                            )
+                elif isinstance(node.value, SetNode):
+                    for elem in node.value.elements:
+                        elem_type = self.infer_type(elem)
+                        if elem_type != node.element_type:
+                            line = getattr(elem, 'line', 0)
+                            column = getattr(elem, 'column', 0)
+                            raise QisamJeGhalti(
+                                f"majmuo je elements laai `{node.element_type.name}` qisam lazmi aahe, magar `{elem_type.name}` milyo.",
+                                line, column, self.code
+                            )
+        
         slot = self.lookup(node.name)
         if slot is None:
             slot = self.define(node.name)
@@ -55,7 +110,8 @@ class Resolver:
             self.slot_metadata[slot] = {
                 "is_const": node.is_const,
                 "type": node.type,
-                "element_type": node.element_type
+                "element_type": node.element_type,
+                "has_explicit_type": node.has_explicit_type
             }
 
     def push_scope(self):

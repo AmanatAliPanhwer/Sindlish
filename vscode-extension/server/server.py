@@ -54,10 +54,10 @@ def _validate(ls: LanguageServer, params):
         resolver.resolve(ast)
 
         compiler = Compiler(source)
-        instructions, constants = compiler.compile(ast)
+        instructions, constants, line_col_map = compiler.compile(ast)
 
         globals_env = create_globals_env()
-        vm = VM(source, instructions, constants, globals_env, getattr(ast, "slot_count", 0))
+        vm = VM(source, instructions, constants, globals_env, getattr(ast, "slot_count", 0), resolver.slot_metadata, line_col_map)
         vm.run()
 
     except Exception as e:
