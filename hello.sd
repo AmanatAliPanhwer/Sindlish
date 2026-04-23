@@ -3,7 +3,6 @@
 # ============================================
 # A beginner-friendly showcase of Sindlish's key features
 # Fun Fact: The first-ever file written in Sindlish!
-
 # --- PART 1: HELLO WORLD & BASIC OUTPUT ---
 likh("Salam, Duniay!")  # Hello, World!
 # --- PART 2: CONDITIONALS (IF/ELSE) ---
@@ -11,7 +10,7 @@ x = 2
 agar x > 5 {
     likh("Big")
 } warna {
-    likh("Small")
+    likh("Small") 
 }
 
 # --- PART 3: ARITHMETIC & OPERATORS ---
@@ -27,23 +26,21 @@ likh(z)  # Output: 8
 
 # --- PART 4: LOOPS & NESTED CONDITIONALS ---
 # While loop with nested if-else statements
-x = 0
 jistain x < 3 {
     agar x < 1 {
         likh("Amanat")
     } agar x < 2 {
-        likh("inder")
+        likh("ender")
     } warna {
         likh("Bahir")
     }
     x = x + 1
 }
-
 # --- PART 5: COMPARISON OPERATORS ---
-agar 3 == 3 {
+agar 3 == 3 { 
     likh("Barabar")  # Equal
 }
-
+ 
 agar 3 != 4 {
     likh("Barabar kone")  # Not equal
 }
@@ -255,5 +252,5 @@ likh("\n--- Escape Sequences Demo ---")
 likh(escapes)
 
 # Fun with Unicode escapes ( \uXXXX )
-lafz dil = "\nSindlish pyari ahe \u2764"  # \u2764 is a Unicode heart!
+lafz dil = "\nSindlish pyari ahe ❤️"  # \u2764 is a Unicode heart!
 likh(dil)

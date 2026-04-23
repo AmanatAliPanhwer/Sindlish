@@ -19,6 +19,7 @@ class TokenType(Enum):
 
     # Keywords
     AGAR = auto()
+    YAWARI = auto()
     WARNA = auto()
     LIKH = auto()
     JISTAIN = auto()

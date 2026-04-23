@@ -2,6 +2,7 @@ from .tokens import TokenType
 
 KEYWORDS = {
     "agar": TokenType.AGAR,
+    "yawari": TokenType.YAWARI,
     "warna": TokenType.WARNA,
     "jistain": TokenType.JISTAIN,
     "aen": TokenType.AND,

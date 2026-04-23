@@ -8,7 +8,7 @@ set /p EXT_VERSION="Enter extension version (e.g., 1.0.1): "
 
 echo.
 echo 1. Updating bundled Python interpreter...
-xcopy /E /I /Y interpreter vscode-extension\python-engine\interpreter >nul
+xcopy /E /I /Y interpreter vscode-extension\server\interpreter >nul
 
 echo.
 echo 2. Regenerating grammar and definitions...

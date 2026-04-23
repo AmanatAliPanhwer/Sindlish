@@ -167,6 +167,18 @@ class Parser:
 
         self.skip_newlines()
 
+        else_if_bodies = []
+
+        while self.peek().type == TokenType.YAWARI:
+            self.advance() # yawari
+            else_if_condition = self.parse_expression()
+            if self.peek().type != TokenType.LBRACE:
+                raise LikhaiJeGhalti("yawari je shart (condition) khan poe '{' lazmi aahe", self.peek().line, self.peek().column, self.code)
+            self.advance() # {
+            else_if_body = self.parse_block()
+            else_if_bodies.append((else_if_condition, else_if_body))
+            self.skip_newlines()
+
         else_body = None
 
         if self.peek().type == TokenType.WARNA:
@@ -177,7 +189,7 @@ class Parser:
 
             else_body = self.parse_block()
 
-        return IfNode(condition, body, else_body).set_pos(token.line, token.column)
+        return IfNode(condition, body, else_body, else_if_bodies).set_pos(token.line, token.column)
 
     def parse_expression(self):
         return self.parse_or()

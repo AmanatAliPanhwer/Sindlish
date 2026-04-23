@@ -150,6 +150,10 @@ class Resolver:
     def resolve_IfNode(self, node):
         self.resolve(node.condition)
         self.resolve(node.body)
+        if node.else_if_bodies:
+            for else_if_condition, else_if_body in node.else_if_bodies:
+                self.resolve(else_if_condition)
+                self.resolve(else_if_body)
         if node.else_body:
             self.resolve(node.else_body)
 

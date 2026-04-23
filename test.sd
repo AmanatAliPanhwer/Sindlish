@@ -1,2 +1,0 @@
-x = "salam"
-likh(x + " " * 2)

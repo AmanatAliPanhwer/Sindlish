@@ -38,9 +38,7 @@ resolver.resolve(ast)
 compiler = Compiler(code)
 instructions, constants, line_col_map = compiler.compile(ast)
 
-# Initialize the global environment
 globals_env = create_globals_env()
 
-# Use VM for execution
 vm = VM(code, instructions, constants, globals_env, getattr(ast, "slot_count", 0), resolver.slot_metadata, line_col_map)
 vm.run()

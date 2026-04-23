@@ -50,10 +50,11 @@ class PrintNode(Node):
 
 
 class IfNode(Node):
-    def __init__(self, condition, body, else_body):
+    def __init__(self, condition, body, else_body, else_if_bodies=None):
         self.condition = condition
         self.body = body
         self.else_body = else_body
+        self.else_if_bodies = else_if_bodies or []
 
 
 class ProgramNode(Node):

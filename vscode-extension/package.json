@@ -2,8 +2,9 @@
     "name": "sindlish-lang",
     "displayName": "Sindlish",
     "description": "Language support for Sindlish (Singlish)",
-    "version": "2.1.1",
+    "version": "3.0.3",
     "publisher": "sindlish-dev",
+    "icon": "logo.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/Sindlish/sindlish-lang"
@@ -26,13 +27,16 @@
                 "id": "sindlish",
                 "aliases": [
                     "Sindlish",
-                    "sind"
+                    "sd"
                 ],
                 "extensions": [
-                    ".sd",
-                    ".sind"
+                    ".sd"
                 ],
-                "configuration": "./language-configuration.json"
+                "configuration": "./language-configuration.json",
+                "icon": {
+                    "light": "./logo-light.svg",
+                    "dark": "./logo-dark.svg"
+                }
             }
         ],
         "grammars": [
@@ -48,6 +52,9 @@
         "compile": "tsc -b",
         "watch": "tsc -b -w",
         "postinstall": "npm run compile"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^8.1.0"
     },
     "devDependencies": {
         "@types/node": "18.x",

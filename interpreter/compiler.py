@@ -132,20 +132,47 @@ class Compiler:
         for stmt in node.statements:
             self.compile(stmt)
 
-    def compile_IfNode(self, node):
-        self.compile(node.condition)
+    def compile_IfNode(self, node: IfNode):
         line = getattr(node, 'line', 0)
         column = getattr(node, 'column', 0)
+        
+        end_jumps = []
+        
+        # Initial 'agar'
+        self.compile(node.condition)
         jump_if_false_instr = self.emit(OpCode.JUMP_IF_FALSE, 0, line, column)
         
         self.compile(node.body)
         
-        if node.else_body:
-            jump_abs_instr = self.emit(OpCode.JUMP_ABSOLUTE, 0, line, column)
+        if node.else_if_bodies or node.else_body:
+            # Jump to end after successful 'agar' body
+            end_jumps.append(self.emit(OpCode.JUMP_ABSOLUTE, 0, line, column))
+            
+            # Patch the initial agar's false jump to the first yawari or warna
             self.instructions[jump_if_false_instr] = (OpCode.JUMP_IF_FALSE, len(self.instructions))
-            self.compile(node.else_body)
-            self.instructions[jump_abs_instr] = (OpCode.JUMP_ABSOLUTE, len(self.instructions))
+
+            for else_if_condition, else_if_body in node.else_if_bodies:
+                self.compile(else_if_condition)
+                jump_if_false_instr = self.emit(OpCode.JUMP_IF_FALSE, 0, line, column)
+                
+                self.compile(else_if_body)
+                
+                # Jump to end after successful 'yawari' body
+                end_jumps.append(self.emit(OpCode.JUMP_ABSOLUTE, 0, line, column))
+                
+                # Patch this yawari's false jump to the next one or warna
+                self.instructions[jump_if_false_instr] = (OpCode.JUMP_IF_FALSE, len(self.instructions))
+                
+            if node.else_body:
+                self.compile(node.else_body)
+                
+            # Patch all jumps to the end
+            end_pos = len(self.instructions)
+            for instr_idx in end_jumps:
+                opcode, _ = self.instructions[instr_idx]
+                self.instructions[instr_idx] = (opcode, end_pos)
         else:
+            # Just one agar, patch its false jump to here (the end)
             self.instructions[jump_if_false_instr] = (OpCode.JUMP_IF_FALSE, len(self.instructions))
 
     def compile_WhileNode(self, node):

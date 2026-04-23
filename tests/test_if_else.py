@@ -70,3 +70,87 @@ agar x == 1 {
         _, out = run(code)
         lines = out.strip().split("\n")
         assert lines == ["a", "b", "c"]
+
+
+class TestYawari:
+    def test_single_yawari_true(self):
+        code = """
+x = 7
+agar x > 10 {
+    likh("big")
+} yawari x > 5 {
+    likh("medium")
+} warna {
+    likh("small")
+}
+"""
+        _, out = run(code)
+        assert out.strip() == "medium"
+
+    def test_if_branch_taken(self):
+        code = """
+x = 15
+agar x > 10 {
+    likh("big")
+} yawari x > 5 {
+    likh("medium")
+} warna {
+    likh("small")
+}
+"""
+        _, out = run(code)
+        assert out.strip() == "big"
+
+    def test_else_branch_taken(self):
+        code = """
+x = 3
+agar x > 10 {
+    likh("big")
+} yawari x > 5 {
+    likh("medium")
+} warna {
+    likh("small")
+}
+"""
+        _, out = run(code)
+        assert out.strip() == "small"
+
+    def test_multiple_yawari(self):
+        code = """
+x = 6
+agar x > 10 {
+    likh("big")
+} yawari x > 8 {
+    likh("large")
+} yawari x > 5 {
+    likh("medium")
+} warna {
+    likh("small")
+}
+"""
+        _, out = run(code)
+        assert out.strip() == "medium"
+
+    def test_yawari_without_else(self):
+        code = """
+x = 7
+agar x > 10 {
+    likh("big")
+} yawari x > 5 {
+    likh("medium")
+}
+"""
+        _, out = run(code)
+        assert out.strip() == "medium"
+
+    def test_no_branch_taken_no_else(self):
+        code = """
+x = 3
+agar x > 10 {
+    likh("big")
+} yawari x > 5 {
+    likh("medium")
+}
+"""
+        _, out = run(code)
+        assert out.strip() == ""
