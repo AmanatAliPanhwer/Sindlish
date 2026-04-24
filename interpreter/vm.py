@@ -35,9 +35,6 @@ class VM:
     def pop(self):
         return self.stack.pop()
     
-    def _get_line_column(self):
-        return self.line_col_map.get(self.ip, (0, 0))
-
     def _check_type(self, value, expected_type, element_type=None, line=0, column=0):
         if expected_type == TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):

@@ -486,10 +486,14 @@ class Parser:
         elements = []
 
         if self.peek().type != TokenType.RBRACKET:
+            self.skip_newlines()
             elements.append(self.parse_expression())
+            self.skip_newlines()
             while self.peek().type == TokenType.COMMA:
                 self.advance()  # ,
+                self.skip_newlines()
                 elements.append(self.parse_expression())
+                self.skip_newlines()
 
         if self.peek().type != TokenType.RBRACKET:
             raise LikhaiJeGhalti("Fehrist jhay aakhir mein ']' lazmi aahe", self.peek().line, self.peek().column, self.code)
@@ -523,19 +527,26 @@ class Parser:
             return DictNode([]).set_pos(token.line, token.column)
 
         first_expr = self.parse_expression()
+        self.skip_newlines()
 
         if self.peek() and self.peek().type == TokenType.COLON:
             self.advance()  # :
+            self.skip_newlines()
             first_val = self.parse_expression()
+            self.skip_newlines()
             pairs = [(first_expr, first_val)]
 
             while self.peek().type == TokenType.COMMA:
                 self.advance()  # ,
+                self.skip_newlines()
                 key = self.parse_expression()
+                self.skip_newlines()
                 if self.peek().type != TokenType.COLON:
                     raise LikhaiJeGhalti("Lughat ghalti: Key khan poe ':' lazmi aahe", self.peek().line, self.peek().column, self.code)
                 self.advance()
+                self.skip_newlines()
                 val = self.parse_expression()
+                self.skip_newlines()
                 pairs.append((key, val))
 
             if self.peek().type != TokenType.RBRACE:
@@ -546,7 +557,9 @@ class Parser:
             elements = [first_expr]
             while self.peek().type == TokenType.COMMA:
                 self.advance()  # ,
+                self.skip_newlines()
                 elements.append(self.parse_expression())
+                self.skip_newlines()
 
             if self.peek().type != TokenType.RBRACE:
                 raise LikhaiJeGhalti("Majmuo jhay aakhir mein '}' lazmi aahe", self.peek().line, self.peek().column, self.code)

@@ -1,256 +1,758 @@
 # ============================================
-# SINDLISH LANGUAGE DEMO
+# SINDLISH PROGRAMMING LANGUAGE
+# Complete Reference & Mini-Documentation
 # ============================================
-# A beginner-friendly showcase of Sindlish's key features
-# Fun Fact: The first-ever file written in Sindlish!
-# --- PART 1: HELLO WORLD & BASIC OUTPUT ---
-likh("Salam, Duniay!")  # Hello, World!
-# --- PART 2: CONDITIONALS (IF/ELSE) ---
-x = 2
+# This file demonstrates ALL features of Sindlish
+# Study this file to learn the language!
+# Fun Fact: This is the first Sindlish file ever written
+# ============================================
+
+likh("=== SINDLISH MINI DOCUMENTATION ===")
+likh("")
+
+# ============================================
+# PART 1: HELLO WORLD & BASIC OUTPUT
+# ============================================
+# likh() is the print function - output to console
+likh("--- PART 1: HELLO WORLD ---")
+likh("Salam, Duniay!")         # Double quotes
+likh('Salam, Sindh!')          # Single quotes
+likh(42)                        # Print number directly
+likh(sach)                     # Print boolean (true)
+likh(koorh)                    # Print boolean (false)
+likh(khali)                    # Print null
+
+likh("")  # Empty line
+
+# ============================================
+# PART 2: COMMENTS
+# ============================================
+# This is a SINGLE-LINE comment (starts with #)
+# Use them to explain your code
+
+/*
+   This is a MULTILINE comment
+   It can span multiple lines
+   Very useful for documentation
+*/
+
+likh("--- PART 2: COMMENTS ---")
+likh("Comments are ignored by the interpreter")
+# This line does nothing
+/* This also does nothing */
+likh("Comments complete!")
+
+likh("")
+
+# ============================================
+# PART 3: DATA TYPES & KEYWORDS
+# ============================================
+# Sindlish has 5 primitive data types
+# Each has a keyword and a default value
+
+likh("--- PART 3: DATA TYPES ---")
+
+# ADAD - Integer (whole numbers)
+# Default: 0
+adad num1
+likh("adad (integer) default:", num1)
+
+# DAHAI - Float (decimal numbers)
+# Default: 0.0
+dahai num2
+likh("dahai (float) default:", num2)
+
+# LAFZ - String (text)
+# Default: "" (empty string)
+lafz text1
+likh("lafz (string) default:", text1)
+
+# FAISLO - Boolean (true/false)
+# Default: koorh (false)
+faislo flag1
+likh("faislo (boolean) default:", flag1)
+
+# KHALI - Null (nothing)
+# Default: khali (None)
+khali nothing
+likh("khali (null) default:", nothing)
+
+likh("")
+
+# ============================================
+# PART 4: VARIABLE DECLARATIONS
+# There are 6 ways to declare variables!
+# ============================================
+
+likh("--- PART 4: VARIABLE DECLARATIONS ---")
+
+# STYLE 1: Dynamic (inferred type) - most flexible
+x = 10
+likh("1. Dynamic (inferred):", x)
+x = "now I'm a string"
+likh("   Can change to:", x)
+
+# STYLE 2: Typed keyword WITH value
+adad age = 25
+likh("2. Typed with value (adad):", age)
+
+# STYLE 3: Typed keyword WITHOUT value (gets default)
+lafz name
+likh("3. Typed without value (lafz):", name)
+
+# STYLE 4: Postfix type annotation (colon syntax)
+count: adad = 100
+likh("4. Postfix annotation (count: adad):", count)
+
+# STYLE 5: Constant (pakko) - immutable
+pakko lafz GREETING = "Salam!"
+likh("5. Constant (pakko):", GREETING)
+
+# STYLE 6: Typed collections (with element type)
+fehrist[adad] numbers = [1, 2, 3]
+likh("6. Typed list (fehrist[adad]):", numbers)
+
+likh("")
+
+# ============================================
+# PART 5: NUMBERS
+# ============================================
+
+likh("--- PART 5: NUMBERS ---")
+
+# Integers (positive and negative)
+likh("Integers:")
+likh("   Positive:", 42)
+likh("   Negative:", -42)
+likh("   Zero:", 0)
+
+# Floats (decimal numbers)
+likh("Floats:")
+likh("   Standard:", 3.14159)
+likh("   Leading dot (0.5):", .5)
+likh("   Trailing dot (5.0):", 5.)
+likh("   Negative:", -2.718)
+
+# Scientific notation is NOT supported
+# Arithmetic with mixed types
+likh("Mixed int + float:", 5 + 3.14)  # Result is float
+likh("Integer division:", 10 / 4)       # Result is float!
+
+likh("")
+
+# ============================================
+# PART 6: STRINGS
+# ============================================
+
+likh("--- PART 6: STRINGS ---")
+
+# Single-line strings
+likh("Single-line:")
+likh("   Double quotes:", "Hello")
+likh("   Single quotes:", 'Hello')
+
+# Concatenation
+likh("Concatenation:")
+likh("   With +:", "Salam" + " " + "Duniay")
+
+# Replication
+likh("Replication:")
+likh("   'Ha' * 3:", "Ha" * 3)
+
+# Multiline strings (triple quotes)
+lafz poem = """Hikk dafay jo zikr ahe,
+Sindlish language mein nawa features,
+Ab ap asani se lambay text likh sakte hain."""
+likh("Multiline string:")
+likh(poem)
+
+# Escape sequences
+lafz escapes = "Line1\nLine2\tTabbed\"Quoted\""
+likh("Escape sequences (\\n \\t \\\"):")
+likh(escapes)
+
+# String indexing
+lafz word = "Sindlish"
+likh("String indexing:")
+likh("   word = 'Sindlish'")
+likh("   word[0]:", word[0])
+likh("   word[-1]:", word[-1])
+
+likh("")
+
+# ============================================
+# PART 7: BOOLEANS
+# ============================================
+
+likh("--- PART 7: BOOLEANS ---")
+
+# Two boolean values: sach (true) and koorh (false)
+likh("Boolean values:")
+likh("   sach (true):", sach)
+likh("   koorh (false):", koorh)
+
+# Using in conditions (see PART 9)
+faislo is_active = sach
+faislo is_closed = koorh
+
+likh("   Variable with sach:", is_active)
+likh("   Variable with koorh:", is_closed)
+
+likh("")
+
+# ============================================
+# PART 8: NULL (KHALI)
+# ============================================
+
+likh("--- PART 8: NULL (KHALI) ---")
+
+# khali represents absence of value
+likh("Null value:", khali)
+
+# Can be assigned to any variable
+khali result
+likh("   Declared null variable:", result)
+
+# Can be reassigned
+result = 42
+likh("   After reassignment:", result)
+
+likh("")
+
+# ============================================
+# PART 9: ARITHMETIC OPERATORS
+# ============================================
+
+likh("--- PART 9: ARITHMETIC OPERATORS ---")
+
+likh("Addition (+):")
+likh("   10 + 5 =", 10 + 5)
+
+likh("Subtraction (-):")
+likh("   10 - 5 =", 10 - 5)
+
+likh("Multiplication (*):")
+likh("   10 * 5 =", 10 * 5)
+
+likh("Division (/):")
+likh("   10 / 4 =", 10 / 4)  # Returns float!
+
+likh("Modulo (%):")
+likh("   10 % 3 =", 10 % 3)
+
+likh("Exponentiation (^):")
+likh("   2 ^ 8 =", 2 ^ 8)
+
+likh("Unary Minus:")
+likh("   -5 =", -5)
+likh("   -(-3) =", -(-3))
+
+likh("Operator Precedence (highest to lowest):")
+likh("   1. Parentheses: ( )")
+likh("   2. Unary: - + (negate)")
+likh("   3. Power: ^")
+likh("   4. Mul/Div/Mod: * / %")
+likh("   5. Add/Sub: + -")
+
+likh("Examples:")
+likh("   2 + 3 * 4 =", 2 + 3 * 4)        # 14 (not 20)
+likh("   (2 + 3) * 4 =", (2 + 3) * 4)    # 20
+
+likh("")
+
+# ============================================
+# PART 10: COMPARISON OPERATORS
+# ============================================
+
+likh("--- PART 10: COMPARISON OPERATORS ---")
+
+# Equal (==)
+likh("Equal (==):")
+likh("   5 == 5 is", 5 == 5)
+likh("   5 == 3 is", 5 == 3)
+
+# Not Equal (!=)
+likh("Not Equal (!=):")
+likh("   5 != 3 is", 5 != 3)
+likh("   5 != 5 is", 5 != 5)
+
+# Greater Than (>)
+likh("Greater Than (>):")
+likh("   10 > 5 is", 10 > 5)
+likh("   3 > 5 is", 3 > 5)
+
+# Less Than (<)
+likh("Less Than (<):")
+likh("   3 < 5 is", 3 < 5)
+likh("   10 < 5 is", 10 < 5)
+
+# Greater or Equal (>=)
+likh("Greater or Equal (>=):")
+likh("   5 >= 5 is", 5 >= 5)
+likh("   6 >= 5 is", 6 >= 5)
+
+# Less or Equal (<=)
+likh("Less or Equal (<=):")
+likh("   5 <= 5 is", 5 <= 5)
+likh("   4 <= 5 is", 4 <= 5)
+
+likh("")
+
+# ============================================
+# PART 11: LOGICAL OPERATORS
+# ============================================
+
+likh("--- PART 11: LOGICAL OPERATORS ---")
+
+# AND (aen)
+likh("AND (aen):")
+likh("   sach aen sach is", sach aen sach)
+likh("   sach aen koorh is", sach aen koorh)
+likh("   koorh aen sach is", koorh aen sach)
+
+# OR (ya)
+likh("OR (ya):")
+likh("   sach ya koorh is", sach ya koorh)
+likh("   koorh ya koorh is", koorh ya koorh)
+
+# NOT (nah or !)
+likh("NOT (nah or !):")
+likh("   nah sach is", nah sach)
+likh("   !koorh is", !koorh)
+
+likh("Combined:")
+likh("   (5 > 3) aen (10 < 20) is", (5 > 3) aen (10 < 20))
+
+likh("")
+
+# ============================================
+# PART 12: CONTROL FLOW - IF/ELSE
+# ============================================
+
+likh("--- PART 12: IF/ELSE (AGAR/WARNA/YAWARI) ---")
+
+# Simple if
+likh("Simple IF:")
+x = 10
 agar x > 5 {
-    likh("Big")
-} warna {
-    likh("Small") 
+    likh("   x is greater than 5")
 }
 
-# --- PART 3: ARITHMETIC & OPERATORS ---
-# Basic arithmetic with operator precedence (*, / before +, -)
-x = 2 + 3 * 4
-likh(x)  # Output: 14
+# If-else
+likh("IF-ELSE:")
+x = 3
+agar x > 5 {
+    likh("   Big")
+} warna {
+    likh("   Small")
+}
 
-y = (2 + 3) * 4
-likh(y)  # Output: 20
+# If-else-if (yawari)
+likh("IF-ELSE-IF:")
+x = 7
+agar x > 10 {
+    likh("   Very big")
+} yawari x > 5 {
+    likh("   Medium")
+} warna {
+    likh("   Small")
+}
 
-z = 2 ^ 3  # Exponentiation
-likh(z)  # Output: 8
+likh("")
 
-# --- PART 4: LOOPS & NESTED CONDITIONALS ---
-# While loop with nested if-else statements
+# ============================================
+# PART 13: WHILE LOOPS (JISTAIN)
+# ============================================
+
+likh("--- PART 13: WHILE LOOPS (JISTAIN) ---")
+
+likh("Count from 1 to 3:")
 jistain x < 3 {
-    agar x < 1 {
-        likh("Amanat")
-    } agar x < 2 {
-        likh("ender")
-    } warna {
-        likh("Bahir")
-    }
+    likh("   x =", x)
     x = x + 1
 }
-# --- PART 5: COMPARISON OPERATORS ---
-agar 3 == 3 { 
-    likh("Barabar")  # Equal
-}
- 
-agar 3 != 4 {
-    likh("Barabar kone")  # Not equal
-}
 
-agar 3 <= 4 {
-    likh("3 nando yan baraber ahi 4 je")  # Less than or equal
+likh("Using while with condition:")
+count = 1
+jistain count <= 3 {
+    likh("   Count:", count)
+    count = count + 1
 }
 
-agar 5 >= 5 {
-    likh("5 vado yan baraber kone 5 je")  # Greater than or equal
-}
-
-# --- PART 6: LOGICAL OPERATORS (AND, OR, NOT) ---
-x = 0
-y = 5
-
-agar x > 5 aen y < 10 {  # AND operator
-    likh("OK")
-} warna {
-    likh("Not OK")
-}
-
-agar nah x == 0 {  # NOT operator
-    likh("Not zero")
-}
-
-agar x > 5 ya y > 5 {  # OR operator
-    likh("One is big")
-}
-
-# --- PART 7: DATA TYPES & DEFAULT VALUES ---
-# Sindlish has type keywords with automatic default values
-adad a        # Number type: defaults to 0
-dahai b       # Float type: defaults to 0.0
-lafz c        # String type: defaults to ""
-faislo e      # Boolean type: defaults to koorh (False)
-khali d       # None type: defaults to None
-
-likh("--- Default Values ---")
-likh(a)
-likh(b)
-likh(c)
-likh(e)
-likh(d)
-
-# --- PART 8: NULLABILITY (OPTIONAL VALUES) ---
-khali score  # Variable can be None
-likh("--- Nullability Demo ---")
-likh(score)   # None
-score = 100
-likh(score)   # 100
-
-# --- PART 9: FLOATING POINT NUMBERS ---
-pi = 3.14
-nando = .5  # Can omit leading zero
-likh("--- Decimals ---")
-likh(pi)      # 3.14
-likh(nando)   # 0.5
-
-# --- PART 10: CONSTANTS (IMMUTABLE VALUES) ---
-pakko lafz Salam = "Salam, Sindh!"  # pakko makes it constant
-likh("--- Constants ---")
-likh(Salam)
-
-# --- PART 11: DYNAMIC TYPING ---
-# Variable types can change at runtime
-x = 10
-likh("--- Dynamic Typing ---")
-likh(x)       # 10 (number)
-x = "Sindhu"
-likh(x)       # Sindhu (string)
-
-# --- PART 12: BOOLEANS (TRUE/FALSE) ---
-faislo imtehan_pass = sach  # sach means True
-agar !imtehan_pass {
-    likh("Pass thi wayo!")  # Passed!
-} warna {
-    likh("Fail thi wayo!")  # Failed!
-}
-
-# --- PART 13: LISTS (ARRAYS) ---
-l = ["Amanat", "Sindlish", 2024]
-likh("--- Lists ---")
-likh(lambi(l))  # Length: 3
-likh(l[-1])     # Negative indexing: 2024
-
-l = l.wadha("Sindh")   # Append to list
-likh(l)
-
-l = l.hata("Sindh")    # Remove from list
-likh(l)
-
-l = l.kadh(0)          # Delete by index
-likh(l)
+likh("")
 
 # ============================================
-# PART 14: ADVANCED COLLECTIONS
+# PART 14: LISTS (FEHRIST)
 # ============================================
-# Demonstration of methods for Lists, Dictionaries, and Sets
 
-# --- LIST METHODS (11 operations) ---
-likh("\n--- [LIST METHODS] ---")
+likh("--- PART 14: LISTS (FEHRIST) ---")
+
+# Creating lists
+likh("Creating lists:")
+l = [1, 2, 3]
+likh("   [1, 2, 3] =", l)
+
+# Mixed types
+mixed = ["Sindlish", 42, 3.14, sach]
+likh("   Mixed list:", mixed)
+
+# Empty list
+empty = []
+likh("   Empty list:", empty)
+
+# Indexing (0-based, negative supported)
+likh("Indexing:")
+likh("   l[0] =", l[0])
+likh("   l[-1] =", l[-1])
+
+# Length
+likh("Length:")
+likh("   lambi(l) =", lambi(l))
+
+likh("")
+
+# ============================================
+# PART 15: DICTIONARIES (LUGHAT)
+# ============================================
+
+likh("--- PART 15: DICTIONARIES (LUGHAT) ---")
+
+# Creating dicts
+likh("Creating dicts:")
+d = {"naam": "Sindhis", "umr": 25}
+likh("   {'naam': 'Sindhis', 'umr': 25} =", d)
+
+# Empty dict
+empty_dict = {}
+likh("   Empty dict:", empty_dict)
+
+# Accessing values
+likh("Accessing values:")
+likh("   d['naam'] =", d["naam"])
+likh("   d.hasil('umr') =", d.hasil("umr"))
+
+# Adding/modifying
+likh("Adding/modifying:")
+d["shahr"] = "Hyderabad"
+likh("   After adding 'shahr':", d)
+
+likh("")
+
+# ============================================
+# PART 16: SETS (MAJMUO)
+# ============================================
+
+likh("--- PART 16: SETS (MAJMUO) ---")
+
+# Creating sets
+likh("Creating sets:")
+s = {1, 2, 3}
+likh("   {1, 2, 3} =", s)
+
+# Duplicate removal
+s2 = {1, 2, 2, 3, 3, 3}
+likh("   {1, 2, 2, 3, 3, 3} (auto-removed dupes) =", s2)
+
+# Empty set (use function)
+empty_set = majmuo()
+likh("   Empty set (majmuo()):", empty_set)
+
+likh("")
+
+# ============================================
+# PART 17: LIST METHODS
+# ============================================
+
+likh("--- PART 17: LIST METHODS ---")
+
 f = [10, 30]
 
-f.wadha(40)                  # append - add to end
-f.wadhayo([50, 60])          # extend - add multiple items
-f.wajh(1, 20)                # insert - add at position
-likh("1-3 (Wadha, Wadhayo, Wajh):", f)
+likh("Starting list:", f)
 
-likh("4. Index of 30:", f.index(30))     # Find position
-likh("5. Garn (count) of 20:", f.garn(20))  # Count occurrences
+# wadha - append (add to end)
+f.wadha(40)
+likh("1. wadha(40) - append:", f)
 
-f.ulto()                     # reverse - flip list
-likh("6. Ulto (reverse):", f)
+# wadhayo - extend (add multiple)
+f.wadhayo([50, 60])
+likh("2. wadhayo([50, 60]) - extend:", f)
 
-f.tarteeb()                  # sort - arrange in order
-likh("7. Tarteeb (sort):", f)
+# wajh - insert (at index)
+f.wajh(1, 20)
+likh("3. wajh(1, 20) - insert at index 1:", f)
 
-f.hata(60)                   # remove - delete by value
-val = f.kadh(0)              # pop - remove by index
-likh("8-9 (Hata, Kadh):", f, "| Popped:", val)
+# index - find position
+likh("4. index(30) - find index of 30:", f.index(30))
 
-f_copy = f.nakal()           # copy - duplicate list
-f.saf()                      # clear - empty list
-likh("10-11 (Nakal, Saf):", "Original:", f, "| Copy:", f_copy)
+# garn - count occurrences
+f.wadha(20)
+likh("5. garn(20) - count of 20:", f.garn(20))
 
+# ulto - reverse
+f.ulto()
+likh("6. ulto() - reverse:", f)
 
-# --- DICTIONARY METHODS (11 operations) ---
-likh("\n--- [DICTIONARY METHODS] ---")
+# tarteeb - sort
+f.tarteeb()
+likh("7. tarteeb() - sort:", f)
+
+# hata - remove by value
+f.hata(60)
+likh("8. hata(60) - remove by value:", f)
+
+# kadh - remove by index
+val = f.kadh(0)
+likh("9. kadh(0) - remove index 0, returned:", val)
+
+# nakal - copy
+f_copy = f.nakal()
+likh("10. nakal() - copy:", f_copy)
+
+# saf - clear
+f.saf()
+likh("11. saf() - clear list:", f)
+
+likh("")
+
+# ============================================
+# PART 18: DICTIONARY METHODS
+# ============================================
+
+likh("--- PART 18: DICTIONARY METHODS ---")
+
 l = {"naam": "Sindlish", "ver": 1}
+likh("Starting dict:", l)
 
-l.update({"saal": 2024})     # update - merge with new items
-likh("1. Update:", l)
+# update - merge
+l.update({"saal": 2024, "type": "programming"})
+likh("1. update({...}) - merge:", l)
 
-likh("2. Hasil (get) 'naam':", l.hasil("naam"))  # get - retrieve value
-likh("3. Cabeyon (keys):", l.cabeyon())  # keys - get all keys
-likh("4. Raqamon (values):", l.raqamon())  # values - get all values
-likh("5. Syon (items):", l.syon())  # items - get key-value pairs
+# hasil - get value
+likh("2. hasil('naam') - get value:", l.hasil("naam"))
+likh("   hasil('missing') - default:", l.hasil("missing", "default"))
 
-l.defaultrakh("status", "active")  # setdefault - add if not exists
-likh("6. Defaultrakh:", l)
+# cabeyon - keys
+likh("3. cabeyon() - keys:", l.cabeyon())
 
-l.kadh("ver")                # pop - remove and return value
-pair = l.syonkadh()          # popitem - remove last item
-likh("7-8 (Kadh, Syonkadh):", l)
+# raqamon - values
+likh("4. raqamon() - values:", l.raqamon())
 
-l_copy = l.nakal()           # copy - duplicate dictionary
-l.saf()                      # clear - empty dictionary
-likh("9-10 (Nakal, Saf):", "Original:", l, "| Copy:", l_copy)
+# syon - items (key-value pairs)
+likh("5. syon() - items:", l.syon())
 
-# Note: keyma (fromkeys) is typically a static method
-# likh("11. Keyma (fromkeys):", l.keyma(["x", "y"], 0))
+# defaultrakh - setdefault
+l.defaultrakh("status", "active")
+likh("6. defaultrakh('status', 'active'):", l)
 
+# kadh - pop (by key)
+val = l.kadh("ver")
+likh("7. kadh('ver') - remove key, returned:", val)
 
-# --- SET METHODS (13 operations) ---
-likh("\n--- [SET METHODS] ---")
+# syonkadh - popitem (last pair)
+pair = l.syonkadh()
+likh("8. syonkadh() - remove last pair:", pair)
+
+# nakal - copy
+l_copy = l.nakal()
+likh("9. nakal() - copy:", l_copy)
+
+# saf - clear
+l.saf()
+likh("10. saf() - clear:", l)
+
+likh("")
+
+# ============================================
+# PART 19: SET METHODS
+# ============================================
+
+likh("--- PART 19: SET METHODS ---")
+
 s1 = {1, 2, 3}
 s2 = {3, 4, 5}
 
-s1.addkar(6)                 # addkar - add single element
-s1.update({7, 8})            # update - add multiple elements
-likh("1-2 (Addkar, Update):", s1)
+likh("s1:", s1)
+likh("s2:", s2)
 
-s1.hata(1)                   # hata - remove element
-s1.chad(99)                  # chad - discard element (no error if missing)
-likh("3-4 (Hata, Chad):", s1)
+# addkar - add single element
+s1.addkar(6)
+likh("1. addkar(6) - add element:", s1)
 
-likh("5. Bade (union):", s1.bade(s2))  # All items from both sets
-likh("6. Milap (intersection):", s1.milap(s2))  # Items in both sets
-likh("7. Farq (difference):", s1.farq(s2))  # Items in s1 but not s2
-likh("8. Symmetric Farq:", s1.symmetric_farq(s2))  # Items in either but not both
+# update - add multiple
+s1.update({7, 8})
+likh("2. update({7,8}) - add multiple:", s1)
 
-likh("9. Nandohiso (subset)?", s1.nandohisoahe({1,2,3,4,5,6,7,8,9}))
-likh("10. Wadohiso (superset)?", s1.wadohisoahe({2,3}))
-likh("11. Alaghahe (disjoint)?", s1.alaghahe({10, 20}))
+# hata - remove element
+s1.hata(1)
+likh("3. hata(1) - remove element:", s1)
 
-s1.kadh()                    # kadh - remove random element
-s1.saf()                     # saf - empty the set
-likh("12-13 (Kadh, Saf):", s1)
+# chad - discard (no error if missing)
+s1.chad(99)
+likh("4. chad(99) - discard (no error):", s1)
 
-/* ============================================
-# PART 15: NEW LEXER FEATURES
+# bade - union
+likh("5. bade(s2) - union:", s1.bade(s2))
+
+# milap - intersection
+likh("6. milap(s2) - intersection:", s1.milap(s2))
+
+# farq - difference
+likh("7. farq(s2) - difference:", s1.farq(s2))
+
+# symmetric_farq - symmetric difference
+likh("8. symmetric_farq(s2) - symmetric diff:", s1.symmetric_farq(s2))
+
+# nandohisoahe - issubset
+likh("9. nandohisoahe({1,2}) - is subset:", s1.nandohisoahe({1, 2}))
+
+# wadohisoahe - issuperset
+likh("10. wadohisoahe({2,3,4,5}) - is superset:", s1.wadohisoahe({2, 3, 4, 5}))
+
+# alaghahe - isdisjoint
+likh("11. alaghahe({10,20}) - is disjoint:", s1.alaghahe({10, 20}))
+
+# kadh - pop (remove random)
+val = s1.kadh()
+likh("12. kadh() - pop random:", val)
+
+# saf - clear
+s1.saf()
+likh("13. saf() - clear:", s1)
+
+likh("")
+
 # ============================================
-This is a multiline comment! 
-It can span across as many lines as you want.
-The lexer will completely ignore all of this text,
-including all the newlines and symbols in here.
-============================================ */
+# PART 20: NESTED COLLECTIONS
+# ============================================
 
-# --- MULTILINE STRINGS ---
-lafz kahani = """Hikk dafay jo zikr ahe,
-Sindlish language mein nawa features achi waya!
-Ab ap asani se lambay text likh sakte hain."""
+likh("--- PART 20: NESTED COLLECTIONS ---")
 
+# List of lists (matrix)
+matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+likh("Matrix (list of lists):")
+likh("   matrix[0] =", matrix[0])
+row1 = matrix[1]
+likh("   matrix[1] =", row1)
+likh("   row1[1] =", row1[1])
 
-likh("--- Multiline Strings Demo ---")
-likh(kahani)
+# List of dicts
+users = [{"naam": "Ali", "umr": 25}, {"naam": "Sara", "umr": 30}]
+likh("List of dicts:")
+likh("   users[0] =", users[0])
 
+# Dict of lists
+groups = {"math": ["Ali", "Sara"], "science": ["Bilal"]}
+likh("Dict of lists:")
+likh("   groups['math'] =", groups["math"])
 
-# --- ESCAPE SEQUENCES ---
-/* Because we routed strings through Python's codecs,
-you now have access to standard escape sequences:
-\n (newline), \t (tab), \" (quotes), and even Unicode! 
-*/
+likh("")
 
-lafz escapes = "Name:\tSindlish\nStatus:\tActive\nQuote:\t\"Zabardast!\""
+# ============================================
+# PART 21: IDENTITY VS EQUALITY
+# ============================================
 
-likh("\n--- Escape Sequences Demo ---")
-likh(escapes)
+likh("--- PART 21: IDENTITY VS EQUALITY ---")
 
-# Fun with Unicode escapes ( \uXXXX )
-lafz dil = "\nSindlish pyari ahe ❤️"  # \u2764 is a Unicode heart!
-likh(dil)
+# For IMMUTABLE types (numbers, strings): value-based equality
+n1 = 42
+n2 = 42
+likh("Numbers (value-based):")
+likh("   n1 = 42, n2 = 42")
+likh("   n1 == n2 is", n1 == n2)
+
+s1 = "hello"
+s2 = "hello"
+likh("Strings (value-based):")
+likh("   s1 = 'hello', s2 = 'hello'")
+likh("   s1 == s2 is", s1 == s2)
+
+# For MUTABLE types (list, dict, set): identity-based equality
+# (Different objects are NOT equal even with same content)
+l1 = [1, 2, 3]
+l2 = [1, 2, 3]
+likh("Lists (identity-based):")
+likh("   l1 = [1,2,3], l2 = [1,2,3]")
+likh("   l1 == l2 is", l1 == l2)
+likh("   (Different objects are NOT equal!)")
+
+likh("")
+
+# ============================================
+# PART 22: UNHASHABLE TYPES
+# ============================================
+
+likh("--- PART 22: UNHASHABLE TYPES ---")
+
+likh("Lists, Dicts, and Sets are UNHASHABLE in Sindlish")
+likh("(Cannot be used as dict keys or set members)")
+
+likh("This would ERROR:")
+likh("   bad_set = majmuo()")
+likh("   bad_set.wadha([1, 2, 3])  # ERROR!")
+likh("   bad_dict = {'key': [1,2,3]}  # ERROR!")
+
+likh("")
+
+# ============================================
+# PART 23: TYPED COLLECTIONS
+# ============================================
+
+likh("--- PART 23: TYPED COLLECTIONS ---")
+
+# Typed List (element type in brackets)
+fehrist[adad] nums = [1, 2, 3]
+likh("fehrist[adad] (int list):", nums)
+
+# Typed Set
+majmuo[lafz] names = {"Ali", "Sara"}
+likh("majmuo[lafz] (string set):", names)
+
+# Typed Dict
+lughat[lafz, adad] scores = {"Ali": 90, "Sara": 85}
+likh("lughat[lafz, adad] (string->int dict):", scores)
+
+likh("")
+
+# ============================================
+# PART 24: COMPLETE EXAMPLE
+# ============================================
+
+likh("--- PART 24: COMPLETE EXAMPLE ---")
+
+lafz name = "Sindlish"
+adad version = 1
+dahai pi = 3.14159
+faislo is_awesome = sach
+
+likh("Language:", name)
+likh("Version:", version)
+likh("Pi:", pi)
+likh("Is Awesome:", is_awesome)
+
+# Simple program
+adad sum = 0
+adad i = 1
+jistain i <= 5 {
+    sum = sum + i
+    i = i + 1
+}
+likh("Sum of 1+2+3+4+5 =", sum)
+
+# List processing
+fehrist[adad] nums = [5, 2, 8, 1, 9]
+nums.tarteeb()
+likh("Sorted numbers:", nums)
+
+likh("")
+
+# ============================================
+# END OF DOCUMENTATION
+# ============================================
+
+likh("===================================")
+likh("=== DEMO COMPLETE ===")
+likh("===================================")
+likh("Sindlish - A programming language for everyone!")
+likh("Built with love for the Sindhi/Urdu speaking community")
+likh("")
+likh("For more info, check: SINDLISH_FEATURE_ROADMAP.md")
