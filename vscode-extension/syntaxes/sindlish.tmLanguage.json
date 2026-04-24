@@ -89,7 +89,7 @@
         "builtins": {
             "patterns": [
                 {
-                    "match": "\\b(?:lambi|likh)\\b",
+                    "match": "\\b(?:majmuo|lambi|likh)\\b",
                     "name": "support.function.sindlish"
                 },
                 {
