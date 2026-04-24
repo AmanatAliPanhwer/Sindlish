@@ -1,5 +1,6 @@
 from .ast_nodes import *
 from .errors import NaleJeGhalti, HalndeVaktGhalti, QisamJeGhalti
+from .tokens import TokenType
 
 class Resolver:
     def __init__(self, code):

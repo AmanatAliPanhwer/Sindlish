@@ -17,6 +17,15 @@ class TestSetLiteral:
     def test_single_element_set(self):
         interp, _ = run("x = {42}")
         assert extract_value(interp.variables["x"]["value"]) == {42}
+    
+    def test_explicit_majmuo(self):
+        code = """
+        m = majmuo()
+        m.addkar(1)
+        likh(m)
+        """
+        vm, interp = run(code)
+        assert "{1}" in interp.strip()
 
 
 class TestTypedSet:

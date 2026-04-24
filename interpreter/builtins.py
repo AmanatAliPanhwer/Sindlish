@@ -1,5 +1,5 @@
 from .objects.primitives import SdNumber, SdNull, SdBool, SdDict, SdList, SdSet, SdString
-from .errors import QisamJeGhalti
+from .errors import QisamJeGhalti, HalndeVaktGhalti
 
 def register(registry_dict):
     """A decorator to automatically add functions to a dictionary."""
@@ -18,18 +18,26 @@ class SimpleBuiltins:
         pass
 
     @register(functions)
+    def majmuo(self, args):
+        if len(args) == 0:
+            return SdSet(set())
+        if len(args) == 1:
+            return SdSet(set(args[0]))
+        raise HalndeVaktGhalti("lambi() khe sirf 1 ya 0 argument khapay.")
+
+    @register(functions)
     def lambi(self, args):
         if len(args) != 1:
-            raise RuntimeError("lambi() khe sirf 1 argument khapay.")
-        
+            raise HalndeVaktGhalti("lambi() khe sirf 1 argument khapay.")
+
         obj = args[0]
-        
+
         # We check the internal storage of our SdObjects
         if hasattr(obj, 'elements'): # For SdList, SdSet
             return SdNumber(len(obj.elements))
         if hasattr(obj, 'value') and isinstance(obj.value, (str, dict)):
             return SdNumber(len(obj.value))
-            
+
         raise QisamJeGhalti(f"'{obj.type.name}' ji lambi nathi kashi saghjay.")
 
     @register(functions)

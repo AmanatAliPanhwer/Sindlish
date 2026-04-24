@@ -226,6 +226,14 @@ class Parser:
 
         if token.type == TokenType.LBRACE:
             return self.parse_dict_set().set_pos(token.line, token.column)
+        
+        if token.type in DATATYPES:
+            name = self.advance().value
+            # We treat the datatype keyword as an identifier if followed by (
+            if self.peek() and self.peek().type == TokenType.LPAREN:
+                args = self.parse_call_arguments()
+                return CallNode(token.type.name.lower(), args).set_pos(token.line, token.column)
+            raise LikhaiJeGhalti(f"DataType `{name}` use nahi kar sakte", token.line, token.column, self.code)
 
         if token.type == TokenType.IDENTIFIER:
             name = self.advance().value
@@ -302,8 +310,8 @@ class Parser:
                 if self.peek() and self.peek().type in DATATYPES:
                     key_type = self.advance().type
                     if self.peek().type != TokenType.COMMA:
-                        raise LikhaiJeGhalti("Lughat jhay key type khan poe ',' lazmi aahe", self.peek().line, self.peek().column, self.code)
-                    self.advance()  # ,
+                        raise LikhaiJeGhalti("Lughat jhay key type khan poe ':' lazmi aahe", self.peek().line, self.peek().column, self.code)
+                    self.advance()  # :
                     if self.peek() and self.peek().type in DATATYPES:
                         val_type = self.advance().type
                         element_type = [key_type, val_type]
@@ -504,12 +512,14 @@ class Parser:
         self.advance()  # )
         return args
 
-    def parse_dict_set(self):
+    def parse_dict_set(self, expected_type=None):
         token = self.peek()
         self.advance()  # {
 
         if self.peek() and self.peek().type == TokenType.RBRACE:
             self.advance()
+            if expected_type == TokenType.MAJMUO:
+                return SetNode([]).set_pos(token.line, token.column)
             return DictNode([]).set_pos(token.line, token.column)
 
         first_expr = self.parse_expression()
