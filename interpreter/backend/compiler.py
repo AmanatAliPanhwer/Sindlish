@@ -3,7 +3,7 @@ from ..frontend.ast_nodes import (
     NumberNode, StringNode, BoolNode, NullNode,
     VariableNode, AssignNode,
     BinaryOpNode, UnaryOpNode, PostfixOpNode,
-    PrintNode, IfNode, WhileNode,
+    PrintNode, IfNode, WhileNode, ForNode, BreakNode, ContinueNode,
     ListNode, DictNode, SetNode, IndexNode,
     FunctionNode, ParamNode, CallNode, ReturnNode,
     MethodCallNode, GetAttrNode,
@@ -19,6 +19,7 @@ class Compiler:
         self.instructions = []
         self.constants = []
         self.line_col_map = {}
+        self.loop_stack = [] # Stack of (start_label, end_label)
 
     def emit(self, opcode, arg=None, node=None, line=None, column=None):
         if node:
@@ -204,13 +205,65 @@ class Compiler:
 
     def compile_WhileNode(self, node):
         loop_start = len(self.instructions)
+        
         self.compile(node.condition)
-        jump_if_false_instr = self.emit(OpCode.JUMP_IF_FALSE, 0, node=node)
+        exit_jump_idx = self.emit(OpCode.JUMP_IF_FALSE, 0, node=node)
+        
+        # loop_stack: (continue_target, exit_jump_idx, break_jump_indices)
+        self.loop_stack.append((loop_start, exit_jump_idx, []))
         
         self.compile(node.body)
+        
         self.emit(OpCode.JUMP_ABSOLUTE, loop_start, node=node)
         
-        self.instructions[jump_if_false_instr] = (OpCode.JUMP_IF_FALSE, len(self.instructions))
+        exit_label = len(self.instructions)
+        self.instructions[exit_jump_idx] = (OpCode.JUMP_IF_FALSE, exit_label)
+        
+        # Patch all breaks
+        _, _, breaks = self.loop_stack.pop()
+        for break_idx in breaks:
+            self.instructions[break_idx] = (OpCode.JUMP_ABSOLUTE, exit_label)
+
+    def compile_ForNode(self, node):
+        self.compile(node.iterable)
+        self.emit(OpCode.GET_ITER, node=node)
+        
+        loop_start = len(self.instructions)
+        
+        # FOR_ITER pops a value and pushes it, or jumps if done
+        exit_jump_idx = self.emit(OpCode.FOR_ITER, 0, node=node)
+        
+        # Store iterator value in the variable
+        self.emit(OpCode.STORE_FAST, node.iterator_slot, node=node)
+        
+        # continue in 'for' should go to loop_start (to get next item)
+        self.loop_stack.append((loop_start, exit_jump_idx, []))
+        
+        self.compile(node.body)
+        
+        self.emit(OpCode.JUMP_ABSOLUTE, loop_start, node=node)
+        
+        exit_label = len(self.instructions)
+        self.instructions[exit_jump_idx] = (OpCode.FOR_ITER, exit_label)
+        
+        # Patch all breaks
+        _, _, breaks = self.loop_stack.pop()
+        for break_idx in breaks:
+            self.instructions[break_idx] = (OpCode.JUMP_ABSOLUTE, exit_label)
+
+    def compile_BreakNode(self, node):
+        if not self.loop_stack:
+            raise Exception("tor (break) loop khaan baahar istamal natho kare saghjay.")
+        
+        idx = self.emit(OpCode.JUMP_ABSOLUTE, 0, node=node)
+        self.loop_stack[-1][2].append(idx)
+
+    def compile_ContinueNode(self, node):
+        if not self.loop_stack:
+            raise Exception("jari (continue) loop khaan baahar istamal natho kare saghjay.")
+        
+        start_label = self.loop_stack[-1][0]
+        self.emit(OpCode.JUMP_ABSOLUTE, start_label, node=node)
 
     def compile_ListNode(self, node):
         for el in node.elements:

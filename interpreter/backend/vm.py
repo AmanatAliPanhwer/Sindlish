@@ -81,6 +81,9 @@ class VM:
             OpCode.LOGICAL_NOT: self._op_logical_not,
             OpCode.JUMP_ABSOLUTE: self._op_jump_absolute,
             OpCode.JUMP_IF_FALSE: self._op_jump_if_false,
+            OpCode.JUMP_IF_FALSE: self._op_jump_if_false,
+            OpCode.GET_ITER: self._op_get_iter,
+            OpCode.FOR_ITER: self._op_for_iter,
             OpCode.PRINT_ITEM: self._op_print_item,
             OpCode.CALL_FUNCTION: self._op_call_function,
             OpCode.CALL_METHOD: self._op_call_method,
@@ -336,6 +339,23 @@ class VM:
         condition = self.pop()
         if not condition.value:
             frame.ip = arg
+
+    def _op_get_iter(self, frame, arg, line, column):
+        obj = self.pop()
+        try:
+            it = iter(obj)
+            self.push(it)
+        except TypeError:
+            raise QisamJeGhalti(f"'{obj.type.name}' object iterable na aahe.", line, column, self.code_string)
+
+    def _op_for_iter(self, frame, arg, line, column):
+        it = self.stack[-1] # Peek at the iterator
+        try:
+            val = next(it)
+            self.push(val)
+        except StopIteration:
+            self.pop() # Pop the iterator
+            frame.ip = arg # Jump to end
 
     def _op_print_item(self, frame, arg, line, column):
         print(self.pop())

@@ -35,6 +35,10 @@ KEYWORDS: dict[str, TokenType] = {
     "ok":      TokenType.OK,
     "ghalti":  TokenType.GHALTI,
     "kharabi": TokenType.KHARABI,
+    "har":     TokenType.HAR,
+    "tor":     TokenType.TOR,
+    "jari":    TokenType.JARI,
+    "mein":    TokenType.MEIN,
 }
 
 # ── Data-type TokenTypes (used in type annotations) ─────────────

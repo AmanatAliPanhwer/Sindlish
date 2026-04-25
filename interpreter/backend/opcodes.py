@@ -42,6 +42,10 @@ class OpCode(IntEnum):
     JUMP_ABSOLUTE = auto()
     JUMP_IF_FALSE = auto()
     
+    # Iteration
+    GET_ITER = auto()
+    FOR_ITER = auto()
+    
     # Output
     PRINT_ITEM = auto()
     

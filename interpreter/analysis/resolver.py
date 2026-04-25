@@ -3,7 +3,7 @@ from ..frontend.ast_nodes import (
     NumberNode, StringNode, BoolNode, NullNode,
     VariableNode, AssignNode,
     BinaryOpNode, UnaryOpNode, PostfixOpNode,
-    PrintNode, IfNode, WhileNode,
+    PrintNode, IfNode, WhileNode, ForNode, BreakNode, ContinueNode,
     ListNode, DictNode, SetNode, IndexNode,
     FunctionNode, ParamNode, CallNode, ReturnNode,
     MethodCallNode, GetAttrNode,
@@ -191,6 +191,24 @@ class Resolver:
     def resolve_WhileNode(self, node):
         self.resolve(node.condition)
         self.resolve(node.body)
+
+    def resolve_ForNode(self, node):
+        self.resolve(node.iterable)
+        
+        # Iterator variable is defined in a new scope inside the loop
+        self.push_scope()
+        slot = self.define(node.iterator, node)
+        # We need to store this slot info in the ForNode for the compiler
+        node.iterator_slot = slot
+        
+        self.resolve(node.body)
+        self.pop_scope()
+
+    def resolve_BreakNode(self, node):
+        pass
+
+    def resolve_ContinueNode(self, node):
+        pass
 
     def resolve_CallNode(self, node):
         for arg in node.args:

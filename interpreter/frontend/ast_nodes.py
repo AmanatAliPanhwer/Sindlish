@@ -190,6 +190,34 @@ class WhileNode(Node):
         self.body = body
 
 
+class ForNode(Node):
+    """For loop (har)."""
+    __slots__ = ('iterator', 'iterable', 'body', 'iterator_slot', 'line', 'column')
+
+    def __init__(self, iterator: str, iterable, body, line: int = 0, column: int = 0):
+        super().__init__(line, column)
+        self.iterator = iterator
+        self.iterable = iterable
+        self.body = body
+        self.iterator_slot = None
+
+
+class BreakNode(Node):
+    """Break statement (tor)."""
+    __slots__ = ('line', 'column')
+
+    def __init__(self, line: int = 0, column: int = 0):
+        super().__init__(line, column)
+
+
+class ContinueNode(Node):
+    """Continue statement (jari)."""
+    __slots__ = ('line', 'column')
+
+    def __init__(self, line: int = 0, column: int = 0):
+        super().__init__(line, column)
+
+
 class BlockNode(Node):
     """A block of statements enclosed in { }."""
     __slots__ = ('statements', 'line', 'column')

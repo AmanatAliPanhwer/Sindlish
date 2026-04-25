@@ -386,6 +386,61 @@ jistain count <= 3 {
 likh("")
 
 # ============================================
+# PART 13a: FOR LOOPS (HAR)
+# ============================================
+
+likh("--- PART 13a: FOR LOOPS (HAR) ---")
+
+# har i mein range(5) - Every i in range(5)
+likh("Iterate using range():")
+har i mein range(3) {
+    likh("   i =", i)
+}
+
+# har n mein fehrist - Every n in list
+likh("Iterate over a list:")
+fehrist[adad] nums = [10, 20, 30]
+har n mein nums {
+    likh("   n =", n)
+}
+
+# The 'mein' keyword is mandatory between the variable and collection
+likh("Iterate with 'mein' keyword:")
+har x mein [1, 2] {
+    likh("   x =", x)
+}
+
+likh("")
+
+# ============================================
+# PART 13c: LOOP CONTROL (TOR & JARI)
+# ============================================
+
+likh("--- PART 13c: LOOP CONTROL (TOR & JARI) ---")
+
+# tor (break) exits the loop
+likh("Break (tor) example:")
+har i range(10) {
+    agar i == 3 {
+        likh("   Breaking at 3")
+        tor
+    }
+    likh("   i =", i)
+}
+
+# jari (continue) skips to the next iteration
+likh("Continue (jari) example:")
+har i range(5) {
+    agar i == 2 {
+        likh("   Skipping 2")
+        jari
+    }
+    likh("   i =", i)
+}
+
+likh("")
+
+# ============================================
 # PART 14: LISTS (FEHRIST)
 # ============================================
 

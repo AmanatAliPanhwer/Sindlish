@@ -3,7 +3,7 @@ from .ast_nodes import (
     NumberNode, StringNode, BoolNode, NullNode,
     VariableNode, AssignNode,
     BinaryOpNode, UnaryOpNode, PostfixOpNode,
-    PrintNode, IfNode, WhileNode,
+    PrintNode, IfNode, WhileNode, ForNode, BreakNode, ContinueNode,
     ListNode, DictNode, SetNode, IndexNode,
     FunctionNode, ParamNode, CallNode, ReturnNode,
     MethodCallNode, GetAttrNode,
@@ -112,6 +112,17 @@ class Parser:
 
         if token.type == TokenType.WAPAS:
             return self.parse_return().set_pos(token.line, token.column)
+
+        if token.type == TokenType.HAR:
+            return self.parse_for().set_pos(token.line, token.column)
+
+        if token.type == TokenType.TOR:
+            self.advance() # tor
+            return BreakNode().set_pos(token.line, token.column)
+
+        if token.type == TokenType.JARI:
+            self.advance() # jari
+            return ContinueNode().set_pos(token.line, token.column)
 
         if token.type == TokenType.PAKKO or (
             token.type in DATATYPES and self.peek_ahead() and (
@@ -508,6 +519,30 @@ class Parser:
         body = self.parse_block()
 
         return WhileNode(condition, body).set_pos(token.line, token.column)
+
+    def parse_for(self):
+        token = self.peek()
+        self.advance()  # har
+
+        if self.peek().type != TokenType.IDENTIFIER:
+            raise LikhaiJeGhalti("'har' khaan poe variable jo naalo lazmi aahe.", self.peek().line, self.peek().column, self.code)
+        
+        iterator_name = self.advance().value
+
+        # 'mein' is now mandatory: har i mein range(5)
+        if self.peek().type != TokenType.MEIN:
+            raise LikhaiJeGhalti("Variable khaan poe 'mein' lazmi aahe.", self.peek().line, self.peek().column, self.code)
+        self.advance() # mein
+
+        iterable = self.parse_expression()
+
+        if self.peek().type != TokenType.LBRACE:
+            raise LikhaiJeGhalti("Iterable khaan poe '{' lazmi aahe.", self.peek().line, self.peek().column, self.code)
+        self.advance() # {
+
+        body = self.parse_block()
+
+        return ForNode(iterator_name, iterable, body).set_pos(token.line, token.column)
 
     def parse_or(self):
         left = self.parse_and()

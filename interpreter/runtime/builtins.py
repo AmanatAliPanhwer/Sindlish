@@ -54,6 +54,20 @@ class SimpleBuiltins:
         prompt = " ".join(str(arg) for arg in args)
         return SdString(input(prompt))
 
+    @_register(functions)
+    def range(self, args):
+        """Return a list of numbers from start to end with step."""
+        if len(args) == 1:
+            start, end, step = 0, int(args[0].value), 1
+        elif len(args) == 2:
+            start, end, step = int(args[0].value), int(args[1].value), 1
+        elif len(args) == 3:
+            start, end, step = int(args[0].value), int(args[1].value), int(args[2].value)
+        else:
+            raise HalndeVaktGhalti("range() khe 1, 2, ya 3 arguments khapan.")
+        
+        return SdList([SdNumber(i) for i in range(start, end, step)])
+
 
     def get_all(self):
         """Return all registered built-in functions."""

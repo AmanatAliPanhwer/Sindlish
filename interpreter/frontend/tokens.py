@@ -45,6 +45,10 @@ class TokenType(Enum):
     OK = auto()         # OK (Result)
     GHALTI = auto()     # PANIC or ERROR (Result)
     KHARABI = auto()    # Deprecated PANIC
+    HAR = auto()        # FOR
+    TOR = auto()        # BREAK
+    JARI = auto()       # CONTINUE
+    MEIN = auto()       # IN
 
     # ── Operators ───────────────────────────────────────────────
     PLUS = auto()       # +
