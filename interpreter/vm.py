@@ -11,23 +11,60 @@ from .errors import (
 )
 from .tokens import TokenType
 
+TYPE_MAP = {
+    "adad": ADAD_TYPE,
+    "dahai": DAHAI_TYPE,
+    "lafz": LAFZ_TYPE,
+    "faislo": FAISLO_TYPE,
+    "fehrist": FEHRIST_TYPE,
+    "lughat": LUGHAT_TYPE,
+    "majmuo": MAJMUO_TYPE,
+    "khali": KHALI_TYPE,
+}
+
+def _get_expected_type(type_name):
+    if type_name is None:
+        return None
+    return TYPE_MAP.get(type_name.lower())
+
+def _check_type(value, expected_type_name, param_name):
+    if expected_type_name is None:
+        return True
+    expected = _get_expected_type(expected_type_name)
+    if expected is None:
+        return True
+    if value.type != expected:
+        return False
+    return True
+
+class BytecodeFrame:
+    def __init__(self, name, instructions, constants, line_col_map, slot_count, slot_metadata):
+        self.name = name
+        self.instructions = instructions
+        self.constants = constants
+        self.line_col_map = line_col_map
+        self.slots = [None] * slot_count
+        self.slot_metadata = slot_metadata
+        self.ip = 0
+
 class VM:
     def __init__(self, code_string, instructions, constants, globals_env, slot_count, slot_metadata, line_col_map=None):
         self.code_string = code_string
-        self.instructions = instructions
-        self.constants = constants
+        
         self.globals = globals_env
-        self.slots = [None] * slot_count
         self.stack = []
-        self.ip = 0
-        self.slot_metadata = slot_metadata
+        
         self.line_col_map = line_col_map or {}
         
         self.simple_handler = SimpleBuiltins()
         self.method_handler = MethodBuiltins()
+        
+        main_frame = BytecodeFrame("main", instructions, constants, self.line_col_map, slot_count, slot_metadata)
+        self.frames = [main_frame]
 
     def _get_line_column(self):
-        return self.line_col_map.get(self.ip, (0, 0))
+        frame = self.frames[-1]
+        return frame.line_col_map.get(frame.ip, (0, 0))
 
     def push(self, value):
         self.stack.append(value)
@@ -88,47 +125,57 @@ class VM:
         result = {}
         for name, record in self.globals.records.items():
             result[name] = {"value": record.value, "is_const": getattr(record, 'is_const', False)}
+        
+        frame = self.frames[-1]
         if hasattr(self, 'slot_names'):
-            for name, slot_idx in self.slot_names.items():
-                if slot_idx < len(self.slots) and self.slots[slot_idx] is not None:
-                    metadata = self.slot_metadata.get(slot_idx, {})
-                    result[name] = {"value": self.slots[slot_idx], "is_const": metadata.get("is_const", False)}
+             for name, slot_idx in self.slot_names.items():
+                if slot_idx < len(frame.slots) and frame.slots[slot_idx] is not None:
+                    metadata = frame.slot_metadata.get(slot_idx, {})
+                    result[name] = {"value": frame.slots[slot_idx], "is_const": metadata.get("is_const", False)}
         return result
 
     def run(self):
-        while self.ip < len(self.instructions):
-            self.step()
+        while self.frames:
+            frame = self.frames[-1]
+            if frame.ip < len(frame.instructions):
+                self.step()
+            else:
+                if len(self.frames) == 1:
+                    # Don't pop the main frame so tests can access its slots
+                    break
+                self.frames.pop()
 
     def step(self):
-        line, column = self._get_line_column()  # Get line/col BEFORE incrementing ip
-        opcode, arg = self.instructions[self.ip]
-        self.ip += 1
+        line, column = self._get_line_column()
+        frame = self.frames[-1]
+        opcode, arg = frame.instructions[frame.ip]
+        frame.ip += 1
 
         if opcode == OpCode.LOAD_CONST:
-            self.push(self.constants[arg])
+            self.push(frame.constants[arg])
         
         elif opcode == OpCode.LOAD_FAST:
-            val = self.slots[arg]
+            val = frame.slots[arg]
             self.push(val)
             
         elif opcode == OpCode.STORE_FAST:
             value = self.pop()
-            metadata = self.slot_metadata.get(arg, {})
-            if metadata.get("is_const") and self.slots[arg] is not None:
+            metadata = frame.slot_metadata.get(arg, {})
+            if metadata.get("is_const") and frame.slots[arg] is not None:
                 raise HalndeVaktGhalti("pakko (const) variable badli natho saghjay.", line, column, self.code_string)
             expected_type = metadata.get("type")
             has_explicit = metadata.get("has_explicit_type", False)
             if has_explicit and expected_type is not None:
                 self._check_type(value, expected_type, metadata.get("element_type"), line=line, column=column)
-            self.slots[arg] = value
+            frame.slots[arg] = value
             
         elif opcode == OpCode.LOAD_GLOBAL:
-            name = self.constants[arg].value
+            name = frame.constants[arg].value
             record = self.globals.lookup_record(name, None, self.code_string)
             self.push(record.value)
             
         elif opcode == OpCode.STORE_GLOBAL:
-            name = self.constants[arg].value
+            name = frame.constants[arg].value
             val = self.pop()
             if name in self.globals.records:
                 self.globals.assign(name, val, None, self.code_string)
@@ -205,11 +252,11 @@ class VM:
             self.push(val.call_method("__invert__", [], None, self.code_string))
 
         elif opcode == OpCode.JUMP_ABSOLUTE:
-            self.ip = arg
+            frame.ip = arg
         elif opcode == OpCode.JUMP_IF_FALSE:
             condition = self.pop()
             if not condition.value:
-                self.ip = arg
+                frame.ip = arg
 
         elif opcode == OpCode.PRINT_ITEM:
             val = self.pop()
@@ -217,22 +264,107 @@ class VM:
 
         elif opcode == OpCode.CALL_FUNCTION:
             const_idx, num_args = arg
-            name = self.constants[const_idx].value
+            name = frame.constants[const_idx].value
             args = [self.pop() for _ in range(num_args)]
             args.reverse()
             
-            # For now, only builtins
             record = self.globals.lookup_record(name, None, self.code_string)
             func = record.value
-            result = func(self.simple_handler, args)
-            if result is not None:
-                self.push(result)
+            
+            if isinstance(func, SdFunction):
+                params = func.params
+                
+                args_to_pass = []
+                star_args_list = []
+                kwargs_dict = SdDict([])
+                
+                keyword_args = {}
+                positional_args = []
+                param_names = {p.name for p in params}
+                i = 0
+                while i < len(args):
+                    arg_i = args[i]
+                    # Check if this is a keyword: arg is a string, there's a next arg, and this matches a param name
+                    if i + 1 < len(args) and hasattr(arg_i, 'type') and arg_i.type.name == 'LAFZ':
+                        if arg_i.value in param_names:
+                            keyword_args[arg_i.value] = args[i + 1]
+                            i += 2
+                            continue
+                    positional_args.append(args[i])
+                    i += 1
+                
+                args_idx = 0
+                for param in params:
+                    if param.is_star:
+                        star_args_list = positional_args[args_idx:] if args_idx < len(positional_args) else []
+                        args_idx = len(positional_args)
+                    elif param.is_kw:
+                        pass
+                    elif param.name in keyword_args:
+                        arg_val = keyword_args[param.name]
+                        expected_type = param.type
+                        if expected_type and not _check_type(arg_val, expected_type, param.name):
+                            line, column = self._get_line_column()
+                            actual_type = arg_val.type.name.lower()
+                            raise QisamJeGhalti(
+                                f"parameter '{param.name}' khe '{expected_type}' khapyo te per '{actual_type}' milyo.",
+                                line, column, self.code_string
+                            )
+                        args_to_pass.append(arg_val)
+                    elif args_idx < len(positional_args):
+                        arg_val = positional_args[args_idx]
+                        expected_type = param.type
+                        if expected_type and not _check_type(arg_val, expected_type, param.name):
+                            line, column = self._get_line_column()
+                            actual_type = arg_val.type.name.lower()
+                            raise QisamJeGhalti(
+                                f"parameter '{param.name}' khe '{expected_type}' khapyo te per '{actual_type}' milyo.",
+                                line, column, self.code_string
+                            )
+                        args_to_pass.append(arg_val)
+                        args_idx += 1
+                    elif param.default is not None:
+                        args_to_pass.append(param.default)
+                    else:
+                        line, column = self._get_line_column()
+                        raise LikhaiJeGhalti(
+                            f"parameter '{param.name}' laai qeemat lazmi aahe",
+                            line, column, self.code_string
+                        )
+                
+                slot_count = func.slot_count
+                
+                new_frame = BytecodeFrame(func.name, func.instructions, func.constants, func.line_col_map, slot_count, func.slot_metadata)
+                
+                frame_idx = 0
+                args_passed_idx = 0
+                for param in params:
+                    if param.is_star:
+                        new_frame.slots[frame_idx] = SdList(star_args_list)
+                        frame_idx += 1
+                    elif param.is_kw:
+                        new_frame.slots[frame_idx] = kwargs_dict
+                        frame_idx += 1
+                    else:
+                        new_frame.slots[frame_idx] = args_to_pass[args_passed_idx]
+                        frame_idx += 1
+                        args_passed_idx += 1
+                
+                new_frame.call_metadata = {
+                    "return_type": func.return_type,
+                    "function_name": func.name,
+                }
+                self.frames.append(new_frame)
             else:
-                self.push(SdNull())
+                result = func(self.simple_handler, args)
+                if result is not None:
+                    self.push(result)
+                else:
+                    self.push(SdNull())
 
         elif opcode == OpCode.CALL_METHOD:
             const_idx, num_args = arg
-            method_name = self.constants[const_idx].value
+            method_name = frame.constants[const_idx].value
             args = [self.pop() for _ in range(num_args)]
             args.reverse()
             obj = self.pop()
@@ -247,6 +379,75 @@ class VM:
             else:
                 line, column = self._get_line_column()
                 raise NaleJeGhalti(f"Method `{method_name}` wazahat thayal", line, column, self.code_string)
+
+        elif opcode == OpCode.GET_ATTR:
+            attr_name = frame.constants[arg].value
+            obj = self.pop()
+            
+            # Special handling for Result properties
+            if isinstance(obj, SdResult) and attr_name in ('ok', 'ghalti'):
+                self.push(getattr(obj, attr_name))
+            else:
+                line, column = self._get_line_column()
+                raise NaleJeGhalti(f"Attribute `{attr_name}` na milio.", line, column, self.code_string)
+
+        elif opcode == OpCode.MAKE_OK:
+            val = self.pop()
+            if isinstance(val, SdResult):
+                self.push(val)
+            else:
+                self.push(SdResult(SdResult.OK, val))
+        
+        elif opcode == OpCode.MAKE_ERROR:
+            val = self.pop()
+            if isinstance(val, SdResult) and val.is_error():
+                self.push(val)
+            else:
+                self.push(SdResult(SdResult.GHALTI, val))
+            
+        elif opcode == OpCode.CALL_BACHAO:
+            fallback = self.pop()
+            result = self.pop()
+            if not isinstance(result, SdResult):
+                 raise QisamJeGhalti(f"Result object expected, got '{result.type.name}'", line, column, self.code_string)
+            if result.is_ok():
+                self.push(result.value)
+            else:
+                self.push(fallback)
+                
+        elif opcode == OpCode.CALL_LAZMI:
+            message = self.pop()
+            result = self.pop()
+            if not isinstance(result, SdResult):
+                 raise QisamJeGhalti(f"Result object expected, got '{result.type.name}'", line, column, self.code_string)
+            if result.is_ok():
+                self.push(result.value)
+            else:
+                msg_val = message.value if isinstance(message, (SdString, SdNumber, SdBool)) else str(message)
+                raise HalndeVaktGhalti(msg_val, line, column, self.code_string)
+                
+        elif opcode == OpCode.POSTFIX_QMARK:
+            result = self.pop()
+            if not isinstance(result, SdResult):
+                 raise QisamJeGhalti(f"Result object expected, got '{result.type.name}'", line, column, self.code_string)
+            if result.is_ok():
+                self.push(result.value)
+            else:
+                self.push(result) # Keep wrapped Ghalti
+                
+        elif opcode == OpCode.POSTFIX_BANGBANG:
+            result = self.pop()
+            if not isinstance(result, SdResult):
+                 raise QisamJeGhalti(f"Result object expected, got '{result.type.name}'", line, column, self.code_string)
+            if result.is_ok():
+                self.push(result.value)
+            else:
+                raise HalndeVaktGhalti(f"Panic! Ghalti: {str(result.value)}", line, column, self.code_string)
+                
+        elif opcode == OpCode.PANIC:
+            message = self.pop()
+            msg_val = message.value if isinstance(message, (SdString, SdNumber, SdBool)) else str(message)
+            raise HalndeVaktGhalti(msg_val, line, column, self.code_string)
 
         elif opcode == OpCode.BUILD_LIST:
             elements = [self.pop() for _ in range(arg)]
@@ -283,6 +484,29 @@ class VM:
             val = self.stack[-1]
             self.push(val)
 
+        elif opcode == OpCode.RETURN_VALUE:
+            val = self.pop()
+            frame = self.frames.pop()
+            
+            return_type = getattr(frame, 'call_metadata', {}).get('return_type')
+            function_name = getattr(frame, 'call_metadata', {}).get('function_name', 'unknown')
+            
+            if return_type:
+                expected = _get_expected_type(return_type)
+                is_result = isinstance(val, SdResult)
+                ok_val = val.value if is_result else val
+                actual_type = ok_val.type
+                
+                if actual_type != expected:
+                    line, column = self._get_line_column()
+                    actual_type_name = actual_type.name.lower()
+                    raise QisamJeGhalti(
+                        f"wapas khe '{return_type}' khapyo te per '{actual_type_name}' milyo. ({function_name} mein)",
+                        line, column, self.code_string
+                    )
+            
+            self.push(val)
+
         elif opcode == OpCode.HALT:
-            self.ip = len(self.instructions)
+            frame.ip = len(frame.instructions)
 

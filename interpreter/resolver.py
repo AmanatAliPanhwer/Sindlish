@@ -171,6 +171,9 @@ class Resolver:
         for arg in node.args:
             self.resolve(arg)
 
+    def resolve_GetAttrNode(self, node):
+        self.resolve(node.instance)
+
     def resolve_BinaryOpNode(self, node):
         self.resolve(node.left)
         self.resolve(node.right)
@@ -196,3 +199,38 @@ class Resolver:
         self.resolve(node.index)
         if node.value:
             self.resolve(node.value)
+
+    def resolve_FunctionNode(self, node):
+        # We define the function name in the CURRENT scope
+        self.define(node.name)
+        
+        # Then we push a new scope for params and body
+        old_next_slot = self.next_slot
+        self.next_slot = 0
+        
+        self.push_scope()
+        for param in node.params:
+            param_slot = self.define(param.name)
+            param.slot_index = param_slot
+        self.resolve(node.body)
+        node.slot_count = self.next_slot
+        self.pop_scope()
+        
+        self.next_slot = old_next_slot
+
+    def resolve_ReturnNode(self, node):
+        if node.value:
+            self.resolve(node.value)
+
+    def resolve_ResultMethodCallNode(self, node):
+        self.resolve(node.receiver)
+        self.resolve(node.arg)
+
+    def resolve_PostfixOpNode(self, node):
+        self.resolve(node.expr)
+
+    def resolve_PanicNode(self, node):
+        self.resolve(node.message)
+
+    def resolve_ResultConstructorNode(self, node):
+        self.resolve(node.value)

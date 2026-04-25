@@ -746,6 +746,72 @@ likh("Sorted numbers:", nums)
 likh("")
 
 # ============================================
+# PART 25: USER FUNCTIONS (KAAM)
+# ============================================
+
+likh("--- PART 25: USER FUNCTIONS ---")
+
+# Simple function with implicit return
+# The last evaluated expression is automatically returned as ok(result)
+kaam jorr(a, b) {
+    a + b
+}
+
+likh("2 + 3 using jorr():", jorr(2, 3))
+
+# Function with explicit return (wapas)
+kaam vind(a, b) {
+    agar b == 0 {
+        wapas ghalti("ZeroVindGhalti")
+    }
+    wapas a / b
+}
+
+likh("10 / 2 using vind():", vind(10, 2))
+likh("10 / 0 using vind():", vind(10, 0))
+
+likh("")
+
+# ============================================
+# PART 26: RESULT SYSTEM & ERROR MODEL
+# ============================================
+
+likh("--- PART 26: RESULT SYSTEM ---")
+
+# Result objects have .ok and .ghalti properties
+res = vind(5, 0)
+agar res.ghalti {
+    likh("Operation failed!")
+    likh("Error was:", res)
+}
+
+# 1. SOFT FALLBACK (?)
+# Unwraps if OK, keeps Ghalti if error (but doesn't crash)
+val = vind(5, 0)?
+likh("Soft fallback on error (keeps result):", val)
+
+# 2. CUSTOM FALLBACK (.bachao)
+# Unwraps if OK, returns custom value if error
+val = vind(5, 0).bachao(0)
+likh("Custom fallback (returns 0):", val)
+
+# 3. CRITICAL REQUIREMENT (.lazmi)
+# Unwraps if OK, panics with message if error
+# (Success case shown below)
+res_lazmi = vind(10, 2).lazmi("Should not happen")
+likh("Lazmi success:", res_lazmi)
+
+# 4. FATAL PANIC (!!)
+# Unwraps if OK, panics with error value if error
+# (Uncomment to test crash)
+# crash = vind(5, 0)!!
+
+# 5. EXPLICIT PANIC (uthar)
+# uthar("Manual system failure")
+
+likh("")
+
+# ============================================
 # END OF DOCUMENTATION
 # ============================================
 

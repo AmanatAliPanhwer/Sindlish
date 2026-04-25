@@ -55,6 +55,16 @@ class OpCode(IntEnum):
     # Functions and Methods
     CALL_FUNCTION = auto()
     CALL_METHOD = auto()
+    GET_ATTR = auto()
+    
+    # Result System and Errors
+    MAKE_OK = auto()
+    MAKE_ERROR = auto()
+    CALL_BACHAO = auto()
+    CALL_LAZMI = auto()
+    POSTFIX_QMARK = auto()
+    POSTFIX_BANGBANG = auto()
+    PANIC = auto()
     
     # Completion
     RETURN_VALUE = auto()

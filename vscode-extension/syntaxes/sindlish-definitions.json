@@ -19,7 +19,12 @@
         "lughat",
         "majmuo",
         "bahari",
-        "aalmi"
+        "aalmi",
+        "kaam",
+        "wapas",
+        "match",
+        "ok",
+        "ghalti"
     ],
     "functions": [
         "majmuo",

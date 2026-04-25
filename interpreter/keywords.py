@@ -20,7 +20,12 @@ KEYWORDS = {
     "lughat": TokenType.LUGHAT,
     "majmuo": TokenType.MAJMUO,
     "bahari": TokenType.BAHARI,
-    "aalmi": TokenType.AALMI
+    "aalmi": TokenType.AALMI,
+    "kaam": TokenType.KAAM,
+    "wapas": TokenType.WAPAS,
+    "match": TokenType.MATCH,
+    "ok": TokenType.OK,
+    "ghalti": TokenType.GHALTI
 }
 
 DATATYPES = (

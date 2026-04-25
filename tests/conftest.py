@@ -47,14 +47,15 @@ def run(code: str):
             slot_names[stmt.name] = stmt.slot_index
 
     compiler = Compiler(code)
-    instructions, constants = compiler.compile(ast)
+    instructions, constants, line_col_map = compiler.compile(ast)
 
     globals_env = create_globals_env()
+    slot_metadata = resolver.get_slot_metadata()
 
     old_stdout = sys.stdout
     sys.stdout = buffer = io.StringIO()
     try:
-        vm = VM(code, instructions, constants, globals_env, getattr(ast, "slot_count", 0))
+        vm = VM(code, instructions, constants, globals_env, getattr(ast, "slot_count", 0), slot_metadata, line_col_map)
         vm.slot_names = slot_names
         vm.run()
     finally:

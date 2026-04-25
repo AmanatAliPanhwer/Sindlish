@@ -1,7 +1,7 @@
 from .ast_nodes import *
 from .opcodes import OpCode
 from .tokens import TokenType
-from .objects.primitives import SdNumber, SdString, SdBool, SdNull
+from .objects.primitives import SdNumber, SdString, SdBool, SdNull, SdResult, SdFunction
 
 class Compiler:
     def __init__(self, code):
@@ -17,10 +17,14 @@ class Compiler:
         return idx
 
     def add_const(self, value):
-        # Check content equality for SdObjects - must also match inner value TYPE
+        # Check content equality for SdObjects
         for i, c in enumerate(self.constants):
-            if type(c) == type(value) and type(c.value) == type(value.value) and getattr(c, 'value', None) == getattr(value, 'value', None):
-                return i
+            if type(c) == type(value):
+                if hasattr(c, 'value') and hasattr(value, 'value'):
+                    if type(c.value) == type(value.value) and c.value == value.value:
+                        return i
+                elif c == value:
+                    return i
         self.constants.append(value)
         return len(self.constants) - 1
 
@@ -128,9 +132,29 @@ class Compiler:
         column = getattr(node, 'column', 0)
         self.emit(OpCode.PRINT_ITEM, line=line, column=column)
 
-    def compile_BlockNode(self, node):
-        for stmt in node.statements:
+    EXPRESSION_NODES = (
+        NumberNode, StringNode, BoolNode, NullNode, VariableNode,
+        BinaryOpNode, UnaryOpNode, ListNode, DictNode, SetNode,
+        IndexNode, CallNode, MethodCallNode, ResultConstructorNode,
+        ResultMethodCallNode, PostfixOpNode, GetAttrNode
+    )
+
+    def compile_BlockNode(self, node, is_function_body=False):
+        num_stmts = len(node.statements)
+        for i, stmt in enumerate(node.statements):
+            is_last = (i == num_stmts - 1)
             self.compile(stmt)
+            
+            if isinstance(stmt, self.EXPRESSION_NODES):
+                if is_function_body and is_last:
+                    # Wrap in Ok and return
+                    line = getattr(stmt, 'line', 0)
+                    column = getattr(stmt, 'column', 0)
+                    self.emit(OpCode.MAKE_OK, line=line, column=column)
+                    self.emit(OpCode.RETURN_VALUE, line=line, column=column)
+                else:
+                    # Statement expression - pop its value
+                    self.emit(OpCode.POP_TOP)
 
     def compile_IfNode(self, node: IfNode):
         line = getattr(node, 'line', 0)
@@ -223,10 +247,16 @@ class Compiler:
     def compile_CallNode(self, node):
         for arg in node.args:
             self.compile(arg)
-        const_idx = self.add_const(SdString(node.name))
+        if node.keywords:
+            for name, val in node.keywords:
+                const_idx = self.add_const(SdString(name))
+                self.emit(OpCode.LOAD_CONST, const_idx, line=getattr(node, 'line', 0), column=getattr(node, 'column', 0))
+                self.compile(val)
         line = getattr(node, 'line', 0)
         column = getattr(node, 'column', 0)
-        self.emit(OpCode.CALL_FUNCTION, (const_idx, len(node.args)), line=line, column=column)
+        total_args = len(node.args) + len(node.keywords) * 2  # Each keyword is 2 args (name + value)
+        const_idx = self.add_const(SdString(node.name))
+        self.emit(OpCode.CALL_FUNCTION, (const_idx, total_args), line=line, column=column)
 
     def compile_MethodCallNode(self, node):
         self.compile(node.instance)
@@ -236,3 +266,100 @@ class Compiler:
         line = getattr(node, 'line', 0)
         column = getattr(node, 'column', 0)
         self.emit(OpCode.CALL_METHOD, (const_idx, len(node.args)), line=line, column=column)
+
+    def compile_GetAttrNode(self, node):
+        self.compile(node.instance)
+        const_idx = self.add_const(SdString(node.attr_name))
+        line = getattr(node, 'line', 0)
+        column = getattr(node, 'column', 0)
+        self.emit(OpCode.GET_ATTR, const_idx, line, column)
+
+    def compile_ResultConstructorNode(self, node):
+        self.compile(node.value)
+        line = getattr(node, 'line', 0)
+        column = getattr(node, 'column', 0)
+        if node.variant == "OK":
+            self.emit(OpCode.MAKE_OK, line=line, column=column)
+        else:
+            self.emit(OpCode.MAKE_ERROR, line=line, column=column)
+
+    def compile_ResultMethodCallNode(self, node):
+        self.compile(node.receiver)
+        self.compile(node.arg)
+        line = getattr(node, 'line', 0)
+        column = getattr(node, 'column', 0)
+        if node.method_name == "bachao":
+            self.emit(OpCode.CALL_BACHAO, line=line, column=column)
+        elif node.method_name == "lazmi":
+            self.emit(OpCode.CALL_LAZMI, line=line, column=column)
+
+    def compile_PostfixOpNode(self, node):
+        self.compile(node.expr)
+        line = getattr(node, 'line', 0)
+        column = getattr(node, 'column', 0)
+        if node.op.type == TokenType.QMARK:
+            self.emit(OpCode.POSTFIX_QMARK, line=line, column=column)
+        elif node.op.type == TokenType.BANGBANG:
+            self.emit(OpCode.POSTFIX_BANGBANG, line=line, column=column)
+
+    def compile_PanicNode(self, node):
+        self.compile(node.message)
+        line = getattr(node, 'line', 0)
+        column = getattr(node, 'column', 0)
+        self.emit(OpCode.PANIC, line=line, column=column)
+
+    def compile_FunctionNode(self, node):
+        line = getattr(node, 'line', 0)
+        column = getattr(node, 'column', 0)
+        
+        # Save current state
+        old_instructions = self.instructions
+        old_line_col_map = self.line_col_map
+        self.instructions = []
+        self.line_col_map = {}
+        
+        # Compile body - call compile_BlockNode directly to pass is_function_body=True
+        self.compile_BlockNode(node.body, is_function_body=True)
+        
+        # Implicit return at end (if not already returned by compile_BlockNode)
+        self.emit(OpCode.PUSH_NULL, line=line, column=column)
+        self.emit(OpCode.MAKE_OK, line=line, column=column)
+        self.emit(OpCode.RETURN_VALUE, line=line, column=column)
+        
+        func_instructions = self.instructions
+        func_line_col_map = self.line_col_map
+        
+        # Restore state
+        self.instructions = old_instructions
+        self.line_col_map = old_line_col_map
+        
+        # Create function object
+        func_obj = SdFunction(
+            node.name,
+            node.params,
+            func_instructions,
+            self.constants,
+            func_line_col_map,
+            getattr(node, 'slot_count', 0),
+            {}, # metadata
+            node.return_type
+        )
+        
+        const_idx = self.add_const(func_obj)
+        self.emit(OpCode.LOAD_CONST, const_idx, line=line, column=column)
+        
+        # Store as global
+        name_idx = self.add_const(SdString(node.name))
+        self.emit(OpCode.STORE_GLOBAL, name_idx, line=line, column=column)
+
+    def compile_ReturnNode(self, node):
+        line = getattr(node, 'line', 0)
+        column = getattr(node, 'column', 0)
+        if node.value:
+            self.compile(node.value)
+        else:
+            self.emit(OpCode.PUSH_NULL, line=line, column=column)
+        
+        # Auto-wrap in Ok (VM will pass through if already Result)
+        self.emit(OpCode.MAKE_OK, line=line, column=column)
+        self.emit(OpCode.RETURN_VALUE, line=line, column=column)

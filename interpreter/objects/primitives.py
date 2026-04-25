@@ -10,6 +10,58 @@ FEHRIST_TYPE = SdType("FEHRIST", TokenType.FEHRIST)
 LUGHAT_TYPE = SdType("LUGHAT", TokenType.LUGHAT)
 MAJMUO_TYPE = SdType("MAJMUO", TokenType.MAJMUO)
 KHALI_TYPE = SdType("KHALI", TokenType.KHALI)
+KAAM_TYPE = SdType("KAAM", TokenType.KAAM)
+RESULT_TYPE = SdType("RESULT", None)
+
+class SdResult(SdObject):
+    __slots__ = ('variant', 'value', 'ok', 'ghalti')
+    
+    OK = "OK"
+    GHALTI = "GHALTI"
+    
+    def __init__(self, variant, value):
+        super().__init__(RESULT_TYPE)
+        self.variant = variant
+        self.value = value
+        self.ok = SdBool(self.variant == self.OK)
+        self.ghalti = SdBool(self.variant == self.GHALTI)
+
+    def is_ok(self):
+        return self.variant == self.OK
+
+    def is_error(self):
+        return self.variant == self.GHALTI
+
+    def __eq__(self, other):
+        if not isinstance(other, SdResult):
+            return SdBool(False)
+        return SdBool(self.variant == other.variant and self.value == other.value)
+
+    def __str__(self):
+        return str(self.value)
+
+    def __hash__(self):
+        return hash((self.variant, self.value))
+
+class SdFunction(SdObject):
+    __slots__ = ('name', 'params', 'instructions', 'constants', 'line_col_map', 'slot_count', 'slot_metadata', 'return_type')
+    
+    def __init__(self, name, params, instructions, constants, line_col_map, slot_count, slot_metadata, return_type=None):
+        super().__init__(KAAM_TYPE)
+        self.name = name
+        self.params = params
+        self.instructions = instructions
+        self.constants = constants
+        self.line_col_map = line_col_map
+        self.slot_count = slot_count
+        self.slot_metadata = slot_metadata
+        self.return_type = return_type
+
+    def __str__(self):
+        return f"<kaam {self.name}>"
+
+    def __hash__(self):
+        return id(self)
 
 class SdNumber(SdObject):
     __slots__ = ('value',)

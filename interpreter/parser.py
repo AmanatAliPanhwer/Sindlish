@@ -86,7 +86,18 @@ class Parser:
         if token.type == TokenType.JISTAIN:
             return self.parse_while().set_pos(token.line, token.column)
 
-        if token.type == TokenType.PAKKO or token.type in DATATYPES:
+        if token.type == TokenType.KAAM:
+            return self.parse_function_def().set_pos(token.line, token.column)
+
+        if token.type == TokenType.WAPAS:
+            return self.parse_return().set_pos(token.line, token.column)
+
+        if token.type == TokenType.PAKKO or (
+            token.type in DATATYPES and self.peek_ahead() and (
+                self.peek_ahead().type == TokenType.IDENTIFIER or 
+                (token.type in (TokenType.FEHRIST, TokenType.LUGHAT, TokenType.MAJMUO) and self.peek_ahead().type == TokenType.LBRACKET)
+            )
+        ):
             return self.parse_assignment().set_pos(token.line, token.column)
 
         if token.type == TokenType.IDENTIFIER:
@@ -127,7 +138,96 @@ class Parser:
             name = self.advance().value
             return NonLocalNode(name).set_pos(token.line, token.column)
 
-        raise LikhaiJeGhalti(f"Achanak {token.value} milyo", token.line, token.column, self.code)
+        # Catch-all for expression statements
+        try:
+            return self.parse_expression()
+        except:
+            raise LikhaiJeGhalti(f"Achanak {token.value} milyo", token.line, token.column, self.code)
+
+    def parse_function_def(self):
+        token = self.advance() # kaam
+        if self.peek().type != TokenType.IDENTIFIER:
+            raise LikhaiJeGhalti("kaam khan poe naalo lazmi aahe", self.peek().line, self.peek().column, self.code)
+        name = self.advance().value
+
+        if self.peek().type != TokenType.LPAREN:
+             raise LikhaiJeGhalti("kaam jhay naale khan poe '(' lazmi aahe", self.peek().line, self.peek().column, self.code)
+        self.advance() # (
+
+        params = []
+        if self.peek().type != TokenType.RPAREN:
+            while True:
+                is_star = False
+                is_kw = False
+
+                if self.peek().type == TokenType.MUL:
+                    self.advance() # *
+                    is_star = True
+                elif self.peek().type == TokenType.DBLSTAR:
+                    self.advance() # **
+                    is_kw = True
+
+                # Support "adad a" syntax
+                type_node = None
+                if self.peek().type in DATATYPES:
+                    type_node = self.advance().type.name.lower()
+
+                if self.peek().type != TokenType.IDENTIFIER:
+                    raise LikhaiJeGhalti("Parameter jo naalo lazmi aahe", self.peek().line, self.peek().column, self.code)
+                param_name = self.advance().value
+
+                # Support "a: adad" syntax
+                if type_node is None and self.peek().type == TokenType.COLON:
+                    self.advance() # :
+                    if self.peek().type in DATATYPES:
+                        type_node = self.advance().type.name.lower()
+                    elif self.peek().type == TokenType.IDENTIFIER:
+                        type_node = self.advance().value
+                    else:
+                        raise LikhaiJeGhalti("Type annotation lazmi aahe", self.peek().line, self.peek().column, self.code)
+
+                default_value = None
+                if self.peek().type == TokenType.EQ:
+                    self.advance() # =
+                    default_value = self.parse_expression()
+
+                params.append(ParamNode(param_name, type_node, default_value, is_star, is_kw))
+
+                if self.peek().type == TokenType.COMMA:
+                    self.advance()
+                    if self.peek().type == TokenType.RPAREN:
+                        break # Allow trailing comma
+                else:
+                    break
+
+        if self.peek().type != TokenType.RPAREN:
+            raise LikhaiJeGhalti("Parameters khan poe ')' lazmi aahe", self.peek().line, self.peek().column, self.code)
+        self.advance() # )
+
+        return_type = None
+        if self.peek().type == TokenType.MINUS:
+            if self.peek_ahead() and self.peek_ahead().type == TokenType.GT:
+                self.advance() # -
+                self.advance() # >
+                # We can have a type here or just "result"
+                if self.peek().type == TokenType.IDENTIFIER:
+                    return_type = self.advance().value
+                elif self.peek().type in DATATYPES:
+                    return_type = self.advance().type.name.lower()
+
+        if self.peek().type != TokenType.LBRACE:
+            raise LikhaiJeGhalti("kaam ji body khan poe '{' lazmi aahe", self.peek().line, self.peek().column, self.code)
+        self.advance() # {
+
+        body = self.parse_block()
+        return FunctionNode(name, params, body, return_type)
+
+    def parse_return(self):
+        token = self.advance() # wapas
+        value = None
+        if self.peek().type not in (TokenType.NEWLINE, TokenType.EOF, TokenType.RBRACE):
+            value = self.parse_expression()
+        return ReturnNode(value)
 
     def parse_print(self):
         token = self.peek()
@@ -221,6 +321,24 @@ class Parser:
             self.advance()
             return NullNode().set_pos(token.line, token.column)
 
+        if token.type == TokenType.OK:
+            self.advance()
+            if self.peek().type != TokenType.LPAREN:
+                raise LikhaiJeGhalti("ok khan poe '(' lazmi aahe", token.line, token.column, self.code)
+            args, keywords, star_args, kw_args = self.parse_call_arguments()
+            if len(args) != 1 or keywords or star_args or kw_args:
+                 raise LikhaiJeGhalti("ok takes exactly 1 argument", token.line, token.column, self.code)
+            return ResultConstructorNode("OK", args[0]).set_pos(token.line, token.column)
+
+        if token.type == TokenType.GHALTI:
+            self.advance()
+            if self.peek().type != TokenType.LPAREN:
+                raise LikhaiJeGhalti("ghalti khan poe '(' lazmi aahe", token.line, token.column, self.code)
+            args, keywords, star_args, kw_args = self.parse_call_arguments()
+            if len(args) != 1 or keywords or star_args or kw_args:
+                 raise LikhaiJeGhalti("ghalti takes exactly 1 argument", token.line, token.column, self.code)
+            return ResultConstructorNode("GHALTI", args[0]).set_pos(token.line, token.column)
+
         if token.type == TokenType.LBRACKET:
             return self.parse_list().set_pos(token.line, token.column)
 
@@ -231,27 +349,25 @@ class Parser:
             name = self.advance().value
             # We treat the datatype keyword as an identifier if followed by (
             if self.peek() and self.peek().type == TokenType.LPAREN:
-                args = self.parse_call_arguments()
-                return CallNode(token.type.name.lower(), args).set_pos(token.line, token.column)
+                args, keywords, star_args, kw_args = self.parse_call_arguments()
+                return CallNode(token.type.name.lower(), args, keywords, star_args, kw_args).set_pos(token.line, token.column)
             raise LikhaiJeGhalti(f"DataType `{name}` use nahi kar sakte", token.line, token.column, self.code)
 
         if token.type == TokenType.IDENTIFIER:
             name = self.advance().value
+            
+            if name == "uthar":
+                if self.peek() and self.peek().type == TokenType.LPAREN:
+                    args, keywords, star_args, kw_args = self.parse_call_arguments()
+                    if len(args) != 1 or keywords or star_args or kw_args:
+                        raise LikhaiJeGhalti("uthar takes exactly 1 argument", token.line, token.column, self.code)
+                    return PanicNode(args[0]).set_pos(token.line, token.column)
+
             node = VariableNode(name).set_pos(token.line, token.column)
 
-            if self.peek() and self.peek().type == TokenType.DOT:
-                self.advance()
-                method_name = self.advance().value
-
-                if not self.peek() or self.peek().type != TokenType.LPAREN:
-                    raise LikhaiJeGhalti(f"Method {method_name} khan poe '(' lazmi aahe", token.line, token.column, self.code)
-
-                args = self.parse_call_arguments()
-                return MethodCallNode(node, method_name, args).set_pos(token.line, token.column)
-
             if self.peek() and self.peek().type == TokenType.LPAREN:
-                args = self.parse_call_arguments()
-                return CallNode(name, args).set_pos(token.line, token.column)
+                args, keywords, star_args, kw_args = self.parse_call_arguments()
+                return CallNode(name, args, keywords, star_args, kw_args).set_pos(token.line, token.column)
 
             if self.peek() and self.peek().type == TokenType.LBRACKET:
                 self.advance()  # [
@@ -478,7 +594,40 @@ class Parser:
             value = self.parse_unary()
             return UnaryOpNode(op, value).set_pos(op.line, op.column)
 
-        return self.parse_primary()
+        return self.parse_postfix()
+
+    def parse_postfix(self):
+        node = self.parse_primary()
+        
+        while True:
+            if self.peek().type == TokenType.QMARK:
+                op = self.advance()
+                node = PostfixOpNode(node, op).set_pos(op.line, op.column)
+            elif self.peek().type == TokenType.BANGBANG:
+                op = self.advance()
+                node = PostfixOpNode(node, op).set_pos(op.line, op.column)
+            elif self.peek().type == TokenType.DOT:
+                dot = self.advance()
+                if self.peek().type not in (TokenType.IDENTIFIER, TokenType.GHALTI, TokenType.OK):
+                    raise LikhaiJeGhalti("Method name expected after '.'", self.peek().line, self.peek().column, self.code)
+                method_name = self.advance().value
+                
+                if method_name in ("bachao", "lazmi"):
+                    if not self.peek() or self.peek().type != TokenType.LPAREN:
+                        raise LikhaiJeGhalti(f"Method {method_name} khan poe '(' lazmi aahe", dot.line, dot.column, self.code)
+                    args, keywords, star_args, kw_args = self.parse_call_arguments()
+                    if len(args) != 1 or keywords or star_args or kw_args:
+                        raise LikhaiJeGhalti(f"{method_name} takes exactly 1 argument", dot.line, dot.column, self.code)
+                    node = ResultMethodCallNode(node, method_name, args[0]).set_pos(dot.line, dot.column)
+                else:
+                    if self.peek() and self.peek().type == TokenType.LPAREN:
+                        args, keywords, star_args, kw_args = self.parse_call_arguments()
+                        node = MethodCallNode(node, method_name, args, keywords, star_args, kw_args).set_pos(dot.line, dot.column)
+                    else:
+                        node = GetAttrNode(node, method_name).set_pos(dot.line, dot.column)
+            else:
+                break
+        return node
 
     def parse_list(self):
         token = self.peek()
@@ -505,16 +654,41 @@ class Parser:
         token = self.peek()
         self.advance()  # (
         args = []
+        keywords = []
+        star_args = None
+        kw_args = None
+
         if self.peek().type != TokenType.RPAREN:
-            args.append(self.parse_expression())
-            while self.peek().type == TokenType.COMMA:
-                self.advance()  # ,
-                args.append(self.parse_expression())
+            while True:
+                if self.peek().type == TokenType.MUL:
+                    self.advance()
+                    if star_args is not None:
+                        raise LikhaiJeGhalti("Sirf hiku *args use kare saghjay tho", token.line, token.column, self.code)
+                    star_args = self.parse_expression()
+                elif self.peek().type == TokenType.DBLSTAR:
+                    self.advance()
+                    if kw_args is not None:
+                        raise LikhaiJeGhalti("Sirf hiku **kwargs use kare saghjay tho", token.line, token.column, self.code)
+                    kw_args = self.parse_expression()
+                elif self.peek().type == TokenType.IDENTIFIER and self.peek_ahead() and self.peek_ahead().type == TokenType.EQ:
+                    name = self.advance().value
+                    self.advance() # =
+                    val = self.parse_expression()
+                    keywords.append((name, val))
+                else:
+                    args.append(self.parse_expression())
+
+                if self.peek().type == TokenType.COMMA:
+                    self.advance()
+                    if self.peek().type == TokenType.RPAREN:
+                        break
+                else:
+                    break
 
         if self.peek().type != TokenType.RPAREN:
             raise LikhaiJeGhalti("Arguments khan poe ')' lazmi aahe", token.line, token.column, self.code)
         self.advance()  # )
-        return args
+        return args, keywords, star_args, kw_args
 
     def parse_dict_set(self, expected_type=None):
         token = self.peek()

@@ -110,17 +110,38 @@ class IndexNode(Node):
         self.value = value
 
 
+class ParamNode(Node):
+    def __init__(self, name, type=None, default=None, is_star=False, is_kw=False):
+        self.name = name
+        self.type = type
+        self.default = default
+        self.is_star = is_star
+        self.is_kw = is_kw
+
+
 class CallNode(Node):
-    def __init__(self, name, args):
+    def __init__(self, name, args, keywords=None, star_args=None, kw_args=None):
         self.name = name
         self.args = args
+        self.keywords = keywords or []
+        self.star_args = star_args
+        self.kw_args = kw_args
 
 
 class MethodCallNode(Node):
-    def __init__(self, instance, method_name, args):
+    def __init__(self, instance, method_name, args, keywords=None, star_args=None, kw_args=None):
         self.instance = instance
         self.method_name = method_name
         self.args = args
+        self.keywords = keywords or []
+        self.star_args = star_args
+        self.kw_args = kw_args
+
+
+class GetAttrNode(Node):
+    def __init__(self, instance, attr_name):
+        self.instance = instance
+        self.attr_name = attr_name
 
 
 class DictNode(Node):
@@ -143,3 +164,44 @@ class GlobalNode(Node):
 class NonLocalNode(Node):
     def __init__(self, name):
         self.name = name
+
+class FunctionNode(Node):
+    def __init__(self, name, params, body, return_type=None):
+        self.name = name
+        self.params = params
+        self.body = body
+        self.return_type = return_type
+
+class ReturnNode(Node):
+    def __init__(self, value):
+        self.value = value
+
+class MatchNode(Node):
+    def __init__(self, expr, cases):
+        self.expr = expr
+        self.cases = cases
+
+class MatchCaseNode(Node):
+    def __init__(self, pattern, body):
+        self.pattern = pattern
+        self.body = body
+
+class ResultMethodCallNode(Node):
+    def __init__(self, receiver, method_name, arg):
+        self.receiver = receiver
+        self.method_name = method_name
+        self.arg = arg
+
+class PostfixOpNode(Node):
+    def __init__(self, expr, op):
+        self.expr = expr
+        self.op = op
+
+class PanicNode(Node):
+    def __init__(self, message):
+        self.message = message
+
+class ResultConstructorNode(Node):
+    def __init__(self, variant, value):
+        self.variant = variant # OK or GHALTI 
+        self.value = value

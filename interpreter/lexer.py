@@ -173,9 +173,15 @@ class Lexer:
                 continue
 
             if char == "*":
-                tokens.append(Token(TokenType.MUL, "*", self.line, self.column))
-                self.advance()
-                continue
+                if self.peek_ahead() == "*":
+                    tokens.append(Token(TokenType.DBLSTAR, "**", self.line, self.column))
+                    self.advance()
+                    self.advance()
+                    continue
+                else:
+                    tokens.append(Token(TokenType.MUL, "*", self.line, self.column))
+                    self.advance()
+                    continue
 
             if char == "/":
                 if self.peek_ahead() == "*":
@@ -237,10 +243,20 @@ class Lexer:
                     self.advance()
                     self.advance()
                     continue
+                elif self.peek_ahead() == "!":
+                    tokens.append(Token(TokenType.BANGBANG, "!!", self.line, self.column))
+                    self.advance()
+                    self.advance()
+                    continue
                 else:
                     tokens.append(Token(TokenType.NOT, "!", self.line, self.column))
                     self.advance()
                     continue
+
+            if char == "?":
+                tokens.append(Token(TokenType.QMARK, "?", self.line, self.column))
+                self.advance()
+                continue
 
             if char == "(":
                 tokens.append(Token(TokenType.LPAREN, "(", self.line, self.column))

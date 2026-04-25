@@ -25,6 +25,10 @@ class TokenType(Enum):
     JISTAIN = auto()
     BAHARI = auto()
     AALMI = auto()
+    WAPAS = auto()
+    MATCH = auto()
+    OK = auto()
+    GHALTI = auto()
 
     # Operators
     PLUS = auto()
@@ -43,6 +47,8 @@ class TokenType(Enum):
     AND = auto()
     OR = auto()
     NOT = auto()
+    QMARK = auto()
+    BANGBANG = auto()
 
     # Symbols
     LPAREN = auto()
@@ -56,6 +62,7 @@ class TokenType(Enum):
     NEWLINE = auto()
     EOF = auto()
     DOT = auto()
+    DBLSTAR = auto()  # ** for kwargs
 
 
 class Token:
