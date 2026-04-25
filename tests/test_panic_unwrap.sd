@@ -1,0 +1,6 @@
+likh("--- Unwrap Panic Test ---")
+
+kaam fail() { wapas ghalti("Expected Failure") }
+
+likh("About to unwrap with !!")
+fail()!!

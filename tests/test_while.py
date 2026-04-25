@@ -1,6 +1,6 @@
 """Tests for jistain (while) loops."""
 
-from tests.helpers import run, extract_value
+from tests.conftest import run, extract_value
 
 
 class TestBasicWhile:

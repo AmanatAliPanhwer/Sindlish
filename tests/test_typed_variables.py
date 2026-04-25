@@ -1,7 +1,7 @@
 """Tests for typed variable declarations and default values."""
 
 import pytest
-from tests.helpers import run, extract_value
+from tests.conftest import run, extract_value
 from interpreter.errors import QisamJeGhalti
 
 

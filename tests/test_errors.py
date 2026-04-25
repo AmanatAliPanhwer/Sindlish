@@ -1,7 +1,7 @@
 """Tests for error cases: undefined variables, type mismatches, immutability."""
 
 import pytest
-from tests.helpers import run
+from tests.conftest import run
 from interpreter.errors import *
 
 

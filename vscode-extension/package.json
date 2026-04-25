@@ -1,8 +1,8 @@
 {
     "name": "sindlish-lang",
     "displayName": "Sindlish",
-    "description": "Language support for Sindlish (Singlish)",
-    "version": "3.2.0",
+    "description": "Official language support for Sindlish — A modern programming language for the Sindhi/Urdu community with professional error reporting and a robust Result system.",
+    "version": "5.0.0",
     "publisher": "sindlish-dev",
     "icon": "logo.png",
     "repository": {
@@ -16,6 +16,15 @@
         "Programming Languages",
         "Snippets",
         "Linters"
+    ],
+    "keywords": [
+        "sindlish",
+        "sindhi",
+        "urdu",
+        "language",
+        "interpreter",
+        "result system",
+        "traceback"
     ],
     "activationEvents": [
         "onLanguage:sindlish"
@@ -44,6 +53,12 @@
                 "language": "sindlish",
                 "scopeName": "source.sindlish",
                 "path": "./syntaxes/sindlish.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "sindlish",
+                "path": "./snippets/snippets.json"
             }
         ]
     },

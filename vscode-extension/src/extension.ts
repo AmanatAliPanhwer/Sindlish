@@ -8,6 +8,7 @@ import {
 } from 'vscode-languageclient/node';
 
 let client: LanguageClient;
+let statusBarItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext) {
     // Server implementation path
@@ -54,7 +55,19 @@ export function activate(context: vscode.ExtensionContext) {
         diagnosticCollection.set(uri, diagnostics);
     });
 
-    client.start();
+    // Status Bar Item
+    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem.text = "$(sync~spin) Sindlish LSP";
+    statusBarItem.tooltip = "Sindlish Language Server is running";
+    statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
+
+    client.start().then(() => {
+        statusBarItem.text = "$(check) Sindlish LSP";
+    }).catch(() => {
+        statusBarItem.text = "$(error) Sindlish LSP";
+        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    });
 }
 
 export function deactivate(): Thenable<void> | undefined {

@@ -1,6 +1,16 @@
-from .ast_nodes import *
-from .errors import NaleJeGhalti, HalndeVaktGhalti, QisamJeGhalti
-from .tokens import TokenType
+from ..frontend.ast_nodes import (
+    Node, ProgramNode, BlockNode,
+    NumberNode, StringNode, BoolNode, NullNode,
+    VariableNode, AssignNode,
+    BinaryOpNode, UnaryOpNode, PostfixOpNode,
+    PrintNode, IfNode, WhileNode,
+    ListNode, DictNode, SetNode, IndexNode,
+    FunctionNode, ParamNode, CallNode, ReturnNode,
+    MethodCallNode, GetAttrNode,
+    ResultConstructorNode, ResultMethodCallNode, KharabiNode,
+)
+from ..errors import NaleJeGhalti, HalndeVaktGhalti, QisamJeGhalti
+from ..frontend.tokens import TokenType
 
 class Resolver:
     def __init__(self, code):
@@ -9,6 +19,7 @@ class Resolver:
         self.slot_indices = {}
         self.next_slot = 0
         self.slot_metadata = {}  # slot_index -> {"is_const": bool, "type": TokenType, "element_type": any}
+        self.symbols = [] # List of {"name": str, "type": TokenType, "line": int, "col": int, "kind": str}
 
     def infer_type(self, node):
         if isinstance(node, NumberNode):
@@ -41,18 +52,23 @@ class Resolver:
         return method(node)
 
     def no_resolve_method(self, node):
-        for attr in vars(node):
+        """Default visitor that recursively resolves all Node attributes."""
+        if not hasattr(node, '__slots__'):
+            return
+            
+        for attr in node.__slots__:
+            if attr in ('line', 'column'):
+                continue
+            
             val = getattr(node, attr)
-            if isinstance(val, Node):
-                self.resolve(val)
-            elif isinstance(val, list):
-                for item in val:
-                    if isinstance(item, Node):
-                        self.resolve(item)
-                    elif isinstance(item, tuple):
-                        for sub_item in item:
-                            if isinstance(sub_item, Node):
-                                self.resolve(sub_item)
+            self._resolve_recursive(val)
+
+    def _resolve_recursive(self, val):
+        if isinstance(val, Node):
+            self.resolve(val)
+        elif isinstance(val, (list, tuple)):
+            for item in val:
+                self._resolve_recursive(item)
 
     def resolve_ProgramNode(self, node):
         for stmt in node.statements:
@@ -65,44 +81,47 @@ class Resolver:
             self.resolve(stmt)
         self.pop_scope()
 
+    def _verify_assignment_types(self, node):
+        inferred_type = self.infer_type(node.value)
+        if inferred_type is not None and inferred_type != node.type:
+            line = getattr(node, 'line', 0)
+            column = getattr(node, 'column', 0)
+            raise QisamJeGhalti(
+                f"Qisam natho mile: {node.type.name} khapyo paye, par {inferred_type.name} milyo.",
+                line, column, self.code
+            )
+        
+        if node.type in (TokenType.FEHRIST, TokenType.MAJMUO) and node.element_type is not None:
+            if isinstance(node.value, ListNode):
+                for elem in node.value.elements:
+                    elem_type = self.infer_type(elem)
+                    if elem_type != node.element_type:
+                        line = getattr(elem, 'line', 0)
+                        column = getattr(elem, 'column', 0)
+                        raise QisamJeGhalti(
+                            f"Fehrist je elements jo qisam {node.element_type.name} hujjhan lazmi aahe, par {elem_type.name} milyo.",
+                            line, column, self.code
+                        )
+            elif isinstance(node.value, SetNode):
+                for elem in node.value.elements:
+                    elem_type = self.infer_type(elem)
+                    if elem_type != node.element_type:
+                        line = getattr(elem, 'line', 0)
+                        column = getattr(elem, 'column', 0)
+                        raise QisamJeGhalti(
+                            f"Majmuo je elements jo qisam {node.element_type.name} hujjhan lazmi aahe, par {elem_type.name} milyo.",
+                            line, column, self.code
+                        )
+
     def resolve_AssignNode(self, node):
         self.resolve(node.value)
         
         if node.has_explicit_type and node.type is not None:
-            inferred_type = self.infer_type(node.value)
-            if inferred_type is not None and inferred_type != node.type:
-                line = getattr(node, 'line', 0)
-                column = getattr(node, 'column', 0)
-                raise QisamJeGhalti(
-                    f"qisam jhared: `{node.type.name}` aahe, magar value jo milyo wo `{inferred_type.name}` aahe.",
-                    line, column, self.code
-                )
-            
-            if node.type in (TokenType.FEHRIST, TokenType.MAJMUO) and node.element_type is not None:
-                if isinstance(node.value, ListNode):
-                    for elem in node.value.elements:
-                        elem_type = self.infer_type(elem)
-                        if elem_type != node.element_type:
-                            line = getattr(elem, 'line', 0)
-                            column = getattr(elem, 'column', 0)
-                            raise QisamJeGhalti(
-                                f"fehrist je elements laai `{node.element_type.name}` qisam lazmi aahe, magar `{elem_type.name}` milyo.",
-                                line, column, self.code
-                            )
-                elif isinstance(node.value, SetNode):
-                    for elem in node.value.elements:
-                        elem_type = self.infer_type(elem)
-                        if elem_type != node.element_type:
-                            line = getattr(elem, 'line', 0)
-                            column = getattr(elem, 'column', 0)
-                            raise QisamJeGhalti(
-                                f"majmuo je elements laai `{node.element_type.name}` qisam lazmi aahe, magar `{elem_type.name}` milyo.",
-                                line, column, self.code
-                            )
+            self._verify_assignment_types(node)
         
         slot = self.lookup(node.name)
         if slot is None:
-            slot = self.define(node.name)
+            slot = self.define(node.name, node)
         
         node.slot_index = slot
         node.scope_level = 0
@@ -121,7 +140,7 @@ class Resolver:
     def pop_scope(self):
         self.scopes.pop()
 
-    def define(self, name):
+    def define(self, name, node=None):
         if name in self.scopes[-1]:
             return self.scopes[-1][name]
         
@@ -129,6 +148,17 @@ class Resolver:
         self.next_slot += 1
         
         self.scopes[-1][name] = slot
+        
+        # Track symbol for LSP
+        if node:
+            self.symbols.append({
+                "name": name,
+                "type": getattr(node, 'type', None),
+                "line": getattr(node, 'line', 0),
+                "col": getattr(node, 'column', 0),
+                "kind": "variable" if isinstance(node, AssignNode) else "function"
+            })
+            
         return slot
 
     def lookup(self, name):
@@ -202,7 +232,7 @@ class Resolver:
 
     def resolve_FunctionNode(self, node):
         # We define the function name in the CURRENT scope
-        self.define(node.name)
+        self.define(node.name, node)
         
         # Then we push a new scope for params and body
         old_next_slot = self.next_slot
@@ -210,7 +240,7 @@ class Resolver:
         
         self.push_scope()
         for param in node.params:
-            param_slot = self.define(param.name)
+            param_slot = self.define(param.name, param)
             param.slot_index = param_slot
         self.resolve(node.body)
         node.slot_count = self.next_slot
@@ -229,7 +259,7 @@ class Resolver:
     def resolve_PostfixOpNode(self, node):
         self.resolve(node.expr)
 
-    def resolve_PanicNode(self, node):
+    def resolve_KharabiNode(self, node):
         self.resolve(node.message)
 
     def resolve_ResultConstructorNode(self, node):

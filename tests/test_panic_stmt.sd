@@ -1,0 +1,4 @@
+likh("--- Panic Test ---")
+
+# This is a standalone ghalti statement, it MUST panic.
+ghalti("Boom!")

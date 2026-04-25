@@ -1,6 +1,6 @@
 """Tests for builtin functions: lambi and likh (as function call)."""
 
-from tests.helpers import run, extract_value
+from tests.conftest import run, extract_value
 
 
 class TestLambi:

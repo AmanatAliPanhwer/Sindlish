@@ -19,6 +19,15 @@
         },
         {
             "include": "#builtins"
+        },
+        {
+            "include": "#function-defs"
+        },
+        {
+            "include": "#function-calls"
+        },
+        {
+            "include": "#variables"
         }
     ],
     "repository": {
@@ -77,7 +86,7 @@
         "keywords": {
             "patterns": [
                 {
-                    "match": "\\b(?:agar|yawari|warna|jistain|sach|koorh|pakko|bahari|aalmi|kaam|wapas|match|ok|ghalti)\\b",
+                    "match": "\\b(?:agar|yawari|warna|jistain|sach|koorh|pakko|bahari|aalmi|kaam|wapas|match|ok|ghalti|kharabi)\\b",
                     "name": "keyword.control.sindlish"
                 },
                 {
@@ -93,8 +102,31 @@
                     "name": "support.function.sindlish"
                 },
                 {
-                    "match": "\\.\\s*(?:wadha|wadhayo|wajh|hata|kadh|saf|index|garn|tarteeb|ulto|nakal|hasil|syon|cabeyon|raqamon|syonkadh|defaultrakh|update|addkar|chad|bade|milap|farq|symmetric_farq|nandohisoahe|wadohisoahe|alaghahe)\\b",
+                    "match": "\\.\\s*(?:addkar|alaghahe|bade|cabeyon|chad|defaultrakh|farq|garn|hasil|hata|index|kadh|milap|nakal|nandohisoahe|raqamon|saf|symmetric_farq|syon|syonkadh|tarteeb|ulto|update|wadha|wadhayo|wadohisoahe|wajh)\\b",
                     "name": "entity.name.function.sindlish"
+                }
+            ]
+        },
+        "function-defs": {
+            "match": "\\b(kaam)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+            "captures": {
+                "1": {
+                    "name": "keyword.control.sindlish"
+                },
+                "2": {
+                    "name": "entity.name.function.sindlish"
+                }
+            }
+        },
+        "function-calls": {
+            "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+            "name": "entity.name.function.sindlish"
+        },
+        "variables": {
+            "patterns": [
+                {
+                    "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?==)",
+                    "name": "variable.other.sindlish"
                 }
             ]
         }

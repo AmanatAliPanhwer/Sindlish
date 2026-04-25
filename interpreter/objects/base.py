@@ -1,11 +1,11 @@
 from ..errors import QisamJeGhalti, HalndeVaktGhalti, NaleJeGhalti, ZeroVindJeGhalti, IndexJeGhalti, LikhaiJeGhalti
-from ..tokens import TokenType
+from ..frontend.tokens import TokenType
 
 
 class SdType:
     """
     Type objects in Sindlish.
-    Acts as metaclass for SdObject subclasses.
+    Acts as metaclass for SdShey subclasses.
     Mirrors Python's 'type' - types are objects too.
     
     Like CPython's PyTypeObject, SdType defines:
@@ -128,7 +128,7 @@ class SdType:
         if self._instance_class is None:
             # Fallback to using object.__new__ on the class that created this type
             # Subclasses should override this properly
-            obj = object.__new__(self.__class__.__bases__[0] if self.__class__.__bases__ else SdObject)
+            obj = object.__new__(self.__class__.__bases__[0] if self.__class__.__bases__ else SdShey)
         else:
             obj = object.__new__(self._instance_class)
         if hasattr(obj, '__init__'):
@@ -157,20 +157,15 @@ class SdType:
 
 
 # Base SdType for base object - uses None since it doesn't map to a token
-OBJECT_TYPE = SdType("OBJECT", None)
+SHEY_TYPE = SdType("OBJECT", None)
 
 
-class SdObject:
+class SdShey:
     """
-    Base for ALL Sindlish objects.
-    Mirrors CPython's PyObject structure.
+    Base class for all Sindlish objects.
     
-    __slots__ defines fixed attributes - like CPython's 
-    fixed-layout objects. Subclasses MUST extend __slots__.
-    
-    Attributes:
-    - _type: reference to type object
-    - _ref_count: reference count for memory management
+    Provides default method resolution using the class's MRO
+    and dynamic attribute storage.
     """
     __slots__ = ('_type', '_ref_count')
     
@@ -195,7 +190,7 @@ class SdObject:
     # Python special methods - default implementations
     def __eq__(self, other) -> bool:
         """Identity-based equality - like Python's 'is'"""
-        if not isinstance(other, SdObject):
+        if not isinstance(other, SdShey):
             return False
         return id(self) == id(other)
     
@@ -222,23 +217,23 @@ class SdObject:
     
     def __len__(self) -> int:
         """Default length - subclasses should override"""
-        raise TypeError(f"object of type '{self.type.name}' has no len()")
+        raise TypeError(f"'{self.type.name}' qisam je object ji lambai na hundi aahe.")
     
     def __iter__(self):
         """Default iteration - raise TypeError"""
-        raise TypeError(f"'{self.type.name}' object is not iterable")
+        raise TypeError(f"'{self.type.name}' object iterable na aahe.")
     
     def __getitem__(self, key):
         """Subscription - raise TypeError"""
-        raise TypeError(f"'{self.type.name}' object is not subscriptable")
+        raise TypeError(f"'{self.type.name}' object subscriptable na aahe.")
     
     def __setitem__(self, key, value):
         """Subscription assignment - raise TypeError"""
-        raise TypeError(f"'{self.type.name}' object does not support item assignment")
+        raise TypeError(f"'{self.type.name}' object item assignment ke support natho kare.")
     
     def __contains__(self, item) -> bool:
         """Container membership test"""
-        raise TypeError(f"'{self.type.name}' object is not a container")
+        raise TypeError(f"'{self.type.name}' object container na aahe.")
     
     # Object protocol methods
     def call_method(self, name: str, args: list, node=None, code=""):
@@ -256,8 +251,10 @@ class SdObject:
         if protocol_method and callable(protocol_method):
             try:
                 return protocol_method(*args)
-            except (QisamJeGhalti, HalndeVaktGhalti, NaleJeGhalti, ZeroVindJeGhalti, IndexJeGhalti, LikhaiJeGhalti):
-                raise
+            except (QisamJeGhalti, HalndeVaktGhalti, NaleJeGhalti, ZeroVindJeGhalti, IndexJeGhalti, LikhaiJeGhalti) as e:
+                if e.line is None:
+                    e.line, e.column, e.code_string = line, column, code
+                raise e
             except TypeError as e:
                 raise QisamJeGhalti(str(e), line, column, code)
             except Exception as e:

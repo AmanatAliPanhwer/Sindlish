@@ -1,6 +1,6 @@
 """Tests for the likh (print) statement."""
 
-from tests.helpers import run
+from tests.conftest import run
 
 
 class TestPrintString:

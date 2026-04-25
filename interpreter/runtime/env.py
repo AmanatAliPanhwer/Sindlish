@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Optional
-from .tokens import TokenType
-from .errors import NaleJeGhalti, HalndeVaktGhalti
+from ..frontend.tokens import TokenType
+from ..errors import NaleJeGhalti, HalndeVaktGhalti
 
 @dataclass(slots=True)
 class VariableRecord:

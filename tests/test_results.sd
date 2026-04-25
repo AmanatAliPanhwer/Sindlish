@@ -1,0 +1,39 @@
+likh("--- Result System Test ---")
+
+kaam check_age(adad age) {
+    agar age < 0 {
+        wapas ghalti("Umr negative nathi thi saghjay.")
+    }
+    agar age < 18 {
+        wapas ghalti("Tawaan halaan nandha aahiyo.")
+    }
+    wapas ok("Welcome!")
+}
+
+# 1. Success case
+res1 = check_age(25)
+likh("Success case:", res1)
+likh("  .ok is", res1.ok)
+likh("  .ghalti is", res1.ghalti)
+
+# 2. Error case
+res2 = check_age(-5)
+likh("Error case:", res2)
+likh("  .ok is", res2.ok)
+likh("  .ghalti is", res2.ghalti)
+
+# 3. .bachao fallback
+val = check_age(10).bachao("Access Denied")
+likh("Bachao fallback:", val)
+
+# 4. .lazmi panic requirement
+# This should succeed
+val2 = check_age(30).lazmi("Should not happen")
+likh("Lazmi success:", val2)
+
+# 5. Overloaded ghalti in expressions
+err_obj = ghalti("custom error")
+likh("Expression ghalti value:", err_obj)
+likh("Expression ghalti is error:", err_obj.ghalti)
+
+likh("Tests complete!")

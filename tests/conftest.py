@@ -1,5 +1,8 @@
 """
 Shared test helpers for Sindlish interpreter tests.
+
+Provides run() to execute Sindlish code and helpers to extract values
+from the VM for assertions.
 """
 
 import sys
@@ -8,15 +11,15 @@ import pytest
 
 sys.path.insert(0, "d:/Code/Sindlish")
 
-from interpreter.lexer import Lexer
-from interpreter.parser import Parser
-from interpreter.resolver import Resolver
-from interpreter.compiler import Compiler
-from interpreter.vm import VM
-from interpreter.env import Environment
-from interpreter.tokens import TokenType
-from interpreter.builtins import SimpleBuiltins
-from interpreter.objects.primitives import SdNumber, SdString, SdBool, SdList, SdDict, SdSet, SdNull
+from interpreter.frontend.lexer import Lexer
+from interpreter.frontend.parser import Parser
+from interpreter.analysis.resolver import Resolver
+from interpreter.backend.compiler import Compiler
+from interpreter.backend.vm import VM
+from interpreter.runtime.env import Environment
+from interpreter.frontend.tokens import TokenType
+from interpreter.runtime.builtins import SimpleBuiltins
+from interpreter.objects import SdNumber, SdString, SdBool, SdList, SdDict, SdSet, SdNull
 
 
 def create_globals_env():
@@ -68,7 +71,7 @@ def get_variable_value(vm, name):
     """
     Get variable value from VM instance.
     Checks slot_names mapping if available, otherwise checks all slots.
-    Extracts raw value from SdObject wrappers.
+    Extracts raw value from SdShey wrappers.
     """
     if hasattr(vm, 'variables'):
         value = None
@@ -87,7 +90,7 @@ def get_variable_value(vm, name):
                 if vm.variables[key].get("name") == name:
                     value = vm.variables[key].get("value")
 
-        # Extract raw value from SdObject wrappers
+        # Extract raw value from SdShey wrappers
         if value is not None:
             return extract_value(value)
     return None
@@ -95,8 +98,8 @@ def get_variable_value(vm, name):
 
 def extract_value(sd_object):
     """
-    Extract Python value from a SdObject for testing.
-    Recursively converts SdObjects to native Python types.
+    Extract Python value from a SdShey for testing.
+    Recursively converts SdSheys to native Python types.
     """
     if isinstance(sd_object, SdNumber):
         return sd_object.value

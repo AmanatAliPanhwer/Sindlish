@@ -760,9 +760,10 @@ kaam jorr(a, b) {
 likh("2 + 3 using jorr():", jorr(2, 3))
 
 # Function with explicit return (wapas)
+# 'ghalti' here returns an Error Result because it's in a return expression
 kaam vind(a, b) {
     agar b == 0 {
-        wapas ghalti("ZeroVindGhalti")
+        wapas ghalti("Zero saan vand natho kare saghjay.")
     }
     wapas a / b
 }
@@ -778,11 +779,11 @@ likh("")
 
 likh("--- PART 26: RESULT SYSTEM ---")
 
-# Result objects have .ok and .ghalti properties
+# Result objects have .ok and .ghalti boolean properties
 res = vind(5, 0)
 agar res.ghalti {
     likh("Operation failed!")
-    likh("Error was:", res)
+    likh("Error was:", res) # Result object stringifies to its value/message
 }
 
 # 1. SOFT FALLBACK (?)
@@ -798,16 +799,15 @@ likh("Custom fallback (returns 0):", val)
 # 3. CRITICAL REQUIREMENT (.lazmi)
 # Unwraps if OK, panics with message if error
 # (Success case shown below)
-res_lazmi = vind(10, 2).lazmi("Should not happen")
-likh("Lazmi success:", res_lazmi)
+b = vind(5, 2).lazmi("He lazmi theendo!")
 
-# 4. FATAL PANIC (!!)
-# Unwraps if OK, panics with error value if error
-# (Uncomment to test crash)
-# crash = vind(5, 0)!!
+# 4. PANIC UNWRAP (!!)
+# Unwraps if OK, panics with original error if error
+# b = vind(5, 0)!!  # This would crash with ZeroVindGhalti
 
-# 5. EXPLICIT PANIC (uthar)
-# uthar("Manual system failure")
+# 5. EXPLICIT PANIC (ghalti)
+# When 'ghalti' is used as a standalone statement, it triggers a panic!
+# ghalti("Manual system failure") # This would crash immediately
 
 likh("")
 

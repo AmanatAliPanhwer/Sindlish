@@ -1,0 +1,66 @@
+{
+    "Function Definition": {
+        "prefix": "kaam",
+        "body": [
+            "kaam ${1:naalo}(${2:params}) {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "kaam definition"
+    },
+    "If Statement": {
+        "prefix": "agar",
+        "body": [
+            "agar ${1:condition} {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "agar block"
+    },
+    "While Loop": {
+        "prefix": "jistain",
+        "body": [
+            "jistain ${1:condition} {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "jistain loop"
+    },
+    "Constant": {
+        "prefix": "pakko",
+        "body": [
+            "pakko ${1:adad} ${2:naalo} = ${3:value}"
+        ],
+        "description": "pakko declaration"
+    },
+    "Variable with Type": {
+        "prefix": "type",
+        "body": [
+            "${1|adad,lafz,dahai,faislo|} ${2:naalo} = ${3:value}"
+        ],
+        "description": "typed variable"
+    },
+    "Success Result": {
+        "prefix": "ok",
+        "body": [
+            "wapas ok(${1:value})"
+        ],
+        "description": "return success result"
+    },
+    "Error Result": {
+        "prefix": "ghalti",
+        "body": [
+            "wapas ghalti(\"${1:message}\")"
+        ],
+        "description": "return error result"
+    },
+    "Result Handle": {
+        "prefix": "res",
+        "body": [
+            "agar ${1:res}.ghalti {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "handle result error"
+    }
+}

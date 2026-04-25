@@ -5,9 +5,13 @@ import sys
 # Ensure we can import the interpreter package
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from interpreter.keywords import KEYWORDS, DATATYPES
-from interpreter.builtins import SimpleBuiltins, MethodBuiltins
-from interpreter.tokens import TokenType
+from interpreter.frontend.keywords import KEYWORDS, DATATYPES
+from interpreter.runtime.builtins import SimpleBuiltins
+from interpreter.frontend.tokens import TokenType
+from interpreter.objects.numbers import ADAD_TYPE, DAHAI_TYPE, FAISLO_TYPE
+from interpreter.objects.strings import LAFZ_TYPE
+from interpreter.objects.collections import FEHRIST_TYPE, LUGHAT_TYPE, MAJMUO_TYPE
+from interpreter.objects.core import KHALI_TYPE, RESULT_TYPE
 
 def generate_grammar():
     # Keywords
@@ -25,7 +29,14 @@ def generate_grammar():
     
     # Builtin functions and methods
     simple = list(SimpleBuiltins().get_all().keys())
-    methods = list(MethodBuiltins().get_all().keys())
+    # Collect methods from all types
+    all_types = [
+        ADAD_TYPE, DAHAI_TYPE, FAISLO_TYPE, LAFZ_TYPE,
+        FEHRIST_TYPE, LUGHAT_TYPE, MAJMUO_TYPE, KHALI_TYPE, RESULT_TYPE
+    ]
+    methods = set()
+    for t in all_types:
+        methods.update(t._methods.keys())
     
     # Add other logical keywords like aen (and), ya (or), nah (not)
     logical = ["aen", "ya", "nah"]
@@ -34,7 +45,7 @@ def generate_grammar():
     control_pattern = "(?:" + "|".join([k for k in all_kw if k not in types_list and k not in logical]) + ")\\b"
     logical_pattern = "(?:" + "|".join(logical) + ")\\b"
     functions_pattern = "\\b(?:" + "|".join(simple) + ")\\b"
-    methods_pattern = "\\.\\s*(?:" + "|".join(methods) + ")\\b"
+    methods_pattern = "\\.\\s*(?:" + "|".join(sorted(list(methods))) + ")\\b"
 
     grammar = {
         "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
@@ -45,7 +56,10 @@ def generate_grammar():
             {"include": "#numbers"},
             {"include": "#keywords"},
             {"include": "#types"},
-            {"include": "#builtins"}
+            {"include": "#builtins"},
+            {"include": "#function-defs"},
+            {"include": "#function-calls"},
+            {"include": "#variables"}
         ],
         "repository": {
             "comments": {
@@ -126,6 +140,25 @@ def generate_grammar():
                         "name": "entity.name.function.sindlish"
                     }
                 ]
+            },
+            "function-defs": {
+                "match": "\\b(kaam)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+                "captures": {
+                    "1": { "name": "keyword.control.sindlish" },
+                    "2": { "name": "entity.name.function.sindlish" }
+                }
+            },
+            "function-calls": {
+                "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+                "name": "entity.name.function.sindlish"
+            },
+            "variables": {
+                "patterns": [
+                    {
+                        "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?==)",
+                        "name": "variable.other.sindlish"
+                    }
+                ]
             }
         },
         "scopeName": "source.sindlish"
@@ -142,7 +175,7 @@ def generate_grammar():
     defs = {
         "keywords": all_kw,
         "functions": simple,
-        "methods": methods
+        "methods": sorted(list(methods))
     }
     defs_path = os.path.join(os.path.dirname(__file__), '..', 'vscode-extension', 'syntaxes', 'sindlish-definitions.json')
     with open(defs_path, 'w', encoding='utf-8') as f:

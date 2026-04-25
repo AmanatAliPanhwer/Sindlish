@@ -1,7 +1,7 @@
 """Tests for dictionary literals, indexing, and typed dicts."""
 
 import pytest
-from tests.helpers import run, extract_value
+from tests.conftest import run, extract_value
 from interpreter.errors import QisamJeGhalti
 
 

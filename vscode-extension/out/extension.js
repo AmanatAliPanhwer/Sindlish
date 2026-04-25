@@ -39,6 +39,7 @@ const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const node_1 = require("vscode-languageclient/node");
 let client;
+let statusBarItem;
 function activate(context) {
     // Server implementation path
     const serverModule = context.asAbsolutePath(path.join('server', 'server.py'));
@@ -69,7 +70,18 @@ function activate(context) {
         const diagnostics = params.diagnostics.map((d) => new vscode.Diagnostic(new vscode.Range(d.range.start.line, d.range.start.character, d.range.end.line, d.range.end.character), d.message, vscode.DiagnosticSeverity.Error));
         diagnosticCollection.set(uri, diagnostics);
     });
-    client.start();
+    // Status Bar Item
+    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem.text = "$(sync~spin) Sindlish LSP";
+    statusBarItem.tooltip = "Sindlish Language Server is running";
+    statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
+    client.start().then(() => {
+        statusBarItem.text = "$(check) Sindlish LSP";
+    }).catch(() => {
+        statusBarItem.text = "$(error) Sindlish LSP";
+        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    });
 }
 function deactivate() {
     if (!client) {
