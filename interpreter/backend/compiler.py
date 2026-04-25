@@ -7,7 +7,7 @@ from ..frontend.ast_nodes import (
     ListNode, DictNode, SetNode, IndexNode,
     FunctionNode, ParamNode, CallNode, ReturnNode,
     MethodCallNode, GetAttrNode,
-    ResultConstructorNode, ResultMethodCallNode, KharabiNode,
+    ResultConstructorNode, ResultMethodCallNode, KharabiNode, TypeCastNode,
 )
 from .opcodes import OpCode
 from ..frontend.tokens import TokenType
@@ -136,8 +136,13 @@ class Compiler:
         NumberNode, StringNode, BoolNode, NullNode, VariableNode,
         BinaryOpNode, UnaryOpNode, ListNode, DictNode, SetNode,
         IndexNode, CallNode, MethodCallNode, ResultConstructorNode,
-        ResultMethodCallNode, PostfixOpNode, GetAttrNode
+        ResultMethodCallNode, PostfixOpNode, GetAttrNode, TypeCastNode
     )
+
+    def compile_TypeCastNode(self, node):
+        self.compile(node.expr)
+        const_idx = self.add_const(SdString(node.target_type.name))
+        self.emit(OpCode.TYPECAST, const_idx, node=node)
 
     def compile_BlockNode(self, node, is_function_body=False):
         num_stmts = len(node.statements)

@@ -7,11 +7,11 @@ from interpreter.errors import *
 
 class TestUndefinedVariable:
     def test_undefined_variable_raises(self):
-        with pytest.raises(NaleJeGhalti, match="na milio"):
+        with pytest.raises(NaleJeGhalti, match="na milyo"):
             run("likh(xyz)")
 
     def test_undefined_in_expression(self):
-        with pytest.raises(NaleJeGhalti, match="na milio"):
+        with pytest.raises(NaleJeGhalti, match="na milyo"):
             run("x = abc + 1")
 
 
@@ -52,11 +52,11 @@ class TestImmutableKeyInSet:
 
 class TestUndefinedFunction:
     def test_undefined_function_raises(self):
-        with pytest.raises(NaleJeGhalti, match="na milio"):
+        with pytest.raises(NaleJeGhalti, match="na milyo"):
             run("x = foobar()")
 
     def test_undefined_method_raises(self):
-        with pytest.raises(NaleJeGhalti, match="wazahat thayal"):
+        with pytest.raises(NaleJeGhalti, match="wazahat na milyo"):
             run("x = [1, 2]\nx.nonexistent()")
 
 

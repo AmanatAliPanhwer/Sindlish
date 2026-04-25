@@ -65,6 +65,7 @@ class OpCode(IntEnum):
     POSTFIX_QMARK = auto()
     POSTFIX_BANGBANG = auto()
     PANIC = auto()
+    TYPECAST = auto()
     
     # Completion
     RETURN_VALUE = auto()

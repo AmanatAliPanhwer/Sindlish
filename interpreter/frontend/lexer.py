@@ -91,9 +91,9 @@ class Lexer:
             num += self._advance()
 
         if dot_count == 0:
-            return Token(TokenType.ADAD, int(num), self.line, self.column)
+            return Token(TokenType.ADAD, int(num), self.line, start_col)
         else:
-            return Token(TokenType.DAHAI, float(num), self.line, self.column)
+            return Token(TokenType.DAHAI, float(num), self.line, start_col)
 
     def _scan_string(self) -> Token:
         """Scan a single-line or triple-quoted string literal."""

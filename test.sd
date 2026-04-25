@@ -1,3 +1,2 @@
-kaam div(adad a, adad b) { a / b }
-
-div(10, 0)!!
+x = adad(3.94)
+likh(x)

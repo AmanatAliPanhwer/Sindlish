@@ -47,6 +47,13 @@ class SimpleBuiltins:
         """Print values to stdout."""
         print(*(str(arg) for arg in args))
         return SdNull()
+    
+    @_register(functions)
+    def puch(self, args):
+        """Takes input from user."""
+        prompt = " ".join(str(arg) for arg in args)
+        return SdString(input(prompt))
+
 
     def get_all(self):
         """Return all registered built-in functions."""

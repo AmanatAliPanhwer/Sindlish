@@ -87,7 +87,7 @@ class Resolver:
             line = getattr(node, 'line', 0)
             column = getattr(node, 'column', 0)
             raise QisamJeGhalti(
-                f"Qisam natho mile: {node.type.name} khapyo paye, par {inferred_type.name} milyo.",
+                f"Qisam natho mile: {node.type.name.lower()} khapyo paye, par {inferred_type.name.lower()} milyo.",
                 line, column, self.code
             )
         
@@ -99,7 +99,7 @@ class Resolver:
                         line = getattr(elem, 'line', 0)
                         column = getattr(elem, 'column', 0)
                         raise QisamJeGhalti(
-                            f"Fehrist je elements jo qisam {node.element_type.name} hujjhan lazmi aahe, par {elem_type.name} milyo.",
+                            f"Fehrist je elements jo qisam {node.element_type.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
                             line, column, self.code
                         )
             elif isinstance(node.value, SetNode):
@@ -109,7 +109,7 @@ class Resolver:
                         line = getattr(elem, 'line', 0)
                         column = getattr(elem, 'column', 0)
                         raise QisamJeGhalti(
-                            f"Majmuo je elements jo qisam {node.element_type.name} hujjhan lazmi aahe, par {elem_type.name} milyo.",
+                            f"Majmuo je elements jo qisam {node.element_type.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
                             line, column, self.code
                         )
 

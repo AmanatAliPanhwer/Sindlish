@@ -8,7 +8,7 @@ from .ast_nodes import (
     FunctionNode, ParamNode, CallNode, ReturnNode,
     MethodCallNode, GetAttrNode,
     GlobalNode, NonLocalNode,
-    ResultConstructorNode, ResultMethodCallNode, KharabiNode,
+    ResultConstructorNode, ResultMethodCallNode, KharabiNode, TypeCastNode,
 )
 from .tokens import TokenType
 from .keywords import DATATYPES
@@ -330,6 +330,17 @@ class Parser:
     def parse_primary(self):
         token = self.peek()
 
+        if token.type in DATATYPES:
+            if self.peek_ahead() and self.peek_ahead().type == TokenType.LPAREN:
+                target_type = self.advance().type
+                args, keywords, star_args, kw_args = self.parse_call_arguments()
+                if len(args) != 1 or keywords or star_args or kw_args:
+                     # Special case: allow majmuo() with 0 args for empty set
+                     if target_type == TokenType.MAJMUO and len(args) == 0:
+                         return SetNode([]).set_pos(token.line, token.column)
+                     raise LikhaiJeGhalti(f"Typecasting '{token.value}' khe sirf 1 argument khapay.", token.line, token.column, self.code)
+                return TypeCastNode(target_type, args[0]).set_pos(token.line, token.column)
+
         if token.type == TokenType.ADAD:
             self.advance()
             return NumberNode(token.value).set_pos(token.line, token.column)
@@ -381,19 +392,13 @@ class Parser:
                  raise LikhaiJeGhalti("'kharabi' khe sirf 1 argument khapay.", token.line, token.column, self.code)
             return KharabiNode(args[0]).set_pos(token.line, token.column)
 
+
         if token.type == TokenType.LBRACKET:
             return self.parse_list().set_pos(token.line, token.column)
 
         if token.type == TokenType.LBRACE:
             return self.parse_dict_set().set_pos(token.line, token.column)
         
-        if token.type in DATATYPES:
-            name = self.advance().value
-            # We treat the datatype keyword as an identifier if followed by (
-            if self.peek() and self.peek().type == TokenType.LPAREN:
-                args, keywords, star_args, kw_args = self.parse_call_arguments()
-                return CallNode(token.type.name.lower(), args, keywords, star_args, kw_args).set_pos(token.line, token.column)
-            raise LikhaiJeGhalti(f"Qisam `{name}` istamal natho kare saghjay.", token.line, token.column, self.code)
 
         if token.type == TokenType.IDENTIFIER:
             name = self.advance().value

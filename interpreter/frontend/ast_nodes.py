@@ -408,3 +408,11 @@ class KharabiNode(Node):
     def __init__(self, message, line: int = 0, column: int = 0):
         super().__init__(line, column)
         self.message = message
+class TypeCastNode(Node):
+    """Type conversion (e.g. adad(x), lafz(y))."""
+    __slots__ = ('target_type', 'expr', 'line', 'column')
+
+    def __init__(self, target_type: TokenType, expr, line: int = 0, column: int = 0):
+        super().__init__(line, column)
+        self.target_type = target_type
+        self.expr = expr

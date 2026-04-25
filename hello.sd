@@ -21,6 +21,10 @@ likh(42)                        # Print number directly
 likh(sach)                     # Print boolean (true)
 likh(koorh)                    # Print boolean (false)
 likh(khali)                    # Print null
+likh("Salam", "Sindh", 2024)    # Print multiple items with spaces
+
+# puch() is the input function - takes input from user
+# name = puch("Tawaan jo naalo cha aahe? ")
 
 likh("")  # Empty line
 
@@ -746,10 +750,33 @@ likh("Sorted numbers:", nums)
 likh("")
 
 # ============================================
-# PART 25: USER FUNCTIONS (KAAM)
+# PART 25: TYPECASTING (QISAM BADLI)
 # ============================================
 
-likh("--- PART 25: USER FUNCTIONS ---")
+likh("--- PART 25: TYPECASTING ---")
+
+# You can convert values between types using type names as functions
+s = "123"
+n = adad(s)       # String to Int
+likh("adad('123') + 1 =", n + 1)
+
+f = dahai("3.14") # String to Float
+likh("dahai('3.14') =", f)
+
+b = faislo(1)     # Int to Boolean
+likh("faislo(1) =", b)
+
+l = fehrist("ABC") # String to List
+likh("fehrist('ABC') =", l)
+
+# Usage with input (puch)
+# val = adad(puch("Number likho: "))
+
+# ============================================
+# PART 26: USER FUNCTIONS (KAAM)
+# ============================================
+
+likh("--- PART 26: USER FUNCTIONS ---")
 
 # Simple function with implicit return
 # The last evaluated expression is automatically returned as ok(result)
@@ -774,10 +801,10 @@ likh("10 / 0 using vind():", vind(10, 0))
 likh("")
 
 # ============================================
-# PART 26: RESULT SYSTEM & ERROR MODEL
+# PART 27: RESULT SYSTEM & ERROR MODEL
 # ============================================
 
-likh("--- PART 26: RESULT SYSTEM ---")
+likh("--- PART 27: RESULT SYSTEM ---")
 
 # Result objects have .ok and .ghalti boolean properties
 res = vind(5, 0)

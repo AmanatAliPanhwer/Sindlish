@@ -19,7 +19,10 @@ from interpreter.backend.vm import VM
 from interpreter.runtime.env import Environment
 from interpreter.frontend.tokens import TokenType
 from interpreter.runtime.builtins import SimpleBuiltins
-from interpreter.objects import SdNumber, SdString, SdBool, SdList, SdDict, SdSet, SdNull
+from interpreter.objects import (
+    SdNumber, SdString, SdBool, SdList, SdDict, SdSet, SdNull, SdResult,
+    ADAD_TYPE, DAHAI_TYPE, LAFZ_TYPE, FAISLO_TYPE, FEHRIST_TYPE, LUGHAT_TYPE, MAJMUO_TYPE, KHALI_TYPE,
+)
 
 
 def create_globals_env():
@@ -115,5 +118,9 @@ def extract_value(sd_object):
         return {extract_value(k) if not isinstance(k, str) else k: extract_value(v) for k, v in sd_object.items()}
     elif isinstance(sd_object, SdSet):
         return {extract_value(elem) for elem in sd_object.elements}
+    elif isinstance(sd_object, SdResult):
+        if sd_object.is_ok():
+            return extract_value(sd_object.value)
+        return sd_object
     else:
         return sd_object

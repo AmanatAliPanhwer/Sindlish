@@ -32,12 +32,12 @@ class Environment:
             return self.parent.lookup_record(name, node, code)
         if node:
             raise NaleJeGhalti(
-                details=f"Nalo '{name}' na milio. Cha tawaan sahi likhyo aahe?",
+                details=f"Nalo '{name}' na milyo. Cha tawaan sahi likhyo aahe?",
                 line=node.line, column=node.column, code_string=code
             )
         else:
             raise NaleJeGhalti(
-                details=f"Nalo '{name}' na milio. Cha tawaan sahi likhyo aahe?",
+                details=f"Nalo '{name}' na milyo. Cha tawaan sahi likhyo aahe?",
                 line=1, column=1, code_string=code
             )
     

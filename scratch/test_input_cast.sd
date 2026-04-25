@@ -1,0 +1,9 @@
+likh("--- Calculator Test ---")
+num1_str = puch("Pehriyan adad likho: ")
+num2_str = puch("Biyo adad likho: ")
+
+# Convert to adad
+n1 = adad(num1_str)
+n2 = adad(num2_str)
+
+likh("Total Jorr:", n1 + n2)

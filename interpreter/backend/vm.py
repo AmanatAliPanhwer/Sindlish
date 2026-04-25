@@ -98,6 +98,7 @@ class VM:
             OpCode.BINARY_SUBSCRIPT: self._op_binary_subscript,
             OpCode.STORE_SUBSCRIPT: self._op_store_subscript,
             OpCode.POP_TOP: self._op_pop_top,
+            OpCode.TYPECAST: self._op_typecast,
             OpCode.DUP_TOP: self._op_dup_top,
             OpCode.RETURN_VALUE: self._op_return_value,
             OpCode.HALT: self._op_halt,
@@ -441,7 +442,7 @@ class VM:
                     e.code_string = self.code_string
                 raise e
         else:
-            raise NaleJeGhalti(f"Method {method_name} defined thayal nathi.", line, column, self.code_string)
+            raise NaleJeGhalti(f"Method '{method_name}' ji wazahat na milyo.", line, column, self.code_string)
 
     def _op_get_attr(self, frame, arg, line, column):
         attr_name = frame.constants[arg].value
@@ -499,6 +500,61 @@ class VM:
         message = self.pop()
         msg_val = message.value if isinstance(message, (SdString, SdNumber, SdBool)) else str(message)
         raise HalndeVaktGhalti(msg_val, line, column, self.code_string)
+
+    def _op_typecast(self, frame, arg, line, column):
+        target_type_name = frame.constants[arg].value
+        value = self.pop()
+        
+        try:
+            if target_type_name == "ADAD":
+                if isinstance(value, SdNumber):
+                    self.push(SdNumber(int(value.value)))
+                elif isinstance(value, SdString):
+                    # Allow float-like strings to be cast to int (e.g. "12.5" -> 12)
+                    self.push(SdNumber(int(float(value.value))))
+                elif isinstance(value, SdBool):
+                    self.push(SdNumber(1 if value.value else 0))
+                else:
+                    raise QisamJeGhalti(f"'{value.type.name}' khe 'adad' mein badli natho kare saghjay.", line, column, self.code_string)
+            
+            elif target_type_name == "DAHAI":
+                if isinstance(value, SdNumber):
+                    self.push(SdNumber(float(value.value)))
+                elif isinstance(value, SdString):
+                    self.push(SdNumber(float(value.value)))
+                elif isinstance(value, SdBool):
+                    self.push(SdNumber(1.0 if value.value else 0.0))
+                else:
+                    raise QisamJeGhalti(f"'{value.type.name}' khe 'dahai' mein badli natho kare saghjay.", line, column, self.code_string)
+            
+            elif target_type_name == "LAFZ":
+                self.push(SdString(str(value)))
+            
+            elif target_type_name == "FAISLO":
+                # Booleans are already truthy/falsy in Python
+                self.push(SdBool(bool(value.value if hasattr(value, 'value') else value)))
+                
+            elif target_type_name == "FEHRIST":
+                if isinstance(value, (SdList, SdSet)):
+                    self.push(SdList(list(value.elements)))
+                elif isinstance(value, SdString):
+                    self.push(SdList([SdString(c) for c in value.value]))
+                else:
+                     raise QisamJeGhalti(f"'{value.type.name}' khe 'fehrist' mein badli natho kare saghjay.", line, column, self.code_string)
+
+            elif target_type_name == "MAJMUO":
+                if isinstance(value, (SdList, SdSet)):
+                    self.push(SdSet(set(value.elements)))
+                elif isinstance(value, SdString):
+                    self.push(SdSet({SdString(c) for c in value.value}))
+                else:
+                     raise QisamJeGhalti(f"'{value.type.name}' khe 'majmuo' mein badli natho kare saghjay.", line, column, self.code_string)
+            
+            else:
+                 raise HalndeVaktGhalti(f"Na-maloom typecast target: {target_type_name}.", line, column, self.code_string)
+        
+        except ValueError:
+             raise HalndeVaktGhalti(f"Value '{str(value)}' khe {target_type_name.lower()} mein badli natho kare saghjay.", line, column, self.code_string)
 
     def _op_build_list(self, frame, arg, line, column):
         elements = [self.pop() for _ in range(arg)]

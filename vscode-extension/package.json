@@ -1,13 +1,13 @@
 {
-    "name": "sindlish-lang",
+    "name": "sindlish",
     "displayName": "Sindlish",
-    "description": "Official language support for Sindlish — A modern programming language for the Sindhi/Urdu community with professional error reporting and a robust Result system.",
+    "description": "Official language support for Sindlish",
     "version": "5.0.0",
-    "publisher": "sindlish-dev",
+    "publisher": "Amanat Ali Panhwer",
     "icon": "logo.png",
     "repository": {
         "type": "git",
-        "url": "https://github.com/Sindlish/sindlish-lang"
+        "url": "https://github.com/AmanatAliPanhwer/Sindlish"
     },
     "engines": {
         "vscode": "^1.80.0"

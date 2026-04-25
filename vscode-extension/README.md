@@ -1,26 +1,26 @@
 # Sindlish — Modern Programming in Sindhi
 
-**Sindlish** is a professional-grade, high-level programming language designed specifically for the Sindhi and Urdu speaking communities. It combines the power of modern stack-based Virtual Machines with the intuitive syntax of local languages.
+**Sindlish** is a professional-grade, high-level programming language designed specifically for the Sindhi speaking communities. It combines the power of modern stack-based Virtual Machines with the intuitive syntax of local languages.
 
-## 🚀 Key Features
+## Key Features
 
-### 💎 Beautiful Syntax
+### Beautiful Syntax
 Write code in your own language! Use keywords like `kaam` (function), `agar` (if), and `jistain` (while) that make sense to you.
 
-### 🛡️ Robust Result System (New in 5.0!)
+### Robust Result System
 No more messy exceptions. Sindlish uses a type-safe `Result` system for error handling.
 - **`ok(value)`**: Signifies success.
 - **`ghalti("msg")`**: Signifies a handled error.
 - **`.bachao(fallback)`**: Gracefully handle errors with a default value.
 - **`.lazmi("msg")`**: Ensure critical operations succeed or panic with a clear message.
 
-### 🔍 Professional Tracebacks
+### Professional Tracebacks
 When things go wrong, Sindlish tells you exactly where and why. Our new traceback engine provides colorized stack traces and code pointers, modeled after the best modern languages.
 
-### ⚡ High Performance
+### High Performance
 Powered by a stack-based Bytecode Virtual Machine, Sindlish is built for efficiency and stability.
 
-## 📖 Quick Start
+## Quick Start
 
 ```sindlish
 # A simple function to greet
