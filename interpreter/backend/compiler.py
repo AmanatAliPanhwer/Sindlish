@@ -149,16 +149,19 @@ class Compiler:
         num_stmts = len(node.statements)
         for i, stmt in enumerate(node.statements):
             is_last = (i == num_stmts - 1)
+            
+            # Special case for implicit return in function body
+            if is_function_body and is_last and isinstance(stmt, self.EXPRESSION_NODES):
+                self.compile(stmt)
+                self.emit(OpCode.MAKE_OK, node=stmt)
+                self.emit(OpCode.RETURN_VALUE, node=stmt)
+                continue
+
             self.compile(stmt)
             
             if isinstance(stmt, self.EXPRESSION_NODES):
-                if is_function_body and is_last:
-                    # Wrap in Ok and return
-                    self.emit(OpCode.MAKE_OK, node=stmt)
-                    self.emit(OpCode.RETURN_VALUE, node=stmt)
-                else:
-                    # Statement expression - pop its value
-                    self.emit(OpCode.POP_TOP, node=stmt)
+                # Statement expression - pop its value
+                self.emit(OpCode.POP_TOP, node=stmt)
 
     def compile_IfNode(self, node: IfNode):
         line = getattr(node, 'line', 0)

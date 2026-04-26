@@ -11,6 +11,14 @@ likh("=== SINDLISH MINI DOCUMENTATION ===")
 likh("")
 
 # ============================================
+# NEW: TERMINAL COMMAND
+# ============================================
+# You can now run Sindlish directly from your terminal!
+# Windows: sindlish-installer-win64.exe (Wizard)
+# Mac/Linux: use the provided install.sh
+# Then just type: sindlish your_file.sd
+
+# ============================================
 # PART 1: HELLO WORLD & BASIC OUTPUT
 # ============================================
 # likh() is the print function - output to console
@@ -406,7 +414,8 @@ har n mein nums {
 
 # The 'mein' keyword is mandatory between the variable and collection
 likh("Iterate with 'mein' keyword:")
-har x mein [1, 2] {
+far = [1, 2] 
+har x mein far {
     likh("   x =", x)
 }
 
@@ -420,7 +429,7 @@ likh("--- PART 13c: LOOP CONTROL (TOR & JARI) ---")
 
 # tor (break) exits the loop
 likh("Break (tor) example:")
-har i range(10) {
+har i mein range(10) {
     agar i == 3 {
         likh("   Breaking at 3")
         tor
@@ -430,7 +439,7 @@ har i range(10) {
 
 # jari (continue) skips to the next iteration
 likh("Continue (jari) example:")
-har i range(5) {
+har i mein range(5) {
     agar i == 2 {
         likh("   Skipping 2")
         jari
@@ -446,13 +455,22 @@ likh("")
 
 likh("--- PART 14: LISTS (FEHRIST) ---")
 
-# Creating lists
+# Creating lists (now supports multiple lines!)
 likh("Creating lists:")
-l = [1, 2, 3]
-likh("   [1, 2, 3] =", l)
+l = [
+    1, 
+    2, 
+    3
+]
+likh("   Multiline list [1, 2, 3] =", l)
 
 # Mixed types
-mixed = ["Sindlish", 42, 3.14, sach]
+mixed = [
+    "Sindlish", 
+    42, 
+    3.14, 
+    sach
+]
 likh("   Mixed list:", mixed)
 
 # Empty list
@@ -476,10 +494,13 @@ likh("")
 
 likh("--- PART 15: DICTIONARIES (LUGHAT) ---")
 
-# Creating dicts
+# Creating dicts (now supports multiple lines!)
 likh("Creating dicts:")
-d = {"naam": "Sindhis", "umr": 25}
-likh("   {'naam': 'Sindhis', 'umr': 25} =", d)
+d = {
+    "naam": "Sindhis", 
+    "umr": 25
+}
+likh("   Multiline dict =", d)
 
 # Empty dict
 empty_dict = {}
@@ -681,28 +702,41 @@ likh("13. saf() - clear:", s1)
 likh("")
 
 # ============================================
-# PART 20: NESTED COLLECTIONS
+# PART 20: NESTED COLLECTIONS & CHAINING
 # ============================================
 
-likh("--- PART 20: NESTED COLLECTIONS ---")
+likh("--- PART 20: NESTED COLLECTIONS & CHAINING ---")
 
-# List of lists (matrix)
-matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-likh("Matrix (list of lists):")
-likh("   matrix[0] =", matrix[0])
-row1 = matrix[1]
-likh("   matrix[1] =", row1)
-likh("   row1[1] =", row1[1])
+# Nested indexing (now fully supported!)
+matrix = [
+    [1, 2, 3], 
+    [4, 5, 6]
+]
+likh("Nested Indexing (matrix[1][0]):", matrix[1][0])
 
-# List of dicts
-users = [{"naam": "Ali", "umr": 25}, {"naam": "Sara", "umr": 30}]
-likh("List of dicts:")
-likh("   users[0] =", users[0])
+# Chaining methods and indexing
+users = {
+    "list": [
+        {"name": "Sindlish"}
+    ]
+}
+likh("Nested access (users['list'][0]['name']):", users["list"][0]["name"])
 
-# Dict of lists
-groups = {"math": ["Ali", "Sara"], "science": ["Bilal"]}
-likh("Dict of lists:")
-likh("   groups['math'] =", groups["math"])
+likh("")
+
+# ============================================
+# PART 20a: MULTILINE EXPRESSIONS
+# ============================================
+
+likh("--- PART 20a: MULTILINE EXPRESSIONS ---")
+
+# Expressions in parentheses can span multiple lines
+val = (
+    10 +
+    20 *
+    (30 - 5)
+)
+likh("Multiline expression result:", val)
 
 likh("")
 
@@ -833,13 +867,19 @@ likh("fehrist('ABC') =", l)
 
 likh("--- PART 26: USER FUNCTIONS ---")
 
-# Simple function with implicit return
-# The last evaluated expression is automatically returned as ok(result)
-kaam jorr(a, b) {
+# Simple function with implicit return (now supports multiline params!)
+kaam jorr(
+    a, 
+    b
+) {
     a + b
 }
 
-likh("2 + 3 using jorr():", jorr(2, 3))
+# Multiline function call
+likh("2 + 3 using multiline jorr():", jorr(
+    2, 
+    3
+))
 
 # Function with explicit return (wapas)
 # 'ghalti' here returns an Error Result because it's in a return expression

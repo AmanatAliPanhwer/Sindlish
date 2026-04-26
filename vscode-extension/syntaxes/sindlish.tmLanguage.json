@@ -86,7 +86,7 @@
         "keywords": {
             "patterns": [
                 {
-                    "match": "\\b(?:agar|yawari|warna|jistain|sach|koorh|pakko|bahari|aalmi|kaam|wapas|match|ok|ghalti|kharabi)\\b",
+                    "match": "\\b(?:agar|yawari|warna|jistain|sach|koorh|pakko|bahari|aalmi|kaam|wapas|match|ok|ghalti|kharabi|har|tor|jari|mein)\\b",
                     "name": "keyword.control.sindlish"
                 },
                 {
@@ -98,7 +98,7 @@
         "builtins": {
             "patterns": [
                 {
-                    "match": "\\b(?:majmuo|lambi|likh)\\b",
+                    "match": "\\b(?:majmuo|lambi|likh|puch|range)\\b",
                     "name": "support.function.sindlish"
                 },
                 {

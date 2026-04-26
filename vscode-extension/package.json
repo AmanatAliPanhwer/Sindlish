@@ -2,8 +2,8 @@
     "name": "sindlish",
     "displayName": "Sindlish",
     "description": "Official language support for Sindlish",
-    "version": "5.0.0",
-    "publisher": "Amanat Ali Panhwer",
+    "version": "0.1.0",
+    "publisher": "AmanatAliPanhwer",
     "icon": "logo.png",
     "repository": {
         "type": "git",

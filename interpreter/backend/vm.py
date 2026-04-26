@@ -117,6 +117,16 @@ class VM:
     def pop(self):
         return self.stack.pop()
     
+    def _unwrap_val(self, val, line, column):
+        """Extracts the value from an Ok result, or panics on a Ghalti result."""
+        if isinstance(val, SdResult):
+            if val.is_ok():
+                return val.value
+            else:
+                error_cls = ERROR_MAP.get(val._error_cls, HalndeVaktGhalti)
+                raise error_cls(str(val.value), line, column, self.code_string, traceback=val._captured_traceback)
+        return val
+
     def _check_type(self, value, expected_type, element_type=None, line=0, column=0):
         if expected_type == TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):
@@ -267,69 +277,83 @@ class VM:
     def _op_push_false(self, frame, arg, line, column): self.push(SdBool(False))
 
     def _op_binary_add(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         loc = LocationProxy(line, column)
         self.push(self._handle_result(left.call_method("__add__", [right], loc, self.code_string)))
         
     def _op_binary_sub(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         loc = LocationProxy(line, column)
         self.push(self._handle_result(left.call_method("__sub__", [right], loc, self.code_string)))
         
     def _op_binary_mul(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         loc = LocationProxy(line, column)
         self.push(self._handle_result(left.call_method("__mul__", [right], loc, self.code_string)))
         
     def _op_binary_div(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         loc = LocationProxy(line, column)
         self.push(self._handle_result(left.call_method("__truediv__", [right], loc, self.code_string)))
         
     def _op_binary_pow(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         loc = LocationProxy(line, column)
         self.push(self._handle_result(left.call_method("__pow__", [right], loc, self.code_string)))
         
     def _op_binary_mod(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         loc = LocationProxy(line, column)
         self.push(self._handle_result(left.call_method("__mod__", [right], loc, self.code_string)))
 
     def _op_compare_eq(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__eq__", [right], None, self.code_string))
         
     def _op_compare_ne(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__ne__", [right], None, self.code_string))
         
     def _op_compare_lt(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__lt__", [right], None, self.code_string))
         
     def _op_compare_le(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__le__", [right], None, self.code_string))
         
     def _op_compare_gt(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__gt__", [right], None, self.code_string))
         
     def _op_compare_ge(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__ge__", [right], None, self.code_string))
 
     def _op_logical_and(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__and__", [right], None, self.code_string))
         
     def _op_logical_or(self, frame, arg, line, column):
-        right, left = self.pop(), self.pop()
+        right = self._unwrap_val(self.pop(), line, column)
+        left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__or__", [right], None, self.code_string))
         
     def _op_logical_not(self, frame, arg, line, column):
-        val = self.pop()
+        val = self._unwrap_val(self.pop(), line, column)
         self.push(val.call_method("__invert__", [], None, self.code_string))
 
     def _op_jump_absolute(self, frame, arg, line, column):
@@ -525,6 +549,15 @@ class VM:
         target_type_name = frame.constants[arg].value
         value = self.pop()
         
+        # Auto-unwrap successful Results for typecasting
+        if isinstance(value, SdResult):
+            if value.is_ok():
+                value = value.value
+            else:
+                # If it's an error, we panic because you can't cast an error to a value
+                error_cls = ERROR_MAP.get(value._error_cls, HalndeVaktGhalti)
+                raise error_cls(str(value.value), line, column, self.code_string, traceback=value._captured_traceback)
+
         try:
             if target_type_name == "ADAD":
                 if isinstance(value, SdNumber):
@@ -577,27 +610,31 @@ class VM:
              raise HalndeVaktGhalti(f"Value '{str(value)}' khe {target_type_name.lower()} mein badli natho kare saghjay.", line, column, self.code_string)
 
     def _op_build_list(self, frame, arg, line, column):
-        elements = [self.pop() for _ in range(arg)]
+        elements = [self._unwrap_val(self.pop(), line, column) for _ in range(arg)]
         elements.reverse()
         self.push(SdList(elements))
 
     def _op_build_dict(self, frame, arg, line, column):
         pairs = {}
         for _ in range(arg):
-            v, k = self.pop(), self.pop()
+            v = self._unwrap_val(self.pop(), line, column)
+            k = self._unwrap_val(self.pop(), line, column)
             pairs[k] = v
         self.push(SdDict(pairs))
 
     def _op_build_set(self, frame, arg, line, column):
-        elements = {self.pop() for _ in range(arg)}
+        elements = {self._unwrap_val(self.pop(), line, column) for _ in range(arg)}
         self.push(SdSet(elements))
 
     def _op_binary_subscript(self, frame, arg, line, column):
-        idx, obj = self.pop(), self.pop()
+        idx = self._unwrap_val(self.pop(), line, column)
+        obj = self._unwrap_val(self.pop(), line, column)
         self.push(obj.call_method("__getitem__", [idx], None, self.code_string))
 
     def _op_store_subscript(self, frame, arg, line, column):
-        val, idx, obj = self.pop(), self.pop(), self.pop()
+        val = self._unwrap_val(self.pop(), line, column)
+        idx = self._unwrap_val(self.pop(), line, column)
+        obj = self._unwrap_val(self.pop(), line, column)
         obj.call_method("__setitem__", [idx, val], None, self.code_string)
         self.push(val)
 

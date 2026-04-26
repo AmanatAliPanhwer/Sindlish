@@ -1,12 +1,18 @@
 [project]
 name = "sindlish"
-version = "0.7.0"
+version = "0.1.0"
 description = "Sindlish is a localized high-level programming language. It is inspired by Python and it is in roman sindhi."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "prompt-toolkit>=3.0.52",
+]
+
+[project.scripts]
+sindlish = "main:main"
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "pyinstaller",
 ]

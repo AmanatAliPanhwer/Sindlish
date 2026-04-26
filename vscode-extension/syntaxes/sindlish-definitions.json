@@ -25,12 +25,18 @@
         "match",
         "ok",
         "ghalti",
-        "kharabi"
+        "kharabi",
+        "har",
+        "tor",
+        "jari",
+        "mein"
     ],
     "functions": [
         "majmuo",
         "lambi",
-        "likh"
+        "likh",
+        "puch",
+        "range"
     ],
     "methods": [
         "addkar",

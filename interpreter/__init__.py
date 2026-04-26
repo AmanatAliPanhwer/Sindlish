@@ -38,45 +38,51 @@ class Interpreter:
             globals_env.define(name, value=func, var_type=TokenType.KAAM, is_const=True)
         return globals_env
 
-    def run_source(self, code: str) -> VM:
+    def run_source(self, code: str, is_repl: bool = False) -> VM:
         """
         Run Sindlish source code through the full pipeline.
 
         Returns the VM instance after execution (for inspection/testing).
         """
-        # 1. Lex
-        lexer = Lexer(code)
-        tokens = lexer.generate_tokens()
-
-        # 2. Parse
-        parser = Parser(tokens, code)
-        ast = parser.parse()
-
-        # 3. Resolve
-        resolver = Resolver(code)
-        resolver.resolve(ast)
-
-        # 4. Compile
-        compiler = Compiler(code)
-        instructions, constants, line_col_map = compiler.compile(ast)
-
-        # 5. Execute
-        vm = VM(
-            code, instructions, constants,
-            self._globals_env,
-            getattr(ast, "slot_count", 0),
-            resolver.slot_metadata,
-            line_col_map,
-        )
         try:
+            # 1. Lex
+            lexer = Lexer(code)
+            tokens = lexer.generate_tokens()
+
+            # 2. Parse
+            parser = Parser(tokens, code)
+            ast = parser.parse()
+
+            # 3. Resolve
+            resolver = Resolver(code)
+            if is_repl:
+                resolver.is_repl = True
+            resolver.resolve(ast)
+
+            # 4. Compile
+            compiler = Compiler(code)
+            instructions, constants, line_col_map = compiler.compile(ast)
+
+            # 5. Execute
+            vm = VM(
+                code, instructions, constants,
+                self._globals_env,
+                getattr(ast, "slot_count", 0),
+                resolver.slot_metadata,
+                line_col_map,
+            )
             vm.run()
+            return vm
         except SindhiBaseError as e:
             ErrorReporter.report(e)
-            sys.exit(1)
+            if not is_repl:
+                sys.exit(1)
+            raise e
         except Exception as e:
             print(f"Internal Error: {e}")
-            sys.exit(1)
-        return vm
+            if not is_repl:
+                sys.exit(1)
+            raise e
 
 
 __all__ = ["Interpreter"]

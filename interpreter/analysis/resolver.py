@@ -20,6 +20,7 @@ class Resolver:
         self.next_slot = 0
         self.slot_metadata = {}  # slot_index -> {"is_const": bool, "type": TokenType, "element_type": any}
         self.symbols = [] # List of {"name": str, "type": TokenType, "line": int, "col": int, "kind": str}
+        self.is_repl = False
 
     def infer_type(self, node):
         if isinstance(node, NumberNode):
@@ -119,6 +120,12 @@ class Resolver:
         if node.has_explicit_type and node.type is not None:
             self._verify_assignment_types(node)
         
+        # In REPL, top-level assignments (scope depth 1) go to globals
+        if self.is_repl and len(self.scopes) == 1:
+            node.scope_level = 1
+            node.slot_index = -1
+            return
+
         slot = self.lookup(node.name)
         if slot is None:
             slot = self.define(node.name, node)

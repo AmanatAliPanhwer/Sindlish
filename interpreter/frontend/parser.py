@@ -184,8 +184,10 @@ class Parser:
 
     def _parse_function_params(self):
         params = []
+        self.skip_newlines()
         if self.peek().type != TokenType.RPAREN:
             while True:
+                self.skip_newlines()
                 is_star = False
                 is_kw = False
 
@@ -221,14 +223,17 @@ class Parser:
                     default_value = self.parse_expression()
 
                 params.append(ParamNode(param_name, type_node, default_value, is_star, is_kw))
+                self.skip_newlines()
 
                 if self.peek().type == TokenType.COMMA:
                     self.advance()
+                    self.skip_newlines()
                     if self.peek().type == TokenType.RPAREN:
                         break # Allow trailing comma
                 else:
                     break
 
+        self.skip_newlines()
         if self.peek().type != TokenType.RPAREN:
             raise LikhaiJeGhalti("Parameters khaan poe ')' lazmi aahe.", self.peek().line, self.peek().column, self.code)
         self.advance() # )
@@ -413,25 +418,15 @@ class Parser:
 
         if token.type == TokenType.IDENTIFIER:
             name = self.advance().value
-            
-
-
-            node = VariableNode(name).set_pos(token.line, token.column)
-
-            if self.peek() and self.peek().type == TokenType.LPAREN:
-                args, keywords, star_args, kw_args = self.parse_call_arguments()
-                return CallNode(name, args, keywords, star_args, kw_args).set_pos(token.line, token.column)
-
-            if self.peek() and self.peek().type == TokenType.LBRACKET:
-                self.advance()  # [
-                index = self.parse_expression().set_pos(token.line, token.column)
-                self.advance()
-                return IndexNode(node, index).set_pos(token.line, token.column)
-            return node
+            return VariableNode(name).set_pos(token.line, token.column)
 
         if token.type == TokenType.LPAREN:
             self.advance()
+            self.skip_newlines()
             expr = self.parse_expression().set_pos(token.line, token.column)
+            self.skip_newlines()
+            if self.peek().type != TokenType.RPAREN:
+                raise LikhaiJeGhalti("'(' khaan poe ')' lazmi aahe.", self.peek().line, self.peek().column, self.code)
             self.advance()  # )
             return expr
 
@@ -492,11 +487,13 @@ class Parser:
 
         if self.peek().type == TokenType.COLON:
             self.advance()  # :
+            self.skip_newlines()
             if self.peek().type in DATATYPES:
                 _type, element_type = self._parse_type_annotation()
 
         if self.peek() and self.peek().type == TokenType.EQ:
             self.advance()  # =
+            self.skip_newlines()
             value_node = self.parse_expression()
         else:
             if is_const:
@@ -509,8 +506,10 @@ class Parser:
     def parse_while(self):
         token = self.peek()
         self.advance()  # jistain
+        self.skip_newlines()
 
         condition = self.parse_expression()
+        self.skip_newlines()
 
         if self.peek().type != TokenType.LBRACE:
             raise LikhaiJeGhalti("Shart (condition) khaan poe '{' lazmi aahe.", token.line, token.column, self.code)
@@ -523,18 +522,22 @@ class Parser:
     def parse_for(self):
         token = self.peek()
         self.advance()  # har
+        self.skip_newlines()
 
         if self.peek().type != TokenType.IDENTIFIER:
             raise LikhaiJeGhalti("'har' khaan poe variable jo naalo lazmi aahe.", self.peek().line, self.peek().column, self.code)
         
         iterator_name = self.advance().value
+        self.skip_newlines()
 
         # 'mein' is now mandatory: har i mein range(5)
         if self.peek().type != TokenType.MEIN:
             raise LikhaiJeGhalti("Variable khaan poe 'mein' lazmi aahe.", self.peek().line, self.peek().column, self.code)
         self.advance() # mein
+        self.skip_newlines()
 
         iterable = self.parse_expression()
+        self.skip_newlines()
 
         if self.peek().type != TokenType.LBRACE:
             raise LikhaiJeGhalti("Iterable khaan poe '{' lazmi aahe.", self.peek().line, self.peek().column, self.code)
@@ -549,6 +552,7 @@ class Parser:
 
         while self.peek().type == TokenType.OR:
             op = self.advance()
+            self.skip_newlines()
             right = self.parse_and()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
@@ -559,14 +563,17 @@ class Parser:
 
         while self.peek().type == TokenType.AND:
             op = self.advance()
+            self.skip_newlines()
             right = self.parse_not()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
         return left
 
     def parse_not(self):
+        self.skip_newlines()
         if self.peek().type == TokenType.NOT:
             op = self.advance()
+            self.skip_newlines()
             value = self.parse_not()
             return UnaryOpNode(op, value).set_pos(op.line, op.column)
         return self.parse_comparison()
@@ -583,6 +590,7 @@ class Parser:
             TokenType.LTEQ,
         ):
             op = self.advance()
+            self.skip_newlines()
             right = self.parse_term()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
@@ -593,6 +601,7 @@ class Parser:
 
         while self.peek().type in (TokenType.PLUS, TokenType.MINUS):
             op = self.advance()
+            self.skip_newlines()
             right = self.parse_factor()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
@@ -603,6 +612,7 @@ class Parser:
 
         while self.peek().type in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
             op = self.advance()
+            self.skip_newlines()
             right = self.parse_power()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
@@ -613,18 +623,22 @@ class Parser:
 
         if self.peek().type == TokenType.POW:
             op = self.advance()
+            self.skip_newlines()
             right = self.parse_power()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
         return left
 
     def parse_unary(self):
+        self.skip_newlines()
         if self.peek().type == TokenType.MINUS:
             op = self.advance()
+            self.skip_newlines()
             value = self.parse_unary()
             return UnaryOpNode(op, value).set_pos(op.line, op.column)
         if self.peek().type == TokenType.NOT:
             op = self.advance()
+            self.skip_newlines()
             value = self.parse_unary()
             return UnaryOpNode(op, value).set_pos(op.line, op.column)
 
@@ -662,6 +676,26 @@ class Parser:
                 node = PostfixOpNode(node, op).set_pos(op.line, op.column)
             elif self.peek().type == TokenType.DOT:
                 node = self._parse_method_chain(node)
+            elif self.peek().type == TokenType.LBRACKET:
+                self.advance() # [
+                self.skip_newlines()
+                index = self.parse_expression()
+                self.skip_newlines()
+                if self.peek().type != TokenType.RBRACKET:
+                    raise LikhaiJeGhalti("Index khaan poe ']' lazmi aahe.", self.peek().line, self.peek().column, self.code)
+                self.advance() # ]
+                node = IndexNode(node, index).set_pos(node.line, node.column)
+            elif self.peek().type == TokenType.LPAREN:
+                args, keywords, star_args, kw_args = self.parse_call_arguments()
+                if isinstance(node, VariableNode):
+                    node = CallNode(node.name, args, keywords, star_args, kw_args).set_pos(node.line, node.column)
+                else:
+                    # Support calling results of expressions if compiler allows
+                    # For now, we'll keep the CallNode(name, ...) structure
+                    # but we might need to wrap the node if it's not a VariableNode.
+                    # Since CallNode expects a name: str, we have a problem here for f()().
+                    # But a[0][1] will work fine because IndexNode takes a node.
+                    node = CallNode(node, args, keywords, star_args, kw_args).set_pos(node.line, node.column)
             else:
                 break
         return node
@@ -681,6 +715,7 @@ class Parser:
                 elements.append(self.parse_expression())
                 self.skip_newlines()
 
+        self.skip_newlines()
         if self.peek().type != TokenType.RBRACKET:
             raise LikhaiJeGhalti("Fehrist je aakhir mein ']' lazmi aahe.", self.peek().line, self.peek().column, self.code)
         self.advance()  # ]
@@ -695,33 +730,41 @@ class Parser:
         star_args = None
         kw_args = None
 
+        self.skip_newlines()
         if self.peek().type != TokenType.RPAREN:
             while True:
+                self.skip_newlines()
                 if self.peek().type == TokenType.MUL:
                     self.advance()
+                    self.skip_newlines()
                     if star_args is not None:
                         raise LikhaiJeGhalti("Sirf hikro *args istamal kare saghjay tho.", token.line, token.column, self.code)
                     star_args = self.parse_expression()
                 elif self.peek().type == TokenType.DBLSTAR:
                     self.advance()
+                    self.skip_newlines()
                     if kw_args is not None:
                         raise LikhaiJeGhalti("Sirf hikro **kwargs istamal kare saghjay tho.", token.line, token.column, self.code)
                     kw_args = self.parse_expression()
                 elif self.peek().type == TokenType.IDENTIFIER and self.peek_ahead() and self.peek_ahead().type == TokenType.EQ:
                     name = self.advance().value
                     self.advance() # =
+                    self.skip_newlines()
                     val = self.parse_expression()
                     keywords.append((name, val))
                 else:
                     args.append(self.parse_expression())
 
+                self.skip_newlines()
                 if self.peek().type == TokenType.COMMA:
                     self.advance()
+                    self.skip_newlines()
                     if self.peek().type == TokenType.RPAREN:
                         break
                 else:
                     break
 
+        self.skip_newlines()
         if self.peek().type != TokenType.RPAREN:
             raise LikhaiJeGhalti("Arguments khaan poe ')' lazmi aahe.", token.line, token.column, self.code)
         self.advance()  # )
@@ -731,12 +774,14 @@ class Parser:
         token = self.peek()
         self.advance()  # {
 
+        self.skip_newlines()
         if self.peek() and self.peek().type == TokenType.RBRACE:
             self.advance()
             if expected_type == TokenType.MAJMUO:
                 return SetNode([]).set_pos(token.line, token.column)
             return DictNode([]).set_pos(token.line, token.column)
 
+        self.skip_newlines()
         first_expr = self.parse_expression()
         self.skip_newlines()
 
@@ -760,18 +805,21 @@ class Parser:
                 self.skip_newlines()
                 pairs.append((key, val))
 
+            self.skip_newlines()
             if self.peek().type != TokenType.RBRACE:
                 raise LikhaiJeGhalti("Lughat je aakhir mein '}' lazmi aahe.", self.peek().line, self.peek().column, self.code)
             self.advance()
             return DictNode(pairs).set_pos(token.line, token.column)
         else:
             elements = [first_expr]
+            self.skip_newlines()
             while self.peek().type == TokenType.COMMA:
                 self.advance()  # ,
                 self.skip_newlines()
                 elements.append(self.parse_expression())
                 self.skip_newlines()
 
+            self.skip_newlines()
             if self.peek().type != TokenType.RBRACE:
                 raise LikhaiJeGhalti("Majmuo je aakhir mein '}' lazmi aahe.", self.peek().line, self.peek().column, self.code)
             self.advance()  # }
