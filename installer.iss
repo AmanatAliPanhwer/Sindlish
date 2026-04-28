@@ -33,5 +33,5 @@ begin
     Result := True;
     exit;
   end;
-  Result := Pos(Upper(Param), Upper(OrigPath)) = 0;
+  Result := Pos(Uppercase(Param), Uppercase(OrigPath)) = 0;
 end;
