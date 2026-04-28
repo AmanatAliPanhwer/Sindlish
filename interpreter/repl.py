@@ -137,7 +137,7 @@ def is_complete(text: str) -> bool:
         
     return True
 
-def start_repl():
+def start_repl(version: str = "0.1.0"):
     interpreter = Interpreter()
     session = PromptSession(
         lexer=SindlishLexer(),
@@ -145,7 +145,7 @@ def start_repl():
         style=sindlish_style
     )
 
-    print("Sindlish Playground (v0.7.0)")
+    print(f"Sindlish Playground (v{version})")
     print("Type 'exit' or press Ctrl+D to exit.")
 
     while True:
