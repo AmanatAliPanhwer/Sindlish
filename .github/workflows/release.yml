@@ -1,13 +1,7 @@
 name: Build Executables
-
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
   release:
-    types: [published, created, released]
+    types: [published]
 
 jobs:
   build:
@@ -26,27 +20,20 @@ jobs:
           - os: macos-latest
             artifact_name: sindlish-macos
             binary_path: dist/sindlish
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-
       - name: Set up Python
         run: uv python install
-
       - name: Install dependencies
         run: uv sync --all-groups
-
-      - name: Install Pillow for icon generation
+      - name: Install Pillow
         run: uv pip install Pillow
-
       - name: Generate Icons
         run: uv run python tools/generate_icons.py
-
       - name: Build with PyInstaller
         run: |
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
@@ -56,28 +43,22 @@ jobs:
           else
             ICON=""
           fi
-          
           if [ -n "$ICON" ]; then
             uv run pyinstaller --onefile --name sindlish --icon "$ICON" main.py
           else
             uv run pyinstaller --onefile --name sindlish main.py
           fi
         shell: bash
-
       - name: Build Windows Installer (Inno Setup)
         if: matrix.os == 'windows-latest'
-        run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
         shell: powershell
-
       - name: Build macOS .pkg Installer
         if: matrix.os == 'macos-latest'
         run: |
           mkdir -p pkg_root/usr/local/bin
           cp dist/sindlish pkg_root/usr/local/bin/
-          # Create a branded package (optional: add --resources for background)
           pkgbuild --identifier com.sindlish.cli --version 0.1.0 --install-location / --root pkg_root dist/sindlish-installer-macos.pkg
-
       - name: Build Linux .deb Package
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -95,25 +76,21 @@ jobs:
           echo "Icon: /usr/share/icons/hicolor/512x512/apps/sindlish.png" >> deb_root/DEBIAN/control
           echo "Description: Sindlish programming language interpreter" >> deb_root/DEBIAN/control
           dpkg-deb --build deb_root dist/sindlish-installer-linux.deb
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: |
-            dist/sindlish*
+          path: dist/sindlish*
 
   release:
-    name: Release
+    name: Upload to Release
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
