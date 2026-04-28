@@ -1,6 +1,6 @@
 [Setup]
 AppName=Sindlish
-AppVersion=0.7.0
+AppVersion=0.1.0
 DefaultDirName={autopf}\Sindlish
 DefaultGroupName=Sindlish
 UninstallDisplayIcon={app}\sindlish.exe

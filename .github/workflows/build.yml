@@ -76,7 +76,7 @@ jobs:
           mkdir -p pkg_root/usr/local/bin
           cp dist/sindlish pkg_root/usr/local/bin/
           # Create a branded package (optional: add --resources for background)
-          pkgbuild --identifier com.sindlish.cli --version 0.7.0 --install-location / --root pkg_root dist/sindlish-installer-macos.pkg
+          pkgbuild --identifier com.sindlish.cli --version 0.1.0 --install-location / --root pkg_root dist/sindlish-installer-macos.pkg
 
       - name: Build Linux .deb Package
         if: matrix.os == 'ubuntu-latest'
@@ -87,7 +87,7 @@ jobs:
           cp dist/sindlish deb_root/usr/local/bin/
           cp tools/sindlish_icon.png deb_root/usr/share/icons/hicolor/512x512/apps/sindlish.png
           echo "Package: sindlish" > deb_root/DEBIAN/control
-          echo "Version: 0.7.0" >> deb_root/DEBIAN/control
+          echo "Version: 0.1.0" >> deb_root/DEBIAN/control
           echo "Section: utils" >> deb_root/DEBIAN/control
           echo "Priority: optional" >> deb_root/DEBIAN/control
           echo "Architecture: amd64" >> deb_root/DEBIAN/control
