@@ -17,24 +17,23 @@ def generate_icons():
     img = Image.open(img_path)
 
     # 1. Generate Windows ICO
-    ico_path = "dist/sindlish.ico"
-    os.makedirs("dist", exist_ok=True)
+    ico_path = "sindlish.ico"
     img.save(ico_path, format='ICO', sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     print(f"Created {ico_path}")
 
     # 2. Generate Inno Setup BMPs
     wizard_img = img.resize((164, 314), Image.Resampling.LANCZOS)
-    wizard_img.save("dist/wizard.bmp")
+    wizard_img.save("wizard.bmp")
     small_img = img.resize((55, 55), Image.Resampling.LANCZOS)
-    small_img.save("dist/wizard_small.bmp")
+    small_img.save("wizard_small.bmp")
 
     # 3. Generate macOS ICNS
-    icns_path = "dist/sindlish.icns"
+    icns_path = "sindlish.icns"
     img.save(icns_path, format='ICNS')
     print(f"Created {icns_path}")
 
     # 4. Generate Linux PNG (High Res)
-    linux_png = "dist/sindlish_icon.png"
+    linux_png = "sindlish_icon.png"
     img.resize((512, 512), Image.Resampling.LANCZOS).save(linux_png)
     print(f"Created {linux_png}")
 

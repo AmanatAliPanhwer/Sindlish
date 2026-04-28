@@ -50,9 +50,9 @@ jobs:
       - name: Build with PyInstaller
         run: |
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            ICON="dist/sindlish.ico"
+            ICON="tools/sindlish.ico"
           elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            ICON="dist/sindlish.icns"
+            ICON="tools/sindlish.icns"
           else
             ICON=""
           fi
@@ -85,7 +85,7 @@ jobs:
           mkdir -p deb_root/usr/share/icons/hicolor/512x512/apps
           mkdir -p deb_root/DEBIAN
           cp dist/sindlish deb_root/usr/local/bin/
-          cp dist/sindlish_icon.png deb_root/usr/share/icons/hicolor/512x512/apps/sindlish.png
+          cp tools/sindlish_icon.png deb_root/usr/share/icons/hicolor/512x512/apps/sindlish.png
           echo "Package: sindlish" > deb_root/DEBIAN/control
           echo "Version: 0.7.0" >> deb_root/DEBIAN/control
           echo "Section: utils" >> deb_root/DEBIAN/control
