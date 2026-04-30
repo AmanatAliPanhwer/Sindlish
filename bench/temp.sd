@@ -1,0 +1,8 @@
+kaam fib(n) {
+    agar n < 2 { wapas n }
+    wapas fib(n - 1) + fib(n - 2)
+}
+# The runner will call this with different values
+# fib(30)
+
+likh(fib(35))

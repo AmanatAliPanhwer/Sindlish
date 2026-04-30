@@ -136,6 +136,23 @@ def check_file(file_path):
         print(f"Internal Error during check: {e}")
         sys.exit(1)
 
+def show_docs():
+    """Display the offline documentation."""
+    import pydoc
+    
+    docs_path = Path(__file__).parent / "offline_docs.txt"
+    if not docs_path.exists():
+        print("Error: Offline documentation file not found.")
+        sys.exit(1)
+        
+    try:
+        with open(docs_path, "r", encoding="utf-8") as f:
+            docs_content = f.read()
+        pydoc.pager(docs_content)
+    except Exception as e:
+        print(f"Error reading documentation: {e}")
+        sys.exit(1)
+
 def main():
     parser = argparse.ArgumentParser(
         prog="sindlish",
@@ -184,6 +201,9 @@ Examples:
     check_parser = subparsers.add_parser("check", help="Check file for syntax errors")
     check_parser.add_argument("file", help="Path to the .sd file")
 
+    # Docs command
+    subparsers.add_parser("docs", help="View offline documentation")
+
     # Handle legacy behavior and defaults
     if len(sys.argv) == 1:
         # No arguments: start REPL
@@ -216,6 +236,8 @@ Examples:
             run_ast(f.read())
     elif args.command == "check":
         check_file(args.file)
+    elif args.command == "docs":
+        show_docs()
     else:
         # If somehow we get here without a command, start REPL
         start_repl(VERSION)

@@ -59,7 +59,7 @@ Some features depend on others. Format: `Depends on: [Feature Name]`
 | Type keywords | ✅ | `adad`, `lafz`, `dahai`, etc. | P0 | - |
 | Type inference | ✅ | `x = 10` | P0 | - |
 | Constants (pakko) | ✅ | `pakko lafz X = "hi"` | P0 | - |
-| Type annotations | ⚠️ Partial | `x : adad = 10` | P0 | - |
+| Type annotations | ✅ | `x : adad = 10` | P0 | - |
 | BigInt | ❌ | - | P2 | - |
 | Decimal | ❌ | - | P2 | - |
 | Complex numbers | ❌ | - | P3 | - |
@@ -87,26 +87,26 @@ khali d       # defaults to khali (None)
 | List (fehrist) | ✅ | `[1, 2, 3]` | P0 | - |
 | Dict (lughat) | ✅ | `{"a": 1}` | P0 | - |
 | Set (majmuo) | ✅ | `{1, 2, 3}` | P0 | - |
-| Typed List | ⚠️ Partial | `fehrist[adad]` | P1 | - |
-| Typed Dict | ⚠️ Partial | `lughat[lafz: adad]` | P1 | - |
-| Typed Set | ⚠️ Partial | `majmuo[lafz]` | P1 | - |
+| Typed List | ✅ | `fehrist[adad]` | P1 | - |
+| Typed Dict | ✅ | `lughat[lafz, adad]` | P1 | - |
+| Typed Set | ✅ | `majmuo[lafz]` | P1 | - |
 | Tuple | ❌ | - | P2 | - |
 | Frozen Set | ❌ | - | P3 | - |
 | Byte Array | ❌ | - | P3 | - |
-| Range | ❌ | - | P2 | - |
+| Range | ✅ | `range(5)` | P2 | - |
 | Deque | ❌ | - | P3 | - |
-| Nested Collections | ⚠️ Limited | `fehrist[lughat]` | P1 | Typed collections |
+| Nested Collections | ✅ | `fehrist[lughat]` | P1 | Typed collections |
 
 ### Typed Collection Examples
 ```sindlish
 fehrist[adad] nums = [1, 2, 3]           # List of integers
-lughat[lafz: adad] scores = {"Ali": 90}  # Dict: string keys, int values
+lughat[lafz, adad] scores = {"Ali": 90}  # Dict: string keys, int values
 majmuo[lafz] names = {"Ali", "Sara"}     # Set of strings
 
 # Nested typed collections
 fehrist[fehrist] matrix = [[1, 2], [3, 4]]
 fehrist[lughat] users = [{"naam": "Ali"}]
-lughat[adad: fehrist] groups = {"math": [1, 2, 3]}
+lughat[adad, fehrist] groups = {1: [1, 2, 3]}
 ```
 
 ---
@@ -176,11 +176,11 @@ lughat[adad: fehrist] groups = {"math": [1, 2, 3]}
 | Else (warna) | ✅ | `warna { }` | P0 | - |
 | Else-if (yawari) | ✅ | `yawari condition { }` | P0 | - |
 | While (jistain) | ✅ | `jistain condition { }` | P0 | - |
-| For Loop | ❌ | `for i in range(5) { }` | P1 | User-defined functions |
-| Break | ❌ | `brek` | P1 | For loops |
-| Continue | ❌ | `jari rkho` | P1 | For loops |
+| For Loop (har) | ✅ | `har i mein range(5) { }` | P1 | - |
+| Break (tor) | ✅ | `tor` | P1 | Loops |
+| Continue (jari) | ✅ | `jari` | P1 | Loops |
 | Do-While | ❌ | `kar { } jistain condition` | P2 | - |
-| Switch/Match | ❌ | `muqabla x { ... }` | P2 | - |
+| Switch/Match | ⚠️ Partial | `match x { ... }` | P2 | AST only |
 | Goto | ❌ | - | P3 | (controversial) |
 
 ### Current Control Flow Syntax
@@ -197,6 +197,10 @@ jistain x < 10 {
     likh(x)
     x = x + 1
 }
+
+har i mein range(5) {
+    likh(i)
+}
 ```
 
 ---
@@ -205,15 +209,15 @@ jistain x < 10 {
 
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
-| Built-in Functions | ✅ | `likh()`, `lambi()` | P0 | - |
+| Built-in Functions | ✅ | `likh()`, `lambi()`, `puch()` | P0 | - |
 | Method Calls | ✅ | `list.wadha(item)` | P0 | - |
-| User-defined Functions | ❌ | `aalmi add(a, b) { }` | P0 | - |
+| User-defined Functions | ✅ | `kaam add(a, b) { }` | P0 | - |
 | Anonymous Functions | ❌ | `lambai x => x + 1` | P1 | User-defined functions |
-| Recursion | ❌ | Function calling itself | P1 | User-defined functions |
-| Closures | ❌ | - | P2 | User-defined functions |
-| Default Arguments | ❌ | `def foo(x=10)` | P1 | User-defined functions |
-| Variadic Args | ❌ | `def foo(*args)` | P1 | User-defined functions |
-| Keyword Arguments | ❌ | `foo(name="Ali")` | P1 | User-defined functions |
+| Recursion | ✅ | Function calling itself | P1 | User-defined functions |
+| Closures | ✅ | - | P2 | User-defined functions |
+| Default Arguments | ✅ | `kaam foo(x=10) { }` | P1 | User-defined functions |
+| Variadic Args | ✅ | `kaam foo(*args) { }` | P1 | User-defined functions |
+| Keyword Arguments | ✅ | `kaam foo(**kwargs) { }` | P1 | User-defined functions |
 | Decorators | ❌ | `@decorator` | P2 | User-defined functions |
 | Generators (yield) | ❌ | `yield x` | P2 | User-defined functions |
 | Async/Await | ❌ | `async def` / `await` | P2 | - |
@@ -236,7 +240,7 @@ majmuo(items)          # Create set
 | Escape Sequences | ✅ | `"\n\t\"` | P0 | - |
 | Concatenation | ✅ | `s1 + s2` | P0 | - |
 | Replication | ✅ | `s * 3` | P0 | - |
-| String Indexing | ⚠️ Partial | `s[0]`, `s[-1]` | P0 | - |
+| String Indexing | ✅ | `s[0]`, `s[-1]` | P0 | - |
 | String Slicing | ❌ | `s[1:3]` | P1 | - |
 | String Methods | ❌ | `s.upper()` | P1 | - |
 | String Formatting | ❌ | `f"value: {x}"` | P1 | - |
@@ -335,7 +339,7 @@ string"""
 |---------|--------|--------|----------|--------------|
 | Print Output | ✅ | `likh("text")` | P0 | - |
 | File I/O | ❌ | - | P1 | - |
-| Standard Input | ❌ | - | P1 | - |
+| Standard Input | ✅ | `puch("?")` | P1 | - |
 | Formatted Output | ❌ | - | P1 | - |
 | JSON | ❌ | - | P1 | - |
 | CSV | ❌ | - | P2 | - |
@@ -352,7 +356,8 @@ string"""
 | Try-Except | ❌ | `try { } hatana (e) { }` | P0 | - |
 | Try-Except-Finally | ❌ | `finally { }` | P0 | - |
 | Custom Exceptions | ❌ | - | P1 | OOP |
-| Raise | ❌ | `throw` | P0 | Try-Except |
+| Result System | ✅ | `ok()`, `ghalti()`, `?`, `!!` | P0 | - |
+| Raise | ✅ | `ghalti("msg")` | P0 | - |
 | Assert | ❌ | `yaqeen condition` | P1 | - |
 
 ---
@@ -361,7 +366,7 @@ string"""
 
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
-| Internal Objects | ⚠️ | SdObject classes | P0 | - |
+| Internal Objects | ✅ | SdObject classes | P0 | - |
 | Classes | ❌ | `class Nama { }` | P1 | - |
 | Objects | ❌ | `obj = Class()` | P1 | Classes |
 | Inheritance | ❌ | `class B : A` | P1 | Classes |
@@ -380,7 +385,7 @@ string"""
 |---------|--------|--------|----------|--------------|
 | Static Typing Keywords | ✅ | `adad x = 10` | P0 | - |
 | Type Inference | ✅ | `x = 10` | P0 | - |
-| Type Annotations | ⚠️ Partial | `x : adad` | P0 | - |
+| Type Annotations | ✅ | `x : adad` | P0 | - |
 | Type Aliases | ❌ | `type IntList = fehrist[adad]` | P2 | - |
 | Generics | ❌ | `fehrist[T]` | P2 | - |
 | Union Types | ❌ | `adad \| lafz` | P2 | - |
@@ -461,13 +466,13 @@ string"""
 - [x] If/else control flow
 - [x] While loops
 - [x] Print output
-- [ ] User-defined functions (TODO)
-- [ ] Error handling (TODO)
-- [ ] Try/except (TODO)
+- [x] User-defined functions (kaam)
+- [x] Error handling (Result system)
+- [x] Try/except (Replaced by Result system)
 
 ### P1 - High Priority
-- [ ] For loops
-- [ ] Break/continue
+- [x] For loops
+- [x] Break/continue
 - [ ] Ternary operator
 - [ ] Augmented assignment
 - [ ] String slicing
@@ -475,7 +480,7 @@ string"""
 - [ ] List comprehension
 - [ ] File I/O
 - [ ] JSON support
-- [ ] User input
+- [x] User input
 - [ ] Type guards
 - [ ] Runtime type checking
 
@@ -535,5 +540,5 @@ This roadmap is part of the Sindlish programming language project.
 
 ---
 
-*Last updated: Phase 1-4 Complete (Object Model Refactor)*
-*All 228 tests passing*
+*Last updated: April 29, 2026 - Phase 1-4 Complete*
+*All 236 tests passing*

@@ -1,0 +1,59 @@
+SINDLISH OFFLINE DOCUMENTATION
+==============================
+
+1. DATA TYPES
+-------------
+adad    : Integer (e.g., adad x = 10)
+dahai   : Float (e.g., dahai y = 3.14)
+lafz    : String (e.g., lafz s = "hello")
+faislo  : Boolean (sach or koorh)
+khali   : Null value
+
+2. VARIABLES
+------------
+x = 10                  # Dynamic typing
+adad y = 20             # Static typing
+pakko lafz G = "Salam!" # Constant
+
+3. COLLECTIONS
+--------------
+fehrist : List (e.g., [1, 2, 3])
+lughat  : Dictionary (e.g., {"key": "value"})
+majmuo  : Set (e.g., {1, 2, 3})
+
+4. CONTROL FLOW
+---------------
+agar condition {
+    # If block
+} yawari condition2 {
+    # Else-if block
+} warna {
+    # Else block
+}
+
+jistain condition {
+    # While loop
+}
+
+har i mein range(5) {
+    # For loop
+}
+
+5. FUNCTIONS
+------------
+kaam jorr(a, b) {
+    wapas a + b
+}
+
+6. ERROR HANDLING
+-----------------
+The language uses a Result system:
+val = operation()?         # Soft fallback, unwraps or returns error
+val = operation().bachao(0)# Custom fallback on error
+val = operation()!!        # Panic unwrap, crashes on error
+
+7. BUILT-IN FUNCTIONS
+---------------------
+likh(x)    : Prints x
+puch(msg)  : Takes user input
+lambi(x)   : Returns the length of collection x

@@ -1,0 +1,5 @@
+adad total = 0
+har i mein range(100000) {
+    total = total + i
+}
+likh(total)

@@ -1,0 +1,17 @@
+kaam is_prime(n) {
+    agar n < 2 { wapas koorh }
+    adad i = 2
+    jistain i * i <= n {
+        agar n % i == 0 { wapas koorh }
+        i = i + 1
+    }
+    wapas sach
+}
+
+adad count = 0
+har i mein range(5000) {
+    agar is_prime(i) {
+        count = count + i
+    }
+}
+likh(count)
