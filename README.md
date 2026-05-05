@@ -1,6 +1,6 @@
 # Sindlish Programming Language
 
-Sindlish is a high-level, full-featured programming language designed specifically for the Sindhi and Urdu speaking communities. It provides a familiar native-language experience while maintaining a robust, modern syntax and a high-performance bytecode virtual machine backend.
+Sindlish is a high-level, full-featured programming language designed specifically for the Sindhi-speaking communities. It provides a familiar native-language experience while maintaining a robust, modern syntax and a high-performance bytecode virtual machine backend.
 
 ## Overview
 
@@ -22,7 +22,7 @@ You can install Sindlish via the provided installers or directly run it using Py
 
 Run the interpreter interactively:
 ```bash
-python main.py repl
+python main.py
 ```
 
 Execute a file:
@@ -37,4 +37,4 @@ python main.py docs
 
 ## Documentation
 
-Comprehensive online documentation and roadmaps can be found within the repository. For quick reference in the terminal, utilize the `docs` command provided by the Sindlish CLI.
+Comprehensive online documentation and roadmaps can be found at the [Website](https://sindlish.vercel.app/). For quick reference in the terminal, utilise the `docs` command provided by the Sindlish CLI.
