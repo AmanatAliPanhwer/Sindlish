@@ -4,8 +4,8 @@ Built-in functions for the Sindlish language.
 Standalone functions available in the global scope: lambi, likh, majmuo.
 """
 
-from ..objects import SdNumber, SdNull, SdBool, SdDict, SdList, SdSet, SdString
-from ..errors import QisamJeGhalti, HalndeVaktGhalti
+from ..errors import HalndeVaktGhalti, QisamJeGhalti
+from ..objects import SdList, SdNull, SdNumber, SdSet, SdString
 
 
 def _register(registry_dict):

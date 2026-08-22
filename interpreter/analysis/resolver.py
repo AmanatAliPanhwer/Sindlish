@@ -1,16 +1,18 @@
+from ..errors import QisamJeGhalti
 from ..frontend.ast_nodes import (
-    Node, ProgramNode, BlockNode,
-    NumberNode, StringNode, BoolNode, NullNode,
-    VariableNode, AssignNode,
-    BinaryOpNode, UnaryOpNode, PostfixOpNode,
-    PrintNode, IfNode, WhileNode, ForNode, BreakNode, ContinueNode,
-    ListNode, DictNode, SetNode, IndexNode,
-    FunctionNode, ParamNode, CallNode, ReturnNode,
-    MethodCallNode, GetAttrNode,
-    ResultConstructorNode, ResultMethodCallNode, KharabiNode,
+    AssignNode,
+    BoolNode,
+    DictNode,
+    ListNode,
+    Node,
+    NullNode,
+    NumberNode,
+    SetNode,
+    StringNode,
+    VariableNode,
 )
-from ..errors import NaleJeGhalti, HalndeVaktGhalti, QisamJeGhalti
 from ..frontend.tokens import TokenType
+
 
 class Resolver:
     def __init__(self, code):

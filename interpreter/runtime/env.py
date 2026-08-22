@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 from typing import Any, Optional
+
+from ..errors import HalndeVaktGhalti, NaleJeGhalti
 from ..frontend.tokens import TokenType
-from ..errors import NaleJeGhalti, HalndeVaktGhalti
+
 
 @dataclass(slots=True)
 class VariableRecord:
     value: Any
-    type: Optional[TokenType]
-    element_type: Optional[list[TokenType]] | Optional[TokenType] = None
+    type: TokenType | None
+    element_type: list[TokenType] | None | TokenType = None
     is_const: bool = False
 
 class Environment:
@@ -17,7 +19,7 @@ class Environment:
         self.global_names = set()
         self.nonlocal_names = set()
     
-    def define(self, name: str, value: Any, var_type: Optional[TokenType] = None, is_const: bool = False, element_type: Optional[list[TokenType]] | Optional[TokenType] = None):
+    def define(self, name: str, value: Any, var_type: TokenType | None = None, is_const: bool = False, element_type: list[TokenType] | None | TokenType = None):
         """Register a new variable in the CURRENT scope."""
         record = VariableRecord(value=value, type=var_type, is_const=is_const, element_type=element_type)
         self.records[name] = record

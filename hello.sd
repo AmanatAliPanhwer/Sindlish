@@ -581,8 +581,8 @@ f.hata(60)
 likh("8. hata(60) - remove by value:", f)
 
 # kadh - remove by index
-val = f.kadh(0)
-likh("9. kadh(0) - remove index 0, returned:", val)
+f.kadh(0)
+likh("9. kadh(0) - remove index 0:", f)
 
 # nakal - copy
 f_copy = f.nakal()
@@ -625,12 +625,12 @@ l.defaultrakh("status", "active")
 likh("6. defaultrakh('status', 'active'):", l)
 
 # kadh - pop (by key)
-val = l.kadh("ver")
-likh("7. kadh('ver') - remove key, returned:", val)
+l.kadh("ver")
+likh("7. kadh('ver') - remove key:", l)
 
 # syonkadh - popitem (last pair)
-pair = l.syonkadh()
-likh("8. syonkadh() - remove last pair:", pair)
+l.syonkadh()
+likh("8. syonkadh() - remove last pair:", l)
 
 # nakal - copy
 l_copy = l.nakal()
@@ -692,8 +692,8 @@ likh("10. wadohisoahe({2,3,4,5}) - is superset:", s1.wadohisoahe({2, 3, 4, 5}))
 likh("11. alaghahe({10,20}) - is disjoint:", s1.alaghahe({10, 20}))
 
 # kadh - pop (remove random)
-val = s1.kadh()
-likh("12. kadh() - pop random:", val)
+s1.kadh()
+likh("12. kadh() - pop random:", s1)
 
 # saf - clear
 s1.saf()

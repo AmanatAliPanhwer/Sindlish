@@ -1,0 +1,26 @@
+kaam jorr(*nums) {
+    natija = 0
+    har n mein nums {
+        natija = natija + n
+    }
+    wapas natija
+}
+
+likh(jorr(1, 2, 3, 4, 5))
+
+
+nums = [10, 20, 30]
+likh(jorr(*nums))
+
+kaam profile(naam, **info) {
+    likh(naam)
+    likh(info)
+}
+
+
+
+profile('Sara', umr = 25, shahr = 'Hyderabad')
+
+extra = {'lang': 'Sindlish', 'ver': 1}
+profile(*['Bilal'], **extra)
+

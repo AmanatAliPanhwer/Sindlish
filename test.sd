@@ -1,0 +1,26 @@
+﻿kaam factorial(adad n) {
+    agar n <= 1 {
+        wapas 1
+    } warna {
+        wapas n * factorial(n - 1)
+    }
+}
+
+likh(factorial(5))
+likh(factorial(10))
+
+adad x = 5
+adad y = 3
+likh(x + y)
+likh(x * y)
+
+adad z = 0
+agar x > z {
+    likh("x baro aahe")
+} warna {
+    likh("x choto aahe")
+}
+
+har i mein range(5) {
+    likh(i)
+}
