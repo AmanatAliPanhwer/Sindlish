@@ -19,7 +19,7 @@ uv run pytest
 python main.py
 
 # Run benchmarks
-python run_benchmarks.py
+python bench/run_benchmarks.py
 ```
 
 ## 8-Step Pipeline for Adding a Feature

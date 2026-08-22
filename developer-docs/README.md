@@ -62,7 +62,7 @@ uv run pytest
 ### Run benchmarks
 
 ```bash
-python run_benchmarks.py
+python bench/run_benchmarks.py
 ```
 
 ## Project Statistics

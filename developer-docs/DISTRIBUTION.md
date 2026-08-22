@@ -114,7 +114,7 @@ Creates a `.deb` package:
 ## Running Benchmarks
 
 ```bash
-python run_benchmarks.py
+python bench/run_benchmarks.py
 ```
 
 The benchmark suite compares Sindlish vs Python vs Rust on three algorithms:
@@ -127,7 +127,7 @@ The benchmark suite compares Sindlish vs Python vs Rust on three algorithms:
 
 ```mermaid
 flowchart LR
-    A["run_benchmarks.py"] --> B["Compile Rust binary\n(cargo build --release)"]
+    A["bench/run_benchmarks.py"] --> B["Compile Rust binary\n(cargo build --release)"]
     B --> C["Run each benchmark\nacross 3 languages"]
     C --> D["Display live dashboard\nwith Rich TUI"]
 ```

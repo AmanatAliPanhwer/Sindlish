@@ -22,17 +22,22 @@ You can install Sindlish via the provided installers or directly run it using Py
 
 Run the interpreter interactively:
 ```bash
-python main.py
+uv run main.py
 ```
 
 Execute a file:
 ```bash
-python main.py run script.sd
+uv run main.py run script.sd
+```
+
+Try the bundled examples in [`examples/`](examples/):
+```bash
+uv run main.py run examples/hello.sd
 ```
 
 Access offline documentation:
 ```bash
-python main.py docs
+uv run main.py docs
 ```
 
 ## Documentation

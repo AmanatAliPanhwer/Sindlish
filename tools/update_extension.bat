@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0.."
 echo ==============================================
 echo Sindlish VS Code Extension Auto-Updater
 echo ==============================================

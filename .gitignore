@@ -9,3 +9,11 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Build artifacts
+bench/rust/target/
+*.vsix
+node_modules/
+
+# Generated scratch files
+bench/temp.sd

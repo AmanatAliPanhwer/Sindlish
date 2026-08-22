@@ -2,6 +2,8 @@ import os
 import time
 import subprocess
 
+os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Configuration
 TESTS = [
     {"name": "Fibonacci (20)", "type": "fib", "arg": "20"},

@@ -21,6 +21,7 @@ kaam profile(naam, **info) {
 
 profile('Sara', umr = 25, shahr = 'Hyderabad')
 
+# NOTE: Call-site unpacking (f(*list), f(**dict)) is not supported yet.
 extra = {'lang': 'Sindlish', 'ver': 1}
-profile(*['Bilal'], **extra)
+likh(extra)
 

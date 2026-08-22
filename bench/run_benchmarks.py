@@ -10,6 +10,8 @@ from rich.layout import Layout
 from rich.panel import Panel
 from rich.console import Console
 
+os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Configuration
 TESTS = [
     {"name": "Fibonacci (30)", "type": "fib", "arg": "30"},
