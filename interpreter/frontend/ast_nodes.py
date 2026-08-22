@@ -301,7 +301,7 @@ class ParamNode(Node):
 
 class FunctionNode(Node):
     """Function definition (kaam)."""
-    __slots__ = ('name', 'params', 'body', 'return_type', 'slot_count', 'line', 'column')
+    __slots__ = ('name', 'params', 'body', 'return_type', 'slot_count', 'slot_metadata', 'line', 'column')
 
     def __init__(self, name: str, params: list, body, return_type=None,
                  line: int = 0, column: int = 0):

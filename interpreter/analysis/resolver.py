@@ -3,6 +3,7 @@ from ..frontend.ast_nodes import (
     AssignNode,
     BoolNode,
     DictNode,
+    FunctionNode,
     ListNode,
     Node,
     NullNode,
@@ -18,6 +19,9 @@ class Resolver:
     def __init__(self, code):
         self.code = code
         self.scopes = [{}]
+        self.function_scopes = [set()]
+        self.declared_globals = set()
+        self.global_var_names = set()
         self.slot_indices = {}
         self.next_slot = 0
         self.slot_metadata = {}  # slot_index -> {"is_const": bool, "type": TokenType, "element_type": any}
@@ -40,9 +44,9 @@ class Resolver:
         elif isinstance(node, SetNode):
             return TokenType.MAJMUO
         elif isinstance(node, VariableNode):
-            slot = self.lookup(node.name)
-            if slot is not None:
-                meta = self.slot_metadata.get(slot, {})
+            found = self._find(node.name)
+            if found and found[0] == "slot" and found[2] > 0:
+                meta = self.slot_metadata.get(found[1], {})
                 return meta.get("type")
             return None
         return None
@@ -118,46 +122,65 @@ class Resolver:
 
     def resolve_AssignNode(self, node):
         self.resolve(node.value)
-        
+
         if node.has_explicit_type and node.type is not None:
             self._verify_assignment_types(node)
-        
-        # In REPL, top-level assignments (scope depth 1) go to globals
-        if self.is_repl and len(self.scopes) == 1:
+
+        found = self._find(node.name)
+        goes_global = (
+            node.name in self.declared_globals
+            or len(self.scopes) == 1
+            or (found is not None and found[2] == 0)
+        )
+
+        if goes_global:
+            # Program-level variables live in the globals environment;
+            # const/type enforcement happens at runtime via STORE_GLOBAL.
+            self.global_var_names.add(node.name)
             node.scope_level = 1
             node.slot_index = -1
             return
 
-        slot = self.lookup(node.name)
-        if slot is None:
+        if found is None or found[0] == "function":
             slot = self.define(node.name, node)
-        
+        else:
+            slot = found[1]
+
         node.slot_index = slot
         node.scope_level = 0
-        
-        if slot not in self.slot_metadata:
+
+        if node.has_explicit_type and node.type is not None:
             self.slot_metadata[slot] = {
                 "is_const": node.is_const,
                 "type": node.type,
                 "element_type": node.element_type,
-                "has_explicit_type": node.has_explicit_type
+                "has_explicit_type": True
+            }
+        elif slot not in self.slot_metadata:
+            self.slot_metadata[slot] = {
+                "is_const": node.is_const,
+                "type": None,
+                "element_type": node.element_type,
+                "has_explicit_type": False
             }
 
     def push_scope(self):
         self.scopes.append({})
+        self.function_scopes.append(set())
 
     def pop_scope(self):
         self.scopes.pop()
+        self.function_scopes.pop()
 
     def define(self, name, node=None):
         if name in self.scopes[-1]:
             return self.scopes[-1][name]
-        
+
         slot = self.next_slot
         self.next_slot += 1
-        
+
         self.scopes[-1][name] = slot
-        
+
         # Track symbol for LSP
         if node:
             self.symbols.append({
@@ -167,25 +190,66 @@ class Resolver:
                 "col": getattr(node, 'column', 0),
                 "kind": "variable" if isinstance(node, AssignNode) else "function"
             })
-            
+
         return slot
+
+    def define_function(self, name, node=None):
+        """Register a function name without allocating a frame slot.
+
+        Function values live in the globals environment, so references
+        compile to LOAD_GLOBAL instead of reading an empty local slot.
+        """
+        self.function_scopes[-1].add(name)
+        if node:
+            self.symbols.append({
+                "name": name,
+                "type": getattr(node, 'type', None),
+                "line": getattr(node, 'line', 0),
+                "col": getattr(node, 'column', 0),
+                "kind": "function"
+            })
 
     def lookup(self, name):
         for scope in reversed(self.scopes):
             if name in scope:
                 return scope[name]
         return None
+
+    def _find(self, name):
+        """Find a name across scopes.
+
+        Returns ("slot", slot_index, owner_scope_index), ("function", None,
+        owner_scope_index), ("global", -1, 0) for program-level variables,
+        or None when the name is unknown. Scope indices >= 1 hold frame-local
+        slots; scope 0 is the program-global scope whose variables live in
+        the globals environment.
+        """
+        for i in range(len(self.scopes) - 1, 0, -1):
+            if name in self.function_scopes[i]:
+                return ("function", None, i)
+            if name in self.scopes[i]:
+                return ("slot", self.scopes[i][name], i)
+        if name in self.function_scopes[0]:
+            return ("function", None, 0)
+        if name in self.global_var_names:
+            return ("global", -1, 0)
+        return None
     
     def get_slot_metadata(self):
         return self.slot_metadata
 
     def resolve_VariableNode(self, node):
-        slot = self.lookup(node.name)
-        if slot is None:
-            node.scope_level = 1
-        else:
-            node.slot_index = slot
+        found = self._find(node.name)
+        if (
+            found is not None
+            and found[0] == "slot"
+            and found[2] > 0
+            and node.name not in self.declared_globals
+        ):
+            node.slot_index = found[1]
             node.scope_level = 0
+        else:
+            node.scope_level = 1
 
     def resolve_IfNode(self, node):
         self.resolve(node.condition)
@@ -258,22 +322,38 @@ class Resolver:
             self.resolve(node.value)
 
     def resolve_FunctionNode(self, node):
-        # We define the function name in the CURRENT scope
-        self.define(node.name, node)
-        
+        # Function names live in the globals environment, not in frame slots
+        self.define_function(node.name, node)
+
         # Then we push a new scope for params and body
         old_next_slot = self.next_slot
+        old_slot_metadata = self.slot_metadata
         self.next_slot = 0
-        
+        self.slot_metadata = {}
+
         self.push_scope()
         for param in node.params:
             param_slot = self.define(param.name, param)
             param.slot_index = param_slot
         self.resolve(node.body)
         node.slot_count = self.next_slot
+        node.slot_metadata = self.slot_metadata
         self.pop_scope()
-        
+
         self.next_slot = old_next_slot
+        self.slot_metadata = old_slot_metadata
+
+    def resolve_GlobalNode(self, node):
+        self.declared_globals.add(node.name)
+        self.global_var_names.add(node.name)
+
+    def resolve_NonLocalNode(self, node):
+        raise QisamJeGhalti(
+            "'bahari' (closures) abhi support natho; hale roadmap mein aahe.",
+            getattr(node, 'line', 0),
+            getattr(node, 'column', 0),
+            self.code,
+        )
 
     def resolve_ReturnNode(self, node):
         if node.value:

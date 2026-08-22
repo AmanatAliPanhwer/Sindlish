@@ -139,7 +139,10 @@ class SdDict(SdShey):
     
     def __str__(self):
         return "{" + ", ".join(f"{k}: {v}" for k, v in self.pairs.items()) + "}"
-    
+
+    def __bool__(self):
+        return bool(self.pairs)
+
     def __hash__(self):
         raise TypeError(f"Unhashable qisam: '{self.type.name}'.")
 
@@ -231,7 +234,10 @@ class SdSet(SdShey):
     
     def __str__(self):
         return "{" + ", ".join(str(el) for el in self.elements) + "}"
-    
+
+    def __bool__(self):
+        return bool(self.elements)
+
     def __hash__(self):
         raise TypeError(f"Unhashable qisam: '{self.type.name}'.")
 

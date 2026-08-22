@@ -21,6 +21,7 @@ from ..frontend.ast_nodes import (
 )
 from ..frontend.tokens import TokenType
 from ..objects import SdFunction, SdNumber, SdString
+from .markers import KwargMarker, StarArgsMarker, KwargsDictMarker
 from .opcodes import OpCode
 
 
@@ -62,7 +63,7 @@ class Compiler:
         return method(node)
 
     def no_compile_method(self, node):
-        raise Exception(f"Compiler node qisam {type(node).name} khe handle natho kare saghjay.")
+        raise Exception(f"Compiler node qisam {type(node).__name__} khe handle natho kare saghjay.")
 
     def compile_ProgramNode(self, node):
         for stmt in node.statements:
@@ -76,7 +77,14 @@ class Compiler:
             self.emit(OpCode.STORE_FAST, node.slot_index, node=node)
         else:
             const_idx = self.add_const(SdString(node.name))
-            self.emit(OpCode.STORE_GLOBAL, const_idx, node=node)
+            has_explicit_type = node.has_explicit_type and node.type is not None
+            info = (
+                const_idx,
+                bool(node.is_const),
+                node.type if has_explicit_type else None,
+                node.element_type,
+            )
+            self.emit(OpCode.STORE_GLOBAL, info, node=node)
 
     def compile_VariableNode(self, node):
         if node.scope_level == 0:
@@ -103,9 +111,23 @@ class Compiler:
         self.emit(OpCode.PUSH_NULL, node=node)
 
     def compile_BinaryOpNode(self, node):
+        if node.op.type == TokenType.AND:
+            self.compile(node.left)
+            jump_idx = self.emit(OpCode.JUMP_IF_FALSE_OR_POP, 0, node=node)
+            self.compile(node.right)
+            self.instructions[jump_idx] = (OpCode.JUMP_IF_FALSE_OR_POP, len(self.instructions))
+            return
+
+        if node.op.type == TokenType.OR:
+            self.compile(node.left)
+            jump_idx = self.emit(OpCode.JUMP_IF_TRUE_OR_POP, 0, node=node)
+            self.compile(node.right)
+            self.instructions[jump_idx] = (OpCode.JUMP_IF_TRUE_OR_POP, len(self.instructions))
+            return
+
         self.compile(node.left)
         self.compile(node.right)
-        
+
         op_map = {
             TokenType.PLUS: OpCode.BINARY_ADD,
             TokenType.MINUS: OpCode.BINARY_SUB,
@@ -119,8 +141,6 @@ class Compiler:
             TokenType.LTEQ: OpCode.COMPARE_LE,
             TokenType.GT: OpCode.COMPARE_GT,
             TokenType.GTEQ: OpCode.COMPARE_GE,
-            TokenType.AND: OpCode.LOGICAL_AND,
-            TokenType.OR: OpCode.LOGICAL_OR,
         }
         opcode = op_map.get(node.op.type)
         if opcode:
@@ -305,20 +325,31 @@ class Compiler:
             self.emit(OpCode.BINARY_SUBSCRIPT, node=node)
 
     def _compile_call_args(self, node):
+        total_args = 0
+
         for arg in node.args:
             self.compile(arg)
-        if hasattr(node, 'keywords') and node.keywords:
+            total_args += 1
+
+        if getattr(node, 'star_args', None) is not None:
+            star_idx = self.add_const(StarArgsMarker())
+            self.emit(OpCode.LOAD_CONST, star_idx, node=node)
+            self.compile(node.star_args)
+            total_args += 2
+
+        if getattr(node, 'kw_args', None) is not None:
+            kw_idx = self.add_const(KwargsDictMarker())
+            self.emit(OpCode.LOAD_CONST, kw_idx, node=node)
+            self.compile(node.kw_args)
+            total_args += 2
+
+        if getattr(node, 'keywords', None):
             for name, val in node.keywords:
-                const_idx = self.add_const(SdString(name))
-                self.emit(OpCode.LOAD_CONST, const_idx, node=node)
+                marker_idx = self.add_const(KwargMarker(name))
+                self.emit(OpCode.LOAD_CONST, marker_idx, node=node)
                 self.compile(val)
-        
-        # Note: star_args and kw_args are parsed but not yet supported by VM opcodes
-        # We can add handling here once VM supports CALL_FUNCTION_VAR
-        
-        total_args = len(node.args)
-        if hasattr(node, 'keywords') and node.keywords:
-            total_args += len(node.keywords) * 2
+                total_args += 2
+
         return total_args
 
     def compile_CallNode(self, node):
@@ -363,31 +394,34 @@ class Compiler:
         self.compile(node.message)
         self.emit(OpCode.PANIC, node=node)
 
+    def compile_GlobalNode(self, node):
+        pass
+
     def compile_FunctionNode(self, node):
         line = getattr(node, 'line', 0)
         column = getattr(node, 'column', 0)
-        
+
         # Save current state
         old_instructions = self.instructions
         old_line_col_map = self.line_col_map
         self.instructions = []
         self.line_col_map = {}
-        
+
         # Compile body - call compile_BlockNode directly to pass is_function_body=True
         self.compile_BlockNode(node.body, is_function_body=True)
-        
+
         # Implicit return at end (if not already returned by compile_BlockNode)
         self.emit(OpCode.PUSH_NULL, node=node)
         self.emit(OpCode.MAKE_OK, node=node)
         self.emit(OpCode.RETURN_VALUE, node=node)
-        
+
         func_instructions = self.instructions
         func_line_col_map = self.line_col_map
-        
+
         # Restore state
         self.instructions = old_instructions
         self.line_col_map = old_line_col_map
-        
+
         # Create function object
         func_obj = SdFunction(
             node.name,
@@ -396,13 +430,23 @@ class Compiler:
             self.constants,
             func_line_col_map,
             getattr(node, 'slot_count', 0),
-            {}, # metadata
+            getattr(node, 'slot_metadata', {}),
             node.return_type
         )
-        
+
         const_idx = self.add_const(func_obj)
+
+        # Evaluate parameter defaults at definition time (Python semantics),
+        # then let the VM bind them via MAKE_FUNCTION.
+        num_defaults = 0
+        for param in node.params:
+            if param.default is not None:
+                self.compile(param.default)
+                num_defaults += 1
+
         self.emit(OpCode.LOAD_CONST, const_idx, node=node)
-        
+        self.emit(OpCode.MAKE_FUNCTION, num_defaults, node=node)
+
         # Store as global
         name_idx = self.add_const(SdString(node.name))
         self.emit(OpCode.STORE_GLOBAL, name_idx, node=node)

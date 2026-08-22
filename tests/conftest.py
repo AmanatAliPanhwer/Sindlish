@@ -46,12 +46,6 @@ def run(code: str):
     resolver = Resolver(code)
     resolver.resolve(ast)
 
-    # Build slot_names from resolved AST nodes
-    slot_names = {}
-    for stmt in ast.statements:
-        if hasattr(stmt, 'name') and hasattr(stmt, 'slot_index') and stmt.slot_index is not None:
-            slot_names[stmt.name] = stmt.slot_index
-
     compiler = Compiler(code)
     instructions, constants, line_col_map = compiler.compile(ast)
 
@@ -62,7 +56,6 @@ def run(code: str):
     sys.stdout = buffer = io.StringIO()
     try:
         vm = VM(code, instructions, constants, globals_env, getattr(ast, "slot_count", 0), slot_metadata, line_col_map)
-        vm.slot_names = slot_names
         vm.run()
     finally:
         sys.stdout = old_stdout
@@ -73,29 +66,17 @@ def run(code: str):
 def get_variable_value(vm, name):
     """
     Get variable value from VM instance.
-    Checks slot_names mapping if available, otherwise checks all slots.
+    Prefers globals-environment records; falls back to main-frame slots.
     Extracts raw value from SdShey wrappers.
     """
-    if hasattr(vm, 'variables'):
-        value = None
+    if name in vm.globals.records:
+        return extract_value(vm.globals.records[name].value)
 
-        # Check if we have a slot_names mapping
-        if hasattr(vm, 'slot_names') and name in vm.slot_names:
-            slot_idx = vm.slot_names[name]
-            key = f"slot_{slot_idx}"
-            var = vm.variables.get(key, {})
-            if var:
-                value = var.get("value")
-
-        # Fallback: check all slots for the name (slot_X format)
-        if value is None:
-            for key in vm.variables:
-                if vm.variables[key].get("name") == name:
-                    value = vm.variables[key].get("value")
-
-        # Extract raw value from SdShey wrappers
-        if value is not None:
-            return extract_value(value)
+    frame = vm.frames[-1]
+    if hasattr(vm, 'slot_names') and name in vm.slot_names:
+        slot_idx = vm.slot_names[name]
+        if 0 <= slot_idx < len(frame.slots) and frame.slots[slot_idx] is not None:
+            return extract_value(frame.slots[slot_idx])
     return None
 
 

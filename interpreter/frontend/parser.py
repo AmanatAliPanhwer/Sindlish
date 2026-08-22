@@ -76,6 +76,7 @@ class Parser:
 
     def parse_block(self):
         statements = []
+        open_line, open_col = self.peek().line, self.peek().column
 
         while True:
             token = self.peek()
@@ -84,7 +85,15 @@ class Parser:
                 self.advance()
                 continue
 
-            if token.type in (TokenType.EOF, TokenType.WARNA):
+            if token.type == TokenType.EOF:
+                raise LikhaiJeGhalti(
+                    "Block band natho thayo; '}' na milyo.",
+                    open_line,
+                    open_col,
+                    self.code,
+                )
+
+            if token.type == TokenType.WARNA:
                 break
 
             if token.type == TokenType.RBRACE:
@@ -163,6 +172,14 @@ class Parser:
             name = self.advance().value
             return GlobalNode(name).set_pos(token.line, token.column)
         
+        if token.type == TokenType.MATCH:
+            raise LikhaiJeGhalti(
+                "'match' abhi support natho tho; hale roadmap mein aahe.",
+                token.line,
+                token.column,
+                self.code,
+            )
+
         if token.type == TokenType.BAHARI:
             self.advance() # bahari
             if self.peek() and self.peek().type != TokenType.IDENTIFIER:
@@ -578,21 +595,32 @@ class Parser:
             return UnaryOpNode(op, value).set_pos(op.line, op.column)
         return self.parse_comparison()
 
+    _COMPARISON_OPS = (
+        TokenType.GT,
+        TokenType.LT,
+        TokenType.EQEQ,
+        TokenType.NOTEQ,
+        TokenType.GTEQ,
+        TokenType.LTEQ,
+    )
+
     def parse_comparison(self):
         left = self.parse_term()
 
-        while self.peek().type in (
-            TokenType.GT,
-            TokenType.LT,
-            TokenType.EQEQ,
-            TokenType.NOTEQ,
-            TokenType.GTEQ,
-            TokenType.LTEQ,
-        ):
+        if self.peek().type in self._COMPARISON_OPS:
             op = self.advance()
             self.skip_newlines()
             right = self.parse_term()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
+
+            if self.peek().type in self._COMPARISON_OPS:
+                nxt = self.peek()
+                raise LikhaiJeGhalti(
+                    "Chained comparisons supported natho; likho (a < b) aen (b < c).",
+                    nxt.line,
+                    nxt.column,
+                    self.code,
+                )
 
         return left
 

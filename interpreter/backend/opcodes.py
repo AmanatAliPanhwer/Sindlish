@@ -41,6 +41,8 @@ class OpCode(IntEnum):
     # Control Flow
     JUMP_ABSOLUTE = auto()
     JUMP_IF_FALSE = auto()
+    JUMP_IF_FALSE_OR_POP = auto()
+    JUMP_IF_TRUE_OR_POP = auto()
     
     # Iteration
     GET_ITER = auto()
@@ -60,6 +62,7 @@ class OpCode(IntEnum):
     CALL_FUNCTION = auto()
     CALL_METHOD = auto()
     GET_ATTR = auto()
+    MAKE_FUNCTION = auto()
     
     # Result System and Errors
     MAKE_OK = auto()

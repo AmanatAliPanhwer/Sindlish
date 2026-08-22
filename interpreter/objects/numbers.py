@@ -1,4 +1,4 @@
-from .base import SdShey, SdType
+from .base import SdShey, SdType, sd_truthy
 from ..frontend.tokens import TokenType
 from ..errors import QisamJeGhalti, ZeroVindJeGhalti
 
@@ -118,7 +118,7 @@ class SdNumber(SdShey):
         return SdNumber(abs(self.value))
     
     def __invert__(self):
-        return SdNumber(~int(self.value))
+        return SdBool(not sd_truthy(self))
     
     def __int__(self):
         return int(self.value)
@@ -186,7 +186,7 @@ class SdBool(SdShey):
         return SdBool(self.value >= other.value)
     
     def __str__(self):
-        return "such" if self.value else "koorh"
+        return "sach" if self.value else "koorh"
 
     def __hash__(self):
         return hash(self.value)

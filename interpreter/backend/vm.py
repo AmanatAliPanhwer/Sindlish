@@ -27,7 +27,9 @@ from ..objects import (
     SdString,
 )
 from ..runtime.builtins import SimpleBuiltins
+from ..objects.base import sd_truthy
 from .frame import BytecodeFrame
+from .markers import KwargMarker, StarArgsMarker, KwargsDictMarker
 from .opcodes import OpCode
 
 TYPE_MAP = {
@@ -92,13 +94,15 @@ class VM:
             OpCode.LOGICAL_NOT: self._op_logical_not,
             OpCode.JUMP_ABSOLUTE: self._op_jump_absolute,
             OpCode.JUMP_IF_FALSE: self._op_jump_if_false,
-            OpCode.JUMP_IF_FALSE: self._op_jump_if_false,
+            OpCode.JUMP_IF_FALSE_OR_POP: self._op_jump_if_false_or_pop,
+            OpCode.JUMP_IF_TRUE_OR_POP: self._op_jump_if_true_or_pop,
             OpCode.GET_ITER: self._op_get_iter,
             OpCode.FOR_ITER: self._op_for_iter,
             OpCode.PRINT_ITEM: self._op_print_item,
             OpCode.CALL_FUNCTION: self._op_call_function,
             OpCode.CALL_METHOD: self._op_call_method,
             OpCode.GET_ATTR: self._op_get_attr,
+            OpCode.MAKE_FUNCTION: self._op_make_function,
             OpCode.MAKE_OK: self._op_make_ok,
             OpCode.MAKE_ERROR: self._op_make_error,
             OpCode.CALL_BACHAO: self._op_call_bachao,
@@ -139,6 +143,8 @@ class VM:
         return val
 
     def _check_type(self, value, expected_type, element_type=None, line=0, column=0):
+        if isinstance(value, SdResult) and value.is_ok():
+            value = value.value
         if expected_type == TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):
                 raise QisamJeGhalti(f"'adad' qisam laai adad khapyo paye, par '{value.type.name}' milyo.", line, column, self.code_string)
@@ -174,6 +180,8 @@ class VM:
         return True
     
     def _check_element_type(self, value, element_type, line=0, column=0):
+        if isinstance(value, SdResult) and value.is_ok():
+            value = value.value
         if element_type == TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):
                 raise QisamJeGhalti(f"Fehrist je elements jo qisam 'adad' hujjhan lazmi aahe, par '{value.type.name}' milyo.", line, column, self.code_string)
@@ -192,13 +200,6 @@ class VM:
         result = {}
         for name, record in self.globals.records.items():
             result[name] = {"value": record.value, "is_const": getattr(record, 'is_const', False)}
-        
-        frame = self.frames[-1]
-        if hasattr(self, 'slot_names'):
-             for name, slot_idx in self.slot_names.items():
-                if slot_idx < len(frame.slots) and frame.slots[slot_idx] is not None:
-                    metadata = frame.slot_metadata.get(slot_idx, {})
-                    result[name] = {"value": frame.slots[slot_idx], "is_const": metadata.get("is_const", False)}
         return result
 
     def run(self):
@@ -227,10 +228,10 @@ class VM:
             
         source_lines = self.code_string.split('\n')
         for frame in self.frames:
-            line, col = frame.line_col_map.get(frame.ip, (0, 0))
+            line, col = frame.line_col_map.get(frame.ip - 1, (0, 0))
             if line == 0:
                 continue
-            
+
             source_line = source_lines[line-1] if 0 < line <= len(source_lines) else None
             error.add_traceback(frame.name, line, col, source_line)
 
@@ -276,6 +277,28 @@ class VM:
         self.push(record.value)
         
     def _op_store_global(self, frame, arg, line, column):
+        if isinstance(arg, tuple):
+            const_idx, is_const, expected_type, element_type = arg
+            name = frame.constants[const_idx].value
+            val = self.pop()
+            if name in self.globals.records:
+                record = self.globals.records[name]
+                if record.is_const and record.value is not None:
+                    raise HalndeVaktGhalti(
+                        f"'{name}' pakko (const) aahe, eho badli natho saghjay.",
+                        line, column, self.code_string,
+                    )
+                if expected_type is None:
+                    expected_type = record.type
+                    element_type = element_type if expected_type is None else record.element_type
+                if expected_type is not None:
+                    self._check_type(val, expected_type, element_type, line=line, column=column)
+                record.value = val
+            else:
+                if expected_type is not None:
+                    self._check_type(val, expected_type, element_type, line=line, column=column)
+                self.globals.define(name, val, var_type=expected_type, is_const=is_const)
+            return
         name = frame.constants[arg].value
         val = self.pop()
         if name in self.globals.records:
@@ -364,16 +387,28 @@ class VM:
         self.push(left.call_method("__or__", [right], None, self.code_string))
         
     def _op_logical_not(self, frame, arg, line, column):
-        val = self._unwrap_val(self.pop(), line, column)
-        self.push(val.call_method("__invert__", [], None, self.code_string))
+        val = self.pop()
+        self.push(SdBool(not sd_truthy(val)))
 
     def _op_jump_absolute(self, frame, arg, line, column):
         frame.ip = arg
-        
+
     def _op_jump_if_false(self, frame, arg, line, column):
         condition = self.pop()
-        if not condition.value:
+        if not sd_truthy(condition):
             frame.ip = arg
+
+    def _op_jump_if_false_or_pop(self, frame, arg, line, column):
+        if sd_truthy(self.stack[-1]):
+            self.pop()
+        else:
+            frame.ip = arg
+
+    def _op_jump_if_true_or_pop(self, frame, arg, line, column):
+        if sd_truthy(self.stack[-1]):
+            frame.ip = arg
+        else:
+            self.pop()
 
     def _op_get_iter(self, frame, arg, line, column):
         obj = self.pop()
@@ -400,15 +435,22 @@ class VM:
         name = frame.constants[const_idx].value
         args_list = [self.pop() for _ in range(num_args)]
         args_list.reverse()
-        
+
+        positional, kwargs = self._expand_call_args(args_list, line, column)
+
         record = self.globals.lookup_record(name, None, self.code_string)
         func = record.value
-        
+
         if isinstance(func, SdFunction):
-            self._call_sd_function(func, args_list, line, column)
+            self._call_sd_function(func, positional, kwargs, line, column)
         else:
+            if kwargs:
+                raise QisamJeGhalti(
+                    f"'{name}' keyword arguments support natho kando.",
+                    line, column, self.code_string,
+                )
             try:
-                result = func(self.simple_handler, args_list)
+                result = func(self.simple_handler, positional)
                 self.push(result if result is not None else SdNull())
             except SindhiBaseError as e:
                 if e.line is None:
@@ -416,64 +458,131 @@ class VM:
                     e.code_string = self.code_string
                 raise e
 
-    def _call_sd_function(self, func, args_list, line, column):
-        params = func.params
-        args_to_pass = []
-        star_args_list = []
-        kwargs_dict = SdDict({})
-        
-        keyword_args = {}
-        positional_args = []
-        param_names = {p.name for p in params}
+    def _expand_call_args(self, args_list, line, column):
+        """Split raw stack slots into positional values and kwargs.
+
+        Markers precede their payload: KwargMarker+value pairs, then
+        StarArgsMarker/KwargsDictMarker followed by the expression value.
+        """
+        positional = []
+        kwargs = {}
         i = 0
-        while i < len(args_list):
-            arg_i = args_list[i]
-            if i + 1 < len(args_list) and hasattr(arg_i, 'type') and arg_i.type.name == 'LAFZ':
-                if arg_i.value in param_names:
-                    keyword_args[arg_i.value] = args_list[i + 1]
-                    i += 2
-                    continue
-            positional_args.append(args_list[i])
-            i += 1
-        
-        args_idx = 0
+        n = len(args_list)
+        while i < n:
+            val = args_list[i]
+            if isinstance(val, KwargMarker):
+                if i + 1 >= n:
+                    raise HalndeVaktGhalti("Keyword argument jaani maalu na thi.", line, column, self.code_string)
+                kwargs[val.value] = args_list[i + 1]
+                i += 2
+            elif isinstance(val, StarArgsMarker):
+                if i + 1 >= n:
+                    raise HalndeVaktGhalti("Star argument jaani maalu na thyo.", line, column, self.code_string)
+                seq = self._unwrap_val(args_list[i + 1], line, column)
+                try:
+                    positional.extend(list(seq))
+                except TypeError:
+                    raise QisamJeGhalti(
+                        f"'{seq.type.name}' khe '*' saan kholi (unpack) natho kare saghjay.",
+                        line, column, self.code_string,
+                    )
+                i += 2
+            elif isinstance(val, KwargsDictMarker):
+                if i + 1 >= n:
+                    raise HalndeVaktGhalti("Kwargs lughat jaani maalu na thi.", line, column, self.code_string)
+                d = self._unwrap_val(args_list[i + 1], line, column)
+                if not isinstance(d, SdDict):
+                    raise QisamJeGhalti(
+                        f"'**' laai lughat khapyo paye, par '{d.type.name}' milyo.",
+                        line, column, self.code_string,
+                    )
+                for k, v in d.pairs.items():
+                    key = k.value if isinstance(k, SdString) else str(k)
+                    kwargs[key] = v
+                i += 2
+            else:
+                positional.append(val)
+                i += 1
+        return positional, kwargs
+
+    def _call_sd_function(self, func, positional, kwargs, line, column):
+        params = func.params
+
+        has_star_param = any(p.is_star for p in params)
+        has_kw_param = any(p.is_kw for p in params)
+
+        # Map defaulted param names to their def-time evaluated values
+        defaults_map = {}
+        di = 0
+        for p in params:
+            if p.default is not None:
+                defaults_map[p.name] = func.defaults[di] if di < len(func.defaults) else p.default
+                di += 1
+
+        if not has_kw_param:
+            known_names = {p.name for p in params}
+            for key in kwargs:
+                if key not in known_names:
+                    raise LikhaiJeGhalti(f"Achanak keyword argument '{key}' milo.", line, column, self.code_string)
+
+        bound = {}
+        pos_idx = 0
         for param in params:
-            if param.is_star:
-                star_args_list = positional_args[args_idx:] if args_idx < len(positional_args) else []
-                args_idx = len(positional_args)
-            elif param.is_kw:
-                pass
-            elif param.name in keyword_args:
-                arg_val = keyword_args[param.name]
-                if param.type and not self._is_type_match(arg_val, param.type):
-                    raise QisamJeGhalti(f"Parameter '{param.name}' khe '{param.type}' khapyo paye par '{arg_val.type.name.lower()}' milyo.", line, column, self.code_string)
-                args_to_pass.append(arg_val)
-            elif args_idx < len(positional_args):
-                arg_val = positional_args[args_idx]
-                if param.type and not self._is_type_match(arg_val, param.type):
-                    raise QisamJeGhalti(f"Parameter '{param.name}' khe '{param.type}' khapyo paye par '{arg_val.type.name.lower()}' milyo.", line, column, self.code_string)
-                args_to_pass.append(arg_val)
-                args_idx += 1
-            elif param.default is not None:
-                args_to_pass.append(param.default)
+            if param.is_star or param.is_kw:
+                continue
+            if param.name in kwargs:
+                val = kwargs.pop(param.name)
+            elif pos_idx < len(positional):
+                val = positional[pos_idx]
+                pos_idx += 1
+            elif param.name in defaults_map:
+                val = defaults_map[param.name]
             else:
                 raise LikhaiJeGhalti(f"Parameter '{param.name}' laai value lazmi aahe.", line, column, self.code_string)
-        
+
+            if param.type and not self._is_type_match(val, param.type):
+                raise QisamJeGhalti(
+                    f"Parameter '{param.name}' khe '{param.type}' khapyo paye par '{val.type.name.lower()}' milyo.",
+                    line, column, self.code_string,
+                )
+            bound[param.name] = val
+
+        extra_positional = positional[pos_idx:]
+        if extra_positional and not has_star_param:
+            raise LikhaiJeGhalti(
+                f"{len(extra_positional)} wadhoo arguments mile; kaam khe itna khapay na tha.",
+                line, column, self.code_string,
+            )
+
+        if kwargs and not has_kw_param:
+            unknown = next(iter(kwargs))
+            raise LikhaiJeGhalti(f"Achanak keyword argument '{unknown}' milo.", line, column, self.code_string)
+
         new_frame = BytecodeFrame(func.name, func.instructions, func.constants, func.line_col_map, func.slot_count, func.slot_metadata)
-        
-        frame_idx, args_passed_idx = 0, 0
+
+        frame_idx = 0
         for param in params:
             if param.is_star:
-                new_frame.slots[frame_idx] = SdList(star_args_list)
+                new_frame.slots[frame_idx] = SdList(list(extra_positional))
             elif param.is_kw:
-                new_frame.slots[frame_idx] = kwargs_dict
+                new_frame.slots[frame_idx] = SdDict(dict(kwargs))
             else:
-                new_frame.slots[frame_idx] = args_to_pass[args_passed_idx]
-                args_passed_idx += 1
+                new_frame.slots[frame_idx] = bound[param.name]
             frame_idx += 1
-        
+
         new_frame.call_metadata = {"return_type": func.return_type, "function_name": func.name}
         self.frames.append(new_frame)
+
+    def _op_make_function(self, frame, arg, line, column):
+        func = self.pop()
+        if arg:
+            defaults = tuple(self.pop() for _ in range(arg))
+            defaults = tuple(reversed(defaults))
+        else:
+            defaults = ()
+        if isinstance(func, SdFunction):
+            func = func.bind_defaults(defaults)
+        self.push(func)
 
     def _is_type_match(self, value, expected_type_name):
         expected = _get_expected_type(expected_type_name)
@@ -485,7 +594,15 @@ class VM:
         args = [self.pop() for _ in range(num_args)]
         args.reverse()
         obj = self.pop()
-        
+
+        positional, kwargs = self._expand_call_args(args, line, column)
+        if kwargs:
+            raise QisamJeGhalti(
+                f"Method '{method_name}' keyword arguments support natho kando.",
+                line, column, self.code_string,
+            )
+        args = positional
+
         method = obj.type.lookup_method(method_name)
         if method:
             try:
@@ -630,11 +747,26 @@ class VM:
         for _ in range(arg):
             v = self._unwrap_val(self.pop(), line, column)
             k = self._unwrap_val(self.pop(), line, column)
-            pairs[k] = v
+            try:
+                pairs[k] = v
+            except TypeError:
+                raise QisamJeGhalti(
+                    f"Lughat ji key hashable hujjhan lazmi aahe, par '{k.type.name}' milyo.",
+                    line, column, self.code_string,
+                )
         self.push(SdDict(pairs))
 
     def _op_build_set(self, frame, arg, line, column):
-        elements = {self._unwrap_val(self.pop(), line, column) for _ in range(arg)}
+        elements = set()
+        for _ in range(arg):
+            el = self._unwrap_val(self.pop(), line, column)
+            try:
+                elements.add(el)
+            except TypeError:
+                raise QisamJeGhalti(
+                    f"Majmuo jo hisso hashable hujjhan lazmi aahe, par '{el.type.name}' milyo.",
+                    line, column, self.code_string,
+                )
         self.push(SdSet(elements))
 
     def _op_binary_subscript(self, frame, arg, line, column):

@@ -30,7 +30,7 @@ class SdResult(SdShey):
         from ..errors import TracebackEntry
         source_lines = code_string.split('\n')
         for frame in frames:
-            line, col = frame.line_col_map.get(frame.ip, (0, 0))
+            line, col = frame.line_col_map.get(frame.ip - 1, (0, 0))
             if line == 0: continue
             source_line = source_lines[line-1] if 0 < line <= len(source_lines) else None
             self._captured_traceback.append(TracebackEntry(frame.name, line, col, source_line))
@@ -54,9 +54,9 @@ class SdResult(SdShey):
         return hash((self.variant, self.value))
 
 class SdFunction(SdShey):
-    __slots__ = ('name', 'params', 'instructions', 'constants', 'line_col_map', 'slot_count', 'slot_metadata', 'return_type')
-    
-    def __init__(self, name, params, instructions, constants, line_col_map, slot_count, slot_metadata, return_type=None):
+    __slots__ = ('name', 'params', 'instructions', 'constants', 'line_col_map', 'slot_count', 'slot_metadata', 'return_type', 'defaults')
+
+    def __init__(self, name, params, instructions, constants, line_col_map, slot_count, slot_metadata, return_type=None, defaults=()):
         super().__init__(KAAM_TYPE)
         self.name = name
         self.params = params
@@ -66,6 +66,21 @@ class SdFunction(SdShey):
         self.slot_count = slot_count
         self.slot_metadata = slot_metadata
         self.return_type = return_type
+        self.defaults = tuple(defaults)
+
+    def bind_defaults(self, defaults):
+        """Return a copy of this function carrying evaluated default values."""
+        return SdFunction(
+            self.name,
+            self.params,
+            self.instructions,
+            self.constants,
+            self.line_col_map,
+            self.slot_count,
+            self.slot_metadata,
+            self.return_type,
+            defaults,
+        )
 
     def __str__(self):
         return f"<kaam {self.name}>"

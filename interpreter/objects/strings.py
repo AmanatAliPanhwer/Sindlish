@@ -26,7 +26,7 @@ class SdString(SdShey):
     # Sequence protocol - Concatenation/Repetition
     def __add__(self, other):
         if not isinstance(other, SdString):
-            raise QisamJeGhalti(f"Lafz ke '{other.type.name}' saan bhet (compare) natho kare saghjay.")
+            raise QisamJeGhalti(f"Lafz ke '{other.type.name}' saan jore (concatenate) natho kare saghjay.")
         return SdString(self.value + other.value)
     
     def __mul__(self, other):

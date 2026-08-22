@@ -28,7 +28,7 @@ class SimpleBuiltins:
             return SdSet(set())
         if len(args) == 1:
             return SdSet(set(args[0]))
-        raise HalndeVaktGhalti("lambi() khe 0 ya 1 argument khapay.")
+        raise HalndeVaktGhalti("majmuo() khe 0 ya 1 argument khapay.")
 
     @_register(functions)
     def lambi(self, args):
@@ -38,6 +38,8 @@ class SimpleBuiltins:
         obj = args[0]
         if hasattr(obj, 'elements'):
             return SdNumber(len(obj.elements))
+        if hasattr(obj, 'pairs'):
+            return SdNumber(len(obj.pairs))
         if hasattr(obj, 'value') and isinstance(obj.value, (str, dict)):
             return SdNumber(len(obj.value))
         raise QisamJeGhalti(f"'{obj.type.name}' ji lambai nathi mapay saghjay.")
@@ -65,7 +67,9 @@ class SimpleBuiltins:
             start, end, step = int(args[0].value), int(args[1].value), int(args[2].value)
         else:
             raise HalndeVaktGhalti("range() khe 1, 2, ya 3 arguments khapan.")
-        
+        if step == 0:
+            raise HalndeVaktGhalti("range() jo step zero (0) natho thi saghjay.")
+
         return SdList([SdNumber(i) for i in range(start, end, step)])
 
 

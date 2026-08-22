@@ -240,9 +240,15 @@ Examples:
     elif args.command == "eval":
         run_eval(args.code, args.time)
     elif args.command == "tokens":
+        if not os.path.exists(args.file):
+            print(f"Error: File '{args.file}' not found.")
+            sys.exit(1)
         with open(args.file, "r", encoding="utf-8-sig") as f:
             run_tokens(f.read())
     elif args.command == "ast":
+        if not os.path.exists(args.file):
+            print(f"Error: File '{args.file}' not found.")
+            sys.exit(1)
         with open(args.file, "r", encoding="utf-8-sig") as f:
             run_ast(f.read())
     elif args.command == "check":

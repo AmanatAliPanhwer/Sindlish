@@ -160,6 +160,16 @@ class SdType:
 SHEY_TYPE = SdType("OBJECT", None)
 
 
+def sd_truthy(value) -> bool:
+    """Language-level truthiness used by conditions, aen/ya/nah."""
+    from .core import SdResult
+    if isinstance(value, SdResult):
+        if value.is_error():
+            return True
+        return sd_truthy(value.value)
+    return bool(value)
+
+
 class SdShey:
     """
     Base class for all Sindlish objects.

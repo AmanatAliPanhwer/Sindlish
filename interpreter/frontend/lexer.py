@@ -6,10 +6,39 @@ Uses a dispatch-table approach for single-character tokens and
 dedicated methods for multi-character / complex tokens.
 """
 
-import codecs
 from .tokens import Token, TokenType
 from .keywords import KEYWORDS
 from ..errors import LikhaiJeGhalti
+
+
+_ESCAPE_MAP = {
+    "n": "\n",
+    "t": "\t",
+    "r": "\r",
+    "b": "\b",
+    "f": "\f",
+    "v": "\v",
+    "0": "\0",
+    '"': '"',
+    "'": "'",
+    "\\": "\\",
+}
+
+
+def _unescape(raw: str) -> str:
+    out = []
+    i = 0
+    n = len(raw)
+    while i < n:
+        ch = raw[i]
+        if ch == "\\" and i + 1 < n:
+            nxt = raw[i + 1]
+            out.append(_ESCAPE_MAP.get(nxt, "\\" + nxt))
+            i += 2
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
 
 
 # ── Single-character token dispatch table ───────────────────────
@@ -109,6 +138,7 @@ class Lexer:
             is_multiline = True
 
         string_content = ""
+        terminated = False
 
         while self._peek() is not None:
             # Triple-quote end
@@ -121,11 +151,13 @@ class Lexer:
                 self._advance()
                 self._advance()
                 self._advance()
+                terminated = True
                 break
             else:
                 # Single-quote end
                 if self._peek() == quote:
                     self._advance()
+                    terminated = True
                     break
 
             # Escape sequences
@@ -137,10 +169,16 @@ class Lexer:
 
             string_content += self._advance()
 
-        try:
-            final_string = codecs.decode(string_content, "unicode_escape")
-        except UnicodeDecodeError:
-            final_string = string_content
+        if not terminated:
+            kind = "Triple-quote" if is_multiline else "String"
+            raise LikhaiJeGhalti(
+                f"{kind} literal band natho thayo; '{quote}' na milyo.",
+                start_line,
+                start_col,
+                self.code,
+            )
+
+        final_string = _unescape(string_content)
 
         return Token(TokenType.LAFZ, final_string, start_line, start_col)
 
@@ -162,12 +200,19 @@ class Lexer:
 
     def _skip_block_comment(self) -> None:
         """Skip a block comment (/* ... */)."""
+        start_line, start_col = self.line, self.column
         while self._peek() is not None:
             if self._peek() == "*" and self._peek_ahead() == "/":
                 self._advance()  # *
                 self._advance()  # /
-                break
+                return
             self._advance()
+        raise LikhaiJeGhalti(
+            "Block comment band natho thayo; '*/' na milyo.",
+            start_line,
+            start_col,
+            self.code,
+        )
 
     def _scan_compound_operator(self, char: str) -> Token:
         """
