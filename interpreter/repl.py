@@ -137,7 +137,7 @@ def is_complete(text: str) -> bool:
         
     return True
 
-def start_repl(version: str = "0.1.0"):
+def start_repl(version: str = "0.1.1"):
     interpreter = Interpreter()
     session = PromptSession(
         lexer=SindlishLexer(),

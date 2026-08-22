@@ -1,6 +1,6 @@
 [Setup]
 AppName=Sindlish
-AppVersion=0.1.0
+AppVersion=0.1.1
 DefaultDirName={autopf}\Sindlish
 DefaultGroupName=Sindlish
 UninstallDisplayIcon={app}\sindlish.exe
@@ -14,7 +14,7 @@ OutputBaseFilename=sindlish-installer-win64
 ChangesEnvironment=yes
 
 [Files]
-Source: "dist\sindlish.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\sindlish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Sindlish"; Filename: "{app}\sindlish.exe"

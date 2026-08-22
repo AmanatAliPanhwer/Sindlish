@@ -28,7 +28,7 @@ flowchart LR
 ## Extension Manifest (`package.json`)
 
 - **Publisher:** AmanatAliPanhwer
-- **Version:** 0.1.0
+- **Version:** 0.1.1
 - **File Association:** `.sd` files with language ID `sindlish`
 - **Categories:** Programming Languages, Snippets, Linters
 - **Dependencies:** `vscode-languageclient`
@@ -147,7 +147,7 @@ npm install
 vsce package
 
 # Install locally
-code --install-extension sindlish-0.1.0.vsix
+code --install-extension sindlish-0.1.1.vsix
 ```
 
 ## Developer Tools (`tools/`)
