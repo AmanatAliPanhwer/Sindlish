@@ -1,6 +1,7 @@
 # Sindlish Feature Roadmap
 
 > A comprehensive guide to all current and future features of the Sindlish programming language.
+> Statuses verified against the v0.1.1 codebase.
 
 ---
 
@@ -22,8 +23,8 @@
 14. [Type System](#13-type-system)
 15. [Modules & Namespaces](#14-modules--namespaces)
 16. [Memory & Concurrency](#15-memory--concurrency)
-17. [Advanced Features (Nice-to-Have)](#17-advanced-features-nice-to-have)
-18. [Priority Matrix](#18-priority-matrix)
+17. [Advanced Features (Nice-to-Have)](#16-advanced-features-nice-to-have)
+18. [Priority Matrix](#17-priority-matrix)
 
 ---
 
@@ -55,11 +56,12 @@ Some features depend on others. Format: `Depends on: [Feature Name]`
 | String (lafz) | ✅ | `lafz s = "hello"` | P0 | - |
 | Boolean (faislo) | ✅ | `faislo b = sach` | P0 | - |
 | Null (khali) | ✅ | `khali n` | P0 | - |
-| Dynamic typing | ✅ | `x = 10; x = "text"` | P0 | - |
+| Dynamic typing | ✅ | `x = 10` then `x = "text"` | P0 | - |
 | Type keywords | ✅ | `adad`, `lafz`, `dahai`, etc. | P0 | - |
 | Type inference | ✅ | `x = 10` | P0 | - |
 | Constants (pakko) | ✅ | `pakko lafz X = "hi"` | P0 | - |
 | Type annotations | ✅ | `x : adad = 10` | P0 | - |
+| Static type checks on annotated declarations | ✅ | resolver-enforced at compile time | P1 | Type annotations |
 | BigInt | ❌ | - | P2 | - |
 | Decimal | ❌ | - | P2 | - |
 | Complex numbers | ❌ | - | P3 | - |
@@ -95,7 +97,7 @@ khali d       # defaults to khali (None)
 | Byte Array | ❌ | - | P3 | - |
 | Range | ✅ | `range(5)` | P2 | - |
 | Deque | ❌ | - | P3 | - |
-| Nested Collections | ✅ | `fehrist[lughat]` | P1 | Typed collections |
+| Nested Collections | ✅ | `fehrist[fehrist]` | P1 | Typed collections |
 
 ### Typed Collection Examples
 ```sindlish
@@ -106,7 +108,6 @@ majmuo[lafz] names = {"Ali", "Sara"}     # Set of strings
 # Nested typed collections
 fehrist[fehrist] matrix = [[1, 2], [3, 4]]
 fehrist[lughat] users = [{"naam": "Ali"}]
-lughat[adad, fehrist] groups = {1: [1, 2, 3]}
 ```
 
 ---
@@ -118,20 +119,16 @@ lughat[adad, fehrist] groups = {1: [1, 2, 3]}
 | Addition (+) | ✅ | `x + y` | P0 | - |
 | Subtraction (-) | ✅ | `x - y` | P0 | - |
 | Multiplication (*) | ✅ | `x * y` | P0 | - |
-| Division (/) | ✅ | `x / y` | P0 | - |
-| Modulo (%) | ✅ | `x % y` | P0 | - |
+| Division (/) | ✅ | `x / y` (returns Result) | P0 | - |
+| Modulo (%) | ✅ | `x % y` (returns Result) | P0 | - |
 | Exponentiation (^) | ✅ | `x ^ y` | P0 | - |
 | Unary Minus | ✅ | `-x` | P0 | - |
 | Unary Plus | ✅ | `+x` | P0 | - |
 | Floor Division | ❌ | - | P2 | - |
 | Augmented Assignment | ❌ | `x += 1` | P1 | - |
-| Bitwise AND | ❌ | `x & y` | P2 | - |
-| Bitwise OR | ❌ | `x \| y` | P2 | - |
-| Bitwise XOR | ❌ | `x ^ y` | P2 | - |
-| Bitwise NOT | ❌ | `~x` | P2 | - |
-| Left Shift | ❌ | `x << y` | P3 | - |
-| Right Shift | ❌ | `x >> y` | P3 | - |
-| Ternary/Conditional | ❌ | `x if cond else y` | P1 | - |
+| Bitwise AND/OR/XOR/NOT | ❌ | `&`, `|`, `~` | P2 | - |
+| Left/Right Shift | ❌ | `<<`, `>>` | P3 | - |
+| Ternary/Conditional | ❌ | syntax TBD | P1 | - |
 
 ### Operator Precedence
 ```sindlish
@@ -166,6 +163,8 @@ lughat[adad, fehrist] groups = {1: [1, 2, 3]}
 | Identity Check (is) | ❌ | `x is y` | P2 | - |
 | Chained Comparisons | ❌ | `1 < x < 10` | P2 | - |
 
+Note: collections compare by identity today (value equality for containers is planned).
+
 ---
 
 ## 5. Control Flow
@@ -176,11 +175,11 @@ lughat[adad, fehrist] groups = {1: [1, 2, 3]}
 | Else (warna) | ✅ | `warna { }` | P0 | - |
 | Else-if (yawari) | ✅ | `yawari condition { }` | P0 | - |
 | While (jistain) | ✅ | `jistain condition { }` | P0 | - |
-| For Loop (har) | ✅ | `har i mein range(5) { }` | P1 | - |
+| For Loop (har … mein) | ✅ | `har i mein collection { }` | P1 | - |
 | Break (tor) | ✅ | `tor` | P1 | Loops |
 | Continue (jari) | ✅ | `jari` | P1 | Loops |
 | Do-While | ❌ | `kar { } jistain condition` | P2 | - |
-| Switch/Match | ⚠️ Partial | `match x { ... }` | P2 | AST only |
+| Switch/Match (match) | ⚠️ Partial | keyword + AST nodes exist; parsing not implemented | P1 | - |
 | Goto | ❌ | - | P3 | (controversial) |
 
 ### Current Control Flow Syntax
@@ -209,25 +208,20 @@ har i mein range(5) {
 
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
-| Built-in Functions | ✅ | `likh()`, `lambi()`, `puch()` | P0 | - |
+| Built-in Functions | ✅ | `likh()`, `lambi()`, `puch()`, `range()`, `majmuo()` | P0 | - |
 | Method Calls | ✅ | `list.wadha(item)` | P0 | - |
 | User-defined Functions | ✅ | `kaam add(a, b) { }` | P0 | - |
-| Anonymous Functions | ❌ | `lambai x => x + 1` | P1 | User-defined functions |
 | Recursion | ✅ | Function calling itself | P1 | User-defined functions |
-| Closures | ✅ | - | P2 | User-defined functions |
 | Default Arguments | ✅ | `kaam foo(x=10) { }` | P1 | User-defined functions |
-| Variadic Args | ✅ | `kaam foo(*args) { }` | P1 | User-defined functions |
-| Keyword Arguments | ✅ | `kaam foo(**kwargs) { }` | P1 | User-defined functions |
+| Variadic Args (`*args`) | ✅ | `kaam foo(*nums) { }` (definition side) | P1 | User-defined functions |
+| Keyword Args (`**kwargs`) | ⚠️ Partial | definition side works; **call sites misparse** (known bug) | P0 fix | User-defined functions |
+| Implicit Return | ✅ | last expression is returned | P2 | User-defined functions |
+| Anonymous Functions | ❌ | `lambai x => x + 1` | P1 | User-defined functions |
+| Closures | ❌ | nested functions cannot capture locals; `bahari` crashes compiler | P1 | User-defined functions |
+| Call-site Unpacking | ❌ | `foo(*list)`, `foo(**dict)` rejected by compiler | P1 | Variadic Args |
 | Decorators | ❌ | `@decorator` | P2 | User-defined functions |
 | Generators (yield) | ❌ | `yield x` | P2 | User-defined functions |
-| Async/Await | ❌ | `async def` / `await` | P2 | - |
-
-### Built-in Functions
-```sindlish
-likh("Hello")          # Print output
-lambi(list)            # Get length
-majmuo(items)          # Create set
-```
+| Async/Await | ❌ | - | P2 | - |
 
 ---
 
@@ -237,16 +231,17 @@ majmuo(items)          # Create set
 |---------|--------|--------|----------|--------------|
 | String Literals | ✅ | `"hello"` or `'hello'` | P0 | - |
 | Multiline Strings | ✅ | `"""multi line"""` | P0 | - |
-| Escape Sequences | ✅ | `"\n\t\"` | P0 | - |
+| Escape Sequences | ✅ | `"\n\t\""` | P0 | - |
 | Concatenation | ✅ | `s1 + s2` | P0 | - |
 | Replication | ✅ | `s * 3` | P0 | - |
 | String Indexing | ✅ | `s[0]`, `s[-1]` | P0 | - |
+| Contains | ✅ | membership via iteration | P2 | - |
 | String Slicing | ❌ | `s[1:3]` | P1 | - |
-| String Methods | ❌ | `s.upper()` | P1 | - |
-| String Formatting | ❌ | `f"value: {x}"` | P1 | - |
+| String Methods | ❌ | e.g. reverse/replace natives | P1 | - |
+| String Formatting | ❌ | - | P1 | - |
 | F-strings | ❌ | `f"text {var}"` | P1 | - |
 | Regex | ❌ | - | P2 | - |
-| Unicode Full Support | ⚠️ Limited | - | P1 | - |
+| Unicode Full Support | ⚠️ Limited | non-ASCII escapes can be lossy | P1 | - |
 
 ### String Examples
 ```sindlish
@@ -266,15 +261,16 @@ string"""
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
 | Length (lambi) | ✅ | `lambi(list)` | P0 | - |
-| Indexing | ✅ | `l[0]`, `l[-1]` | P0 | - |
-| Iteration | ⚠️ Limited | - | P0 | - |
+| Indexing | ✅ | `l[0]`, `l[-1]`, nested `m[1][0]` | P0 | - |
+| Index Assignment | ✅ | `l[0] = 99`, `d["k"] = v` | P0 | - |
+| Iteration | ✅ | lists, dicts, sets, strings, range | P0 | - |
 | List Slicing | ❌ | `l[1:3]` | P1 | - |
-| List Comprehension | ❌ | `[x for x in l]` | P1 | - |
-| Dict Comprehension | ❌ | `{k:v for k,v in d}` | P1 | - |
-| Set Comprehension | ❌ | `{x for x in s}` | P1 | - |
-| Unpacking | ❌ | `a, b = [1, 2]` | P1 | - |
+| List Comprehension | ❌ | `[x har x mein l]` (syntax TBD) | P1 | - |
+| Dict Comprehension | ❌ | - | P1 | - |
+| Set Comprehension | ❌ | - | P1 | - |
+| Unpacking Assignment | ❌ | `a, b = [1, 2]` | P1 | - |
 | Spread Operator | ❌ | `[...l1, ...l2]` | P2 | - |
-| Dictionary Merge | ❌ | `d1 \| d2` | P2 | - |
+| Dictionary Merge | ❌ | `d1 | d2` | P2 | - |
 
 ---
 
@@ -294,9 +290,7 @@ string"""
 | sort | tarteeb | ✅ | P0 |
 | reverse | ulto | ✅ | P0 |
 | copy | nakal | ✅ | P0 |
-| find | - | ❌ | P2 |
-| filter | - | ❌ | P2 |
-| map | - | ❌ | P2 |
+| find/filter/map | - | ❌ | P2 |
 
 ### Dict Methods
 | Method | Sindlish | Status | Priority |
@@ -337,9 +331,10 @@ string"""
 
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
-| Print Output | ✅ | `likh("text")` | P0 | - |
-| File I/O | ❌ | - | P1 | - |
+| Print Output | ✅ | `likh("text", value)` (space-joined) | P0 | - |
+| `sep=` / `end=` options | ❌ | `likh(a, b, sep="-")` currently misparses | P1 | - |
 | Standard Input | ✅ | `puch("?")` | P1 | - |
+| File I/O | ❌ | - | P1 | - |
 | Formatted Output | ❌ | - | P1 | - |
 | JSON | ❌ | - | P1 | - |
 | CSV | ❌ | - | P2 | - |
@@ -349,15 +344,21 @@ string"""
 
 ## 11. Error Handling
 
+Sindlish deliberately replaces try/catch with a **Result system**.
+
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
-| Syntax Errors | ✅ | Lexer/Parser | P0 | - |
-| Runtime Errors | ✅ | Via exceptions | P0 | - |
-| Try-Except | ❌ | `try { } hatana (e) { }` | P0 | - |
-| Try-Except-Finally | ❌ | `finally { }` | P0 | - |
-| Custom Exceptions | ❌ | - | P1 | OOP |
-| Result System | ✅ | `ok()`, `ghalti()`, `?`, `!!` | P0 | - |
-| Raise | ✅ | `ghalti("msg")` | P0 | - |
+| Syntax Errors | ✅ | Lexer/Parser with line+column+caret snippet | P0 | - |
+| Runtime Errors | ✅ | mapped error classes + call-stack tracebacks | P0 | - |
+| Result Constructors | ✅ | `ok(value)`, `ghalti(msg)` | P0 | - |
+| Result Inspection | ✅ | `res.ok`, `res.ghalti` properties | P0 | Result Constructors |
+| Soft Propagation (`?`) | ✅ | `vind(5, 0)?` | P0 | Result Constructors |
+| Panic Unwrap (`!!`) | ✅ | `vind(5, 0)!!` | P0 | Result Constructors |
+| Custom Fallback | ✅ | `.bachao(fallback_value)` | P0 | Result Constructors |
+| Required Unwrap | ✅ | `.lazmi("message")` panics with custom message | P0 | Result Constructors |
+| Explicit Panic | ✅ | statement-level `ghalti("msg")` or `kharabi("msg")` | P0 | - |
+| Try-Except | ❌ by design | replaced by the Result system | - | - |
+| Custom Error Types | ❌ | - | P1 | OOP |
 | Assert | ❌ | `yaqeen condition` | P1 | - |
 
 ---
@@ -366,16 +367,15 @@ string"""
 
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
-| Internal Objects | ✅ | SdObject classes | P0 | - |
-| Classes | ❌ | `class Nama { }` | P1 | - |
-| Objects | ❌ | `obj = Class()` | P1 | Classes |
-| Inheritance | ❌ | `class B : A` | P1 | Classes |
+| Internal Object Model | ✅ | SdType/SdShey with MRO-based method lookup | P0 | - |
+| Magic Methods (internal) | ✅ | dunder protocol dispatch on all built-in types | P0 | - |
+| Classes (jamaat) | ❌ | keyword reserved in dictionary | P1 | - |
+| Objects / Instances | ❌ | - | P1 | Classes |
+| Inheritance | ❌ | internal C3 MRO infra exists; no user classes yet | P1 | Classes |
 | Polymorphism | ❌ | - | P1 | Classes |
 | Encapsulation | ❌ | - | P1 | Classes |
-| Properties | ❌ | `property x` | P2 | Classes |
-| Static Methods | ❌ | `staticmethod` | P2 | Classes |
-| Class Methods | ❌ | `classmethod` | P2 | Classes |
-| Magic Methods | ⚠️ | Internal only | P2 | - |
+| Properties | ❌ | - | P2 | Classes |
+| Static/Class Methods | ❌ | - | P2 | Classes |
 
 ---
 
@@ -385,13 +385,16 @@ string"""
 |---------|--------|--------|----------|--------------|
 | Static Typing Keywords | ✅ | `adad x = 10` | P0 | - |
 | Type Inference | ✅ | `x = 10` | P0 | - |
-| Type Annotations | ✅ | `x : adad` | P0 | - |
+| Type Annotations | ✅ | `x : adad = 10` | P0 | - |
+| Collection Type Annotations | ✅ | `fehrist[adad]`, `lughat[lafz, adad]`, `majmuo[lafz]` | P1 | - |
+| Element-Type Enforcement | ✅ | checked statically for typed list/set literals | P1 | Collection annotations |
+| Const Enforcement | ✅ top-level only | function-local checks currently disabled (known gap) | P1 | pakko |
 | Type Aliases | ❌ | `type IntList = fehrist[adad]` | P2 | - |
-| Generics | ❌ | `fehrist[T]` | P2 | - |
-| Union Types | ❌ | `adad \| lafz` | P2 | - |
-| Optional Types | ❌ | `x?` or `khali x` | P1 | - |
+| True Generics | ❌ | parametric `T` | P2 | - |
+| Union Types | ❌ | `adad | lafz` | P2 | - |
+| Optional Types | ❌ | - | P1 | - |
 | Type Guards | ❌ | - | P2 | - |
-| Runtime Type Check | ❌ | `kya(x, adad)` | P1 | - |
+| Runtime Type Check | ❌ | planned builtin `qisam(x)` | P1 | - |
 
 ---
 
@@ -399,30 +402,29 @@ string"""
 
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
-| Built-in Modules | ⚠️ Limited | Internal only | P0 | - |
-| Import | ❌ | `shamil kar "module"` | P1 | - |
-| Export | ❌ | `kharj kar` | P1 | - |
+| Single-file Programs | ✅ | current model | P0 | - |
+| Import (shamil) | ❌ | keyword reserved, unimplemented | P1 | - |
+| Export | ❌ | - | P1 | Import |
 | Alias Import | ❌ | `shamil kar m san module` | P1 | Import |
-| Relative Import | ❌ | `shamil kar .sub` | P2 | Import |
-| Module Alias | ❌ | `shamil kar m san module` | P1 | Import |
+| Relative Import | ❌ | - | P2 | Import |
 
 ---
 
 ## 15. Memory & Concurrency
 
-| Feature | Status | Syntax | Priority | Dependencies |
-|---------|--------|--------|----------|--------------|
-| Reference Counting | ⚠️ | Internal | P0 | - |
-| Garbage Collection | ⚠️ | Auto | P0 | - |
-| Threads | ❌ | - | P2 | - |
-| Async/Await | ❌ | - | P2 | - |
-| Processes | ❌ | - | P3 | - |
-| Locks/Mutex | ❌ | - | P2 | Threads |
-| Channels | ❌ | - | P3 | Threads |
+| Feature | Status | Notes | Priority |
+|---------|--------|-------|----------|
+| Automatic Memory Management | ✅ | backed by Python's GC | P0 |
+| Reference Counting (internal) | ⚠️ | scaffolding exists but unused | P3 |
+| Threads | ❌ | - | P2 |
+| Async/Await | ❌ | - | P2 |
+| Processes | ❌ | - | P3 |
+| Locks/Mutex | ❌ | - | P2 |
+| Channels | ❌ | - | P3 |
 
 ---
 
-## 17. Advanced Features (Nice-to-Have)
+## 16. Advanced Features (Nice-to-Have)
 
 ### External Libraries
 | Feature | Priority | Description |
@@ -455,9 +457,9 @@ string"""
 
 ---
 
-## 18. Priority Matrix
+## 17. Priority Matrix
 
-### P0 - Critical (Must Have)
+### P0 - Critical (Must Have) — DONE
 - [x] Basic data types (int, float, string, bool, null)
 - [x] Collections (list, dict, set)
 - [x] Arithmetic operators
@@ -468,21 +470,25 @@ string"""
 - [x] Print output
 - [x] User-defined functions (kaam)
 - [x] Error handling (Result system)
-- [x] Try/except (Replaced by Result system)
+- [x] Bytecode compiler + VM
 
 ### P1 - High Priority
-- [x] For loops
-- [x] Break/continue
+- [ ] Fix keyword arguments at call sites *(known bug)*
+- [ ] Match statement
+- [ ] Implement or cleanly reject closures / `bahari`
 - [ ] Ternary operator
 - [ ] Augmented assignment
-- [ ] String slicing
-- [ ] String methods
+- [ ] String slicing & methods
+- [ ] List slicing
 - [ ] List comprehension
 - [ ] File I/O
 - [ ] JSON support
+- [ ] Runtime type checking (`qisam`)
+- [x] For loops
+- [x] Break/continue
 - [x] User input
-- [ ] Type guards
-- [ ] Runtime type checking
+- [x] Default arguments
+- [x] Variadic args (definition side)
 
 ### P2 - Medium Priority  
 - [ ] BigInt / Decimal
@@ -491,10 +497,10 @@ string"""
 - [ ] Bitwise operators
 - [ ] Chained comparisons
 - [ ] Identity checks
-- [ ] Closures
-- [ ] Default arguments
-- [ ] Variadic args
+- [ ] Call-site unpacking
 - [ ] Decorators
+- [x] Constants (pakko)
+- [x] Typed collections
 - [ ] OOP classes
 - [ ] Inheritance
 - [ ] Module system
@@ -518,19 +524,21 @@ string"""
 
 ### How to Add a New Feature
 
-1. **Lexer** (`interpreter/lexer.py`): Add token recognition
-2. **Tokens** (`interpreter/tokens.py`): Add TokenType enum
-3. **Parser** (`interpreter/parser.py`): Add parsing logic
-4. **AST** (`interpreter/ast_nodes.py`): Add AST node class
-5. **Compiler** (`interpreter/compiler.py`): Add bytecode compilation
-6. **VM** (`interpreter/vm.py`): Add VM execution
-7. **Tests** (`tests/`): Add test cases
-8. **Documentation**: Update this roadmap
+1. **Lexer** (`interpreter/frontend/lexer.py`): Add token recognition
+2. **Tokens** (`interpreter/frontend/tokens.py`): Add TokenType enum member
+3. **Keywords** (`interpreter/frontend/keywords.py`): Map the Sindhi keyword
+4. **Parser** (`interpreter/frontend/parser.py`): Add parsing logic
+5. **AST** (`interpreter/frontend/ast_nodes.py`): Add AST node class
+6. **Resolver** (`interpreter/analysis/resolver.py`): Slot allocation / static checks if needed
+7. **Compiler** (`interpreter/backend/compiler.py`): Add bytecode compilation
+8. **VM** (`interpreter/backend/vm.py`): Add VM execution (opcode in `backend/opcodes.py`)
+9. **Tests** (`tests/`): Add test cases
+10. **Documentation**: Update this roadmap
 
 ### Code Style
 - Follow existing patterns in the codebase
 - Use Sindlish names for new features (e.g., `wadha` for `append`)
-- Add error handling with proper error messages
+- Add error handling with proper Sindhi error messages
 
 ---
 
@@ -540,5 +548,5 @@ This roadmap is part of the Sindlish programming language project.
 
 ---
 
-*Last updated: April 29, 2026 - Phase 1-4 Complete*
+*Last updated: August 2026 — reflects v0.1.1*
 *All 236 tests passing*
