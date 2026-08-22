@@ -7,6 +7,8 @@ class OpCode(IntEnum):
     STORE_FAST = auto()   # O(1) Local slots
     LOAD_GLOBAL = auto() # Dictionary-based globals
     STORE_GLOBAL = auto()
+    LOAD_DEREF = auto()  # Closure cells (captured locals)
+    STORE_DEREF = auto()
     
     # Primitive Value Push
     PUSH_NULL = auto()
@@ -60,6 +62,7 @@ class OpCode(IntEnum):
     
     # Functions and Methods
     CALL_FUNCTION = auto()
+    CALL_VALUE = auto()      # Call a function value from the stack (f()())
     CALL_METHOD = auto()
     GET_ATTR = auto()
     MAKE_FUNCTION = auto()

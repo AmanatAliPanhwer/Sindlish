@@ -1,0 +1,239 @@
+"""
+Closure and bahari (nonlocal) tests.
+
+Closures use shared cells: a local captured by an inner function becomes a
+Cell, and inner functions read/write through it by reference.
+"""
+
+import pytest
+
+from tests.conftest import run, get_variable_value
+from interpreter.errors import SindhiBaseError
+
+
+def _run_expect_error(code):
+    with pytest.raises(SindhiBaseError) as exc_info:
+        run(code)
+    return str(exc_info.value)
+
+
+class TestClosures:
+    def test_make_adder(self):
+        _, out = run("""
+kaam banao(n) {
+    kaam wadho(x) {
+        wapas x + n
+    }
+    wapas wadho
+}
+das = banao(10)
+vis = banao(20)
+likh(das(5))
+likh(vis(5))
+""")
+        assert out.split() == ["15", "25"]
+
+    def test_counter_with_bahari(self):
+        _, out = run("""
+kaam shuru() {
+    ginti = 0
+    kaam wadhao() {
+        bahari ginti
+        ginti = ginti + 1
+        wapas ginti
+    }
+    wapas wadhao
+}
+c = shuru()
+likh(c())
+likh(c())
+likh(c())
+""")
+        assert out.split() == ["1", "2", "3"]
+
+    def test_read_without_bahari(self):
+        _, out = run("""
+kaam banao(msg) {
+    kaam chhapo() {
+        likh(msg)
+    }
+    chhapo()
+}
+banao("salam")
+""")
+        assert "salam" in out
+
+    def test_cell_survives_frame_death(self):
+        _, out = run("""
+kaam banao() {
+    x = 41
+    kaam barhao() {
+        bahari x
+        x = x + 1
+        wapas x
+    }
+    wapas barhao
+}
+f = banao()
+likh(f())
+likh(f())
+""")
+        assert out.split() == ["42", "43"]
+
+    def test_two_closures_share_cell(self):
+        _, out = run("""
+kaam shuru() {
+    balans = 100
+    kaam wadhao(rakam) {
+        bahari balans
+        balans = balans + rakam
+        wapas balans
+    }
+    kaam ghat(rakam) {
+        bahari balans
+        balans = balans - rakam
+        wapas balans
+    }
+    wapas [wadhao, ghat]
+}
+pair = shuru()
+wadhao = pair[0]
+ghat = pair[1]
+likh(wadhao(50))
+likh(ghat(30))
+likh(wadhao(5))
+""")
+        assert out.split() == ["150", "120", "125"]
+
+    def test_grandparent_capture(self):
+        _, out = run("""
+kaam bahirli() {
+    x = 10
+    kaam darmiyani() {
+        kaam andarli() {
+            wapas x * 2
+        }
+        wapas andarli
+    }
+    wapas darmiyani
+}
+f = bahirli()()
+likh(f())
+""")
+        assert "20" in out
+
+    def test_independent_cells_per_call(self):
+        _, out = run("""
+kaam banao() {
+    n = 0
+    kaam barhao() {
+        bahari n
+        n = n + 1
+        wapas n
+    }
+    wapas barhao
+}
+pehrio = banao()
+biji = banao()
+pehrio()
+pehrio()
+likh(pehrio())
+likh(biji())
+""")
+        assert out.split() == ["3", "1"]
+
+    def test_bahari_write_visible_in_owner(self):
+        _, out = run("""
+kaam shuru() {
+    natijo = 0
+    kaam hisaab() {
+        bahari natijo
+        natijo = 6 * 7
+    }
+    hisaab()
+    likh(natijo)
+}
+shuru()
+""")
+        assert "42" in out
+
+
+class TestBahariErrors:
+    def test_bahari_unknown_name(self):
+        err = _run_expect_error("""
+kaam f() {
+    bahari majood_natho
+}
+f()
+""")
+        assert "majood_natho" in err
+
+    def test_bahari_at_program_level(self):
+        err = _run_expect_error("bahari x")
+        assert "bahari" in err and ("kaam" in err or "andar" in err)
+
+    def test_assign_outer_without_bahari(self):
+        err = _run_expect_error("""
+kaam bahar() {
+    x = 0
+    kaam andar() {
+        x = 5
+    }
+}
+""")
+        assert "bahari x" in err
+
+    def test_global_still_works_inside_functions(self):
+        _, out = run("""
+shumar = 0
+kaam wadho() {
+    aalmi shumar
+    shumar = shumar + 5
+}
+wadho()
+wadho()
+likh(shumar)
+""")
+        assert "10" in out
+
+
+class TestResultBoundaries:
+    """Function returns unwrap Ok; inspection methods treat raw values as success."""
+
+    def test_arithmetic_on_call_result(self):
+        # Latent bug: before return-unwrap, stored call results stayed boxed
+        _, out = run("""
+kaam fact(n) {
+    agar n <= 1 { wapas 1 }
+    wapas n * fact(n - 1)
+}
+x = fact(5)
+likh(x + 1)
+""")
+        assert "121" in out
+
+    def test_bachao_on_success_value(self):
+        _, out = run("""
+kaam theek() { wapas 7 }
+n = theek()
+likh(n.bachao(0))
+""")
+        assert "7" in out
+
+    def test_ok_on_raw_value(self):
+        _, out = run("""
+kaam do() { wapas 3 }
+n = do()
+agar n.ok() { likh("sach") } warna { likh("ghalt") }
+""")
+        assert "sach" in out
+
+    def test_err_still_propagates_through_return(self):
+        _, out = run("""
+kaam kharab() {
+    wapas 10 / 0
+}
+n = kharab()
+agar n.ghalti() { likh("pakdo") } warna { likh("natho") }
+""")
+        assert "pakdo" in out

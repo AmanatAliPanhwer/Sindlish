@@ -7,6 +7,7 @@ from .core import SdNull
 FEHRIST_TYPE = SdType("FEHRIST", TokenType.FEHRIST)
 LUGHAT_TYPE = SdType("LUGHAT", TokenType.LUGHAT)
 MAJMUO_TYPE = SdType("MAJMUO", TokenType.MAJMUO)
+SILSILO_TYPE = SdType("SILSILO", TokenType.FEHRIST)
 
 class SdList(SdShey):
     __slots__ = ('elements',)
@@ -111,6 +112,55 @@ class SdList(SdShey):
     def reverse(self):
         self.elements.reverse()
         return SdNull()
+
+class SdRange(SdShey):
+    __slots__ = ('start', 'stop', 'step')
+
+    def __init__(self, start, stop, step):
+        super().__init__(SILSILO_TYPE)
+        self.start = start
+        self.stop = stop
+        self.step = step
+
+    def __len__(self):
+        if self.step > 0:
+            return max(0, (self.stop - self.start + self.step - 1) // self.step)
+        return max(0, (self.start - self.stop - self.step - 1) // (-self.step))
+
+    def __iter__(self):
+        return iter(SdNumber(i) for i in range(self.start, self.stop, self.step))
+
+    def __getitem__(self, index):
+        if not isinstance(index, SdNumber):
+            raise QisamJeGhalti("Silsilo jo index Adad hujjhan lazmi aahe.")
+        idx = int(index.value)
+        length = len(self)
+        if idx < 0:
+            idx += length
+        if not 0 <= idx < length:
+            raise QisamJeGhalti(f"Silsilo jo index {int(index.value)} hadd khaan bahar aahe.")
+        return SdNumber(self.start + idx * self.step)
+
+    def __contains__(self, item):
+        if not isinstance(item, SdNumber) or isinstance(item.value, float):
+            return SdBool(False)
+        v = int(item.value)
+        if self.step > 0:
+            inside = self.start <= v < self.stop
+        else:
+            inside = self.stop < v <= self.start
+        return SdBool(inside and (v - self.start) % self.step == 0)
+
+    def __bool__(self):
+        return len(self) > 0
+
+    def __str__(self):
+        if self.step == 1:
+            return f"range({self.start}, {self.stop})"
+        return f"range({self.start}, {self.stop}, {self.step})"
+
+    def __hash__(self):
+        raise TypeError(f"Unhashable qisam: '{self.type.name}'.")
 
 class SdDict(SdShey):
     __slots__ = ('pairs',)

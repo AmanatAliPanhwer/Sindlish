@@ -74,6 +74,8 @@ class VM:
             OpCode.STORE_FAST: self._op_store_fast,
             OpCode.LOAD_GLOBAL: self._op_load_global,
             OpCode.STORE_GLOBAL: self._op_store_global,
+            OpCode.LOAD_DEREF: self._op_load_deref,
+            OpCode.STORE_DEREF: self._op_store_deref,
             OpCode.PUSH_NULL: self._op_push_null,
             OpCode.PUSH_TRUE: self._op_push_true,
             OpCode.PUSH_FALSE: self._op_push_false,
@@ -89,8 +91,6 @@ class VM:
             OpCode.COMPARE_LE: self._op_compare_le,
             OpCode.COMPARE_GT: self._op_compare_gt,
             OpCode.COMPARE_GE: self._op_compare_ge,
-            OpCode.LOGICAL_AND: self._op_logical_and,
-            OpCode.LOGICAL_OR: self._op_logical_or,
             OpCode.LOGICAL_NOT: self._op_logical_not,
             OpCode.JUMP_ABSOLUTE: self._op_jump_absolute,
             OpCode.JUMP_IF_FALSE: self._op_jump_if_false,
@@ -100,6 +100,7 @@ class VM:
             OpCode.FOR_ITER: self._op_for_iter,
             OpCode.PRINT_ITEM: self._op_print_item,
             OpCode.CALL_FUNCTION: self._op_call_function,
+            OpCode.CALL_VALUE: self._op_call_value,
             OpCode.CALL_METHOD: self._op_call_method,
             OpCode.GET_ATTR: self._op_get_attr,
             OpCode.MAKE_FUNCTION: self._op_make_function,
@@ -310,41 +311,54 @@ class VM:
     def _op_push_true(self, frame, arg, line, column): self.push(SdBool(True))
     def _op_push_false(self, frame, arg, line, column): self.push(SdBool(False))
 
+    def _op_load_deref(self, frame, arg, line, column):
+        self.push(frame.cells[arg].value)
+
+    def _op_store_deref(self, frame, arg, line, column):
+        frame.cells[arg].value = self.pop()
+
+    def _binary_op_result(self, left, right, dunder, line, column):
+        try:
+            out = left.call_method(dunder, [right], LocationProxy(line, column), self.code_string)
+        except SindhiBaseError as e:
+            if e.line is None:
+                e.line, e.column, e.code_string = line, column, self.code_string
+            err = SdResult(SdResult.GHALTI, SdString(str(e)), type(e).__name__)
+            err.capture_traceback(self.frames, self.code_string)
+            return err
+        if isinstance(out, SdResult):
+            return self._handle_result(out)
+        return SdResult(SdResult.OK, out)
+
     def _op_binary_add(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        loc = LocationProxy(line, column)
-        self.push(self._handle_result(left.call_method("__add__", [right], loc, self.code_string)))
-        
+        self.push(self._binary_op_result(left, right, "__add__", line, column))
+
     def _op_binary_sub(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        loc = LocationProxy(line, column)
-        self.push(self._handle_result(left.call_method("__sub__", [right], loc, self.code_string)))
-        
+        self.push(self._binary_op_result(left, right, "__sub__", line, column))
+
     def _op_binary_mul(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        loc = LocationProxy(line, column)
-        self.push(self._handle_result(left.call_method("__mul__", [right], loc, self.code_string)))
-        
+        self.push(self._binary_op_result(left, right, "__mul__", line, column))
+
     def _op_binary_div(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        loc = LocationProxy(line, column)
-        self.push(self._handle_result(left.call_method("__truediv__", [right], loc, self.code_string)))
-        
+        self.push(self._binary_op_result(left, right, "__truediv__", line, column))
+
     def _op_binary_pow(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        loc = LocationProxy(line, column)
-        self.push(self._handle_result(left.call_method("__pow__", [right], loc, self.code_string)))
-        
+        self.push(self._binary_op_result(left, right, "__pow__", line, column))
+
     def _op_binary_mod(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        loc = LocationProxy(line, column)
-        self.push(self._handle_result(left.call_method("__mod__", [right], loc, self.code_string)))
+        self.push(self._binary_op_result(left, right, "__mod__", line, column))
 
     def _op_compare_eq(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
@@ -376,42 +390,32 @@ class VM:
         left = self._unwrap_val(self.pop(), line, column)
         self.push(left.call_method("__ge__", [right], None, self.code_string))
 
-    def _op_logical_and(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
-        self.push(left.call_method("__and__", [right], None, self.code_string))
-        
-    def _op_logical_or(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
-        self.push(left.call_method("__or__", [right], None, self.code_string))
-        
     def _op_logical_not(self, frame, arg, line, column):
-        val = self.pop()
+        val = self._unwrap_val(self.pop(), line, column)
         self.push(SdBool(not sd_truthy(val)))
 
     def _op_jump_absolute(self, frame, arg, line, column):
         frame.ip = arg
 
     def _op_jump_if_false(self, frame, arg, line, column):
-        condition = self.pop()
+        condition = self._unwrap_val(self.pop(), line, column)
         if not sd_truthy(condition):
             frame.ip = arg
 
     def _op_jump_if_false_or_pop(self, frame, arg, line, column):
-        if sd_truthy(self.stack[-1]):
+        if sd_truthy(self._unwrap_val(self.stack[-1], line, column)):
             self.pop()
         else:
             frame.ip = arg
 
     def _op_jump_if_true_or_pop(self, frame, arg, line, column):
-        if sd_truthy(self.stack[-1]):
+        if sd_truthy(self._unwrap_val(self.stack[-1], line, column)):
             frame.ip = arg
         else:
             self.pop()
 
     def _op_get_iter(self, frame, arg, line, column):
-        obj = self.pop()
+        obj = self._unwrap_val(self.pop(), line, column)
         try:
             it = iter(obj)
             self.push(it)
@@ -439,8 +443,20 @@ class VM:
         positional, kwargs = self._expand_call_args(args_list, line, column)
 
         record = self.globals.lookup_record(name, None, self.code_string)
-        func = record.value
+        self._invoke(record.value, positional, kwargs, name, line, column)
 
+    def _op_call_value(self, frame, arg, line, column):
+        """Call a function value from the stack (chained calls like f()())."""
+        num_args = arg
+        args_list = [self.pop() for _ in range(num_args)]
+        args_list.reverse()
+        callee = self.pop()
+
+        positional, kwargs = self._expand_call_args(args_list, line, column)
+        name = getattr(callee, "name", None) or "<expression>"
+        self._invoke(callee, positional, kwargs, name, line, column)
+
+    def _invoke(self, func, positional, kwargs, name, line, column):
         if isinstance(func, SdFunction):
             self._call_sd_function(func, positional, kwargs, line, column)
         else:
@@ -540,6 +556,9 @@ class VM:
             else:
                 raise LikhaiJeGhalti(f"Parameter '{param.name}' laai value lazmi aahe.", line, column, self.code_string)
 
+            if isinstance(val, SdResult) and val.is_ok():
+                val = val.value
+
             if param.type and not self._is_type_match(val, param.type):
                 raise QisamJeGhalti(
                     f"Parameter '{param.name}' khe '{param.type}' khapyo paye par '{val.type.name.lower()}' milyo.",
@@ -558,16 +577,22 @@ class VM:
             unknown = next(iter(kwargs))
             raise LikhaiJeGhalti(f"Achanak keyword argument '{unknown}' milo.", line, column, self.code_string)
 
-        new_frame = BytecodeFrame(func.name, func.instructions, func.constants, func.line_col_map, func.slot_count, func.slot_metadata)
+        new_frame = BytecodeFrame(func.name, func.instructions, func.constants, func.line_col_map, func.slot_count, func.slot_metadata, func=func)
 
         frame_idx = 0
         for param in params:
             if param.is_star:
-                new_frame.slots[frame_idx] = SdList(list(extra_positional))
+                val = SdList(list(extra_positional))
             elif param.is_kw:
-                new_frame.slots[frame_idx] = SdDict(dict(kwargs))
+                val = SdDict(dict(kwargs))
             else:
-                new_frame.slots[frame_idx] = bound[param.name]
+                val = bound[param.name]
+            # Captured params live in cells, not raw slots
+            cell_idx = new_frame.cell_map.get(param.name)
+            if cell_idx is not None and cell_idx < len(new_frame.cells):
+                new_frame.cells[cell_idx].value = val
+            else:
+                new_frame.slots[frame_idx] = val
             frame_idx += 1
 
         new_frame.call_metadata = {"return_type": func.return_type, "function_name": func.name}
@@ -582,6 +607,21 @@ class VM:
             defaults = ()
         if isinstance(func, SdFunction):
             func = func.bind_defaults(defaults)
+            if func.free_specs:
+                # Link each free variable via the defining frame's cell table.
+                # Intermediate functions forward the owner's Cell into their
+                # own tables, so depth never requires walking past frame[-1].
+                defining = self.frames[-1]
+                bound_cells = []
+                for depth, name in func.free_specs:
+                    idx = defining.cell_map.get(name)
+                    if idx is None or idx >= len(defining.cells) or defining.cells[idx] is None:
+                        raise HalndeVaktGhalti(
+                            f"'{name}' laai baharli kaam je cell natho milio.",
+                            line, column, self.code_string,
+                        )
+                    bound_cells.append(defining.cells[idx])
+                func.cells = tuple(bound_cells)
         self.push(func)
 
     def _is_type_match(self, value, expected_type_name):
@@ -603,6 +643,17 @@ class VM:
             )
         args = positional
 
+        if method_name in ('ok', 'ghalti'):
+            # Result inspection: works on Results, and on raw values
+            # (raw = success path after boundary unwrapping)
+            if isinstance(obj, SdResult):
+                self.push(getattr(obj, method_name))
+            elif method_name == 'ok':
+                self.push(SdBool(True))
+            else:
+                self.push(SdNull())
+            return
+
         method = obj.type.lookup_method(method_name)
         if method:
             try:
@@ -621,6 +672,11 @@ class VM:
         obj = self.pop()
         if isinstance(obj, SdResult) and attr_name in ('ok', 'ghalti'):
             self.push(getattr(obj, attr_name))
+        elif attr_name == 'ok':
+            # Raw value at an inspection site = success path
+            self.push(SdBool(True))
+        elif attr_name == 'ghalti':
+            self.push(SdNull())
         else:
             raise NaleJeGhalti(f"Attribute {attr_name} na milyo.", line, column, self.code_string)
 
@@ -636,14 +692,17 @@ class VM:
         fallback = self.pop()
         result = self.pop()
         if not isinstance(result, SdResult):
-            raise QisamJeGhalti(f"Result object khapyo paye, par '{result.type.name}' milyo.", line, column, self.code_string)
+            # Raw value = success path; keep it as-is
+            self.push(result)
+            return
         self.push(result.value if result.is_ok() else fallback)
-            
+
     def _op_call_lazmi(self, frame, arg, line, column):
         message = self.pop()
         result = self.pop()
         if not isinstance(result, SdResult):
-            raise QisamJeGhalti(f"Result object khapyo paye, par '{result.type.name}' milyo.", line, column, self.code_string)
+            self.push(result)
+            return
         if result.is_ok():
             self.push(result.value)
         else:
@@ -654,13 +713,15 @@ class VM:
     def _op_postfix_qmark(self, frame, arg, line, column):
         result = self.pop()
         if not isinstance(result, SdResult):
-            raise QisamJeGhalti(f"Result object khapyo paye, par '{result.type.name}' milyo.", line, column, self.code_string)
+            self.push(result)
+            return
         self.push(result.value if result.is_ok() else result)
-            
+
     def _op_postfix_bangbang(self, frame, arg, line, column):
         result = self.pop()
         if not isinstance(result, SdResult):
-            raise QisamJeGhalti(f"Result object khapyo paye, par '{result.type.name}' milyo.", line, column, self.code_string)
+            self.push(result)
+            return
         if result.is_ok():
             self.push(result.value)
         else:
@@ -787,7 +848,12 @@ class VM:
     def _op_return_value(self, frame, arg, line, column):
         val = self.pop()
         frame = self.frames.pop()
-        
+
+        # Arithmetic auto-boxes results in Ok; returning is a consumption
+        # boundary, so success values are unwrapped here. Err propagates.
+        if isinstance(val, SdResult) and val.is_ok():
+            val = val.value
+
         return_type = getattr(frame, 'call_metadata', {}).get('return_type')
         if return_type:
             expected = _get_expected_type(return_type)

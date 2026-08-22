@@ -19,3 +19,6 @@ node_modules/
 bench/temp.sd
 
 target/
+
+# Agent scratch dir
+.opencode/

@@ -38,16 +38,16 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 
 ### Cosmetic
 - [x] **Keyword arguments at call sites misparse** — `f(x = 1)` emits a KwargMarker pair; builtins/methods cleanly reject kwargs they don't support (`likh(1, 2, sep="-")` errors instead of printing junk)
-- [x] **`bahari` (nonlocal) crashes the compiler** — resolver rejects with "'bahari' (closures) abhi support natho" until closures ship
+- [x] **`bahari` (nonlocal) crashes the compiler** — fully implemented since closures landed: declaration routes writes to the enclosing function's cell; unknown targets and program-level use raise clean errors
 - [x] Function-local `pakko` const checks are silently disabled — resolver snapshots slot metadata per function (`FunctionNode.slot_metadata`), compiler passes it into `SdFunction`; VM `STORE_FAST` enforces const + type inside function bodies. Also fixed the flat-dict collision where a function's typed local overwrote same-index main-frame metadata
 - [x] `majmuo()` arity error message says "`lambi()` khe 0 ya 1 argument khapay" (copy-paste)
-- [ ] Inconsistent division semantics: `/`, `%` return `Result` while `+ - * ^` raise on bad types. **Decided direction: all arithmetic operators return `Result` on failure (no raising)** — needs a design pass on operand unwrapping, comparisons, and happy-path wrapping before implementation
+- [x] Inconsistent division semantics resolved — **all arithmetic operators (`+ - * ^ / %`) now always return `Result`**: success wraps as `Ok`, any failure (type mismatch, divide-by-zero) becomes `Err` instead of raising. Strict consumption: using an `Err` in a further operation or condition raises immediately. **Boundaries unwrap success values**: function returns, parameter binding, and conditions all strip `Ok`, so `Err` is the only Result that survives to callers — which makes every Result-inspection path (`.ghalti`/`.ok`/`.bachao()`/`.lazmi()`/`|?`) treat raw values as the success case automatically. Comparisons auto-unwrap `Ok` operands and stay boolean; `likh` prints Results without consuming them. Dead bitwise `_op_logical_and/or` VM handlers removed
 - [x] `match` keyword accepted by lexer but parser has no handler — reserved with a clear message until implemented
 - [x] Duplicate `JUMP_IF_FALSE` entry in VM dispatch table; unused `DUP_TOP` opcode
 - [x] `SdString.__add__` type-mismatch message mentions comparison ("bhet") instead of concatenation
 - [ ] Set method naming: Sindhi Language Authority dictionaries list **both** `ٻڌي` ("bade") and `ميلاپ` ("milap") as words for **union**; official intersection terms are cutting/crossing words (ڪٽڻ، منقطع ٿيڻ). So `bade` = union is defensible, but `milap` for intersection contradicts SLA. Suggest renaming intersection to something like `mushtarak` (مشترک، "shared/common", familiar from Urdu math education) or keeping `milap` as an alias — decision needed
 - [x] `main.py tokens/ast` commands skip the file-existence check other commands perform → raw `FileNotFoundError` traceback
-- [x] `range(step=0)` leaks raw Python `ValueError` — guarded with a clean error; eager list materialization remains open
+- [x] `range(step=0)` leaks raw Python `ValueError` — guarded with a clean error; `range()` now returns a lazy `SdRange` (O(1) `lambi`, indexing, truthiness, no list materialization)
 - [x] `-2 ^ 2 == 4` kept **deliberately**: unary minus binds tighter than `^`, so it reads as `(-2) ^ 2`. Documented language convention; do not "fix" toward Python's `-4`
 - [x] Dead code removed: conftest no longer builds the `slot_names` hack; `VM.variables` reads only globals-environment records; `get_variable_value` prefers `vm.globals.records`
 
@@ -68,10 +68,10 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 
 ### Functions & Scope
 - [x] Call-site unpacking `f(*list)`, `f(**dict)` — shipped with the v0.1.2 bug sweep (marker-based arg encoding); `*param`/`**kw` params also work
-- [ ] Closures with captured variables (cell/upvalue slots in frames)
-- [ ] Working `bahari` semantics once closures land
+- [x] Closures — Python-style shared cells: locals captured by inner functions become `Cell` boxes; `LOAD_DEREF`/`STORE_DEREF` opcodes read/write them by reference. Cells link at definition time via the defining frame's cell table (intermediate functions forward the owner's cell), so closures stay valid after their defining call returns. Chained calls `f()()` work via the new `CALL_VALUE` opcode
+- [x] `bahari` semantics — declares a name as belonging to the nearest enclosing function's scope; writes go through the captured cell. Reads capture automatically without declaration; assigning to an outer local *without* `bahari` raises a helpful error. Unknown/program-level `bahari` targets raise clean errors
 - [ ] Anonymous functions (`lambai`)
-- [ ] Const/type enforcement inside function bodies (wire resolver metadata into VM frames)
+- [x] Const/type enforcement inside function bodies — shipped with the function-local metadata sweep (per-function `slot_metadata` snapshots)
 
 ### Output & Builtins
 - [ ] `likh(sep=, end=)` parameters

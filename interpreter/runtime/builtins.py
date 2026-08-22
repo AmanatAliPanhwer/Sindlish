@@ -5,7 +5,7 @@ Standalone functions available in the global scope: lambi, likh, majmuo.
 """
 
 from ..errors import HalndeVaktGhalti, QisamJeGhalti
-from ..objects import SdList, SdNull, SdNumber, SdSet, SdString
+from ..objects import SdList, SdNull, SdNumber, SdRange, SdSet, SdString
 
 
 def _register(registry_dict):
@@ -36,6 +36,8 @@ class SimpleBuiltins:
         if len(args) != 1:
             raise HalndeVaktGhalti("lambi() khe sirf 1 argument khapay.")
         obj = args[0]
+        if isinstance(obj, SdRange):
+            return SdNumber(len(obj))
         if hasattr(obj, 'elements'):
             return SdNumber(len(obj.elements))
         if hasattr(obj, 'pairs'):
@@ -70,7 +72,7 @@ class SimpleBuiltins:
         if step == 0:
             raise HalndeVaktGhalti("range() jo step zero (0) natho thi saghjay.")
 
-        return SdList([SdNumber(i) for i in range(start, end, step)])
+        return SdRange(start, end, step)
 
 
     def get_all(self):

@@ -3,7 +3,8 @@
 import pytest
 
 from tests.conftest import run, extract_value
-from interpreter.errors import HalndeVaktGhalti, LikhaiJeGhalti, NaleJeGhalti, QisamJeGhalti
+from interpreter.errors import HalndeVaktGhalti, LikhaiJeGhalti, NaleJeGhalti, QisamJeGhalti, SindhiBaseError
+from interpreter.objects import SdResult
 
 
 class TestScoping:
@@ -23,7 +24,8 @@ class TestScoping:
         interp, _ = run("kaam fact(n) { agar n <= 1 { wapas 1 } wapas n * fact(n - 1) }\nx = fact(5)")
         assert extract_value(interp.variables["x"]["value"]) == 120
 
-    def test_bahari_cleanly_rejected(self):
+    def test_bahari_unknown_name_rejected(self):
+        # bahari is supported since closures landed; unknown targets still error
         with pytest.raises(QisamJeGhalti, match="bahari"):
             run("kaam f() { bahari x }")
 
@@ -246,3 +248,84 @@ class TestFunctionLocalConstraints:
     def test_function_metadata_does_not_leak_to_main_frame(self):
         interp, _ = run('adad x = 5\nkaam f() { lafz y = "s"\ny = "t"\nwapas y }\nx = 6')
         assert extract_value(interp.variables["x"]["value"]) == 6
+
+
+class TestLazyRange:
+    def test_har_loop_over_range(self):
+        interp, _ = run("jama = 0\nhar i mein range(1, 101) { jama = jama + i }")
+        assert extract_value(interp.variables["jama"]["value"]) == 5050
+
+    def test_lambi_is_constant_time(self):
+        interp, _ = run("x = lambi(range(0, 1000000000, 5))")
+        assert extract_value(interp.variables["x"]["value"]) == 200000000
+
+    def test_range_does_not_materialize(self):
+        interp, _ = run("x = 0\nhar v mein range(1000000000000, 1000000000010) { x = v }")
+        assert extract_value(interp.variables["x"]["value"]) == 1000000000009
+
+    def test_negative_step(self):
+        interp, out = run("r = range(10, 0, -2)\nlikh(r[2])")
+        assert "6" in out
+
+    def test_indexing_and_length(self):
+        interp, _ = run("r = range(1, 20, 3)\na = r[4]\nb = lambi(r)")
+        assert extract_value(interp.variables["a"]["value"]) == 13
+        assert extract_value(interp.variables["b"]["value"]) == 7
+
+    def test_str_representation(self):
+        _, out = run("likh(range(1, 5, 2))")
+        assert "range(1, 5, 2)" in out
+
+    def test_truthiness(self):
+        _, out = run('agar range(5, 5) { likh("t") } warna { likh("f") }\nagar range(1) { likh("big") }')
+        assert "f" in out
+        assert "big" in out
+
+    def test_out_of_bounds_index_raises(self):
+        with pytest.raises(QisamJeGhalti, match="bahar"):
+            run("r = range(3)\nr[7]")
+
+
+class TestResultSemantics:
+    def test_arithmetic_stores_ok_result(self):
+        interp, _ = run("x = 2 + 3")
+        stored = interp.variables["x"]["value"]
+        assert isinstance(stored, SdResult) and stored.is_ok()
+
+    def test_wrapped_results_chain(self):
+        interp, out = run("x = 2 + 3\ny = x * 2\nlikh(y)")
+        assert extract_value(interp.variables["y"]["value"]) == 10
+        assert "10" in out
+
+    def test_type_mismatch_becomes_err(self):
+        interp, _ = run('s = "a" + 1')
+        stored = interp.variables["s"]["value"]
+        assert isinstance(stored, SdResult) and stored.is_error()
+
+    def test_division_by_zero_is_err(self):
+        interp, _ = run("r = 10 / 0")
+        assert interp.variables["r"]["value"].is_error()
+
+    def test_ghalti_gate(self):
+        _, out = run("kaam vind(a, b) { wapas a / b }\nr = vind(5, 0)\nagar r.ghalti { likh(\"caught\") }")
+        assert "caught" in out
+
+    def test_bachao_fallback(self):
+        _, out = run("kaam vind(a, b) { wapas a / b }\nval = vind(5, 0).bachao(0)\nlikh(val)")
+        assert "0" in out
+
+    def test_err_in_operation_raises_strict(self):
+        with pytest.raises(SindhiBaseError):
+            run("y = (10 / 0) + 1")
+
+    def test_err_in_condition_raises_strict(self):
+        with pytest.raises(SindhiBaseError):
+            run("agar 10 / 0 { likh(\"x\") }")
+
+    def test_ok_in_condition_unwraps(self):
+        _, out = run("agar (2 + 3) > 4 { likh(\"yes\") } warna { likh(\"no\") }")
+        assert "yes" in out
+
+    def test_typed_declaration_accepts_wrapped_result(self):
+        interp, _ = run("dahai d = 10 / 2")
+        assert extract_value(interp.variables["d"]["value"]) == 5.0

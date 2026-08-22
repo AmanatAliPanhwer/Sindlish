@@ -32,6 +32,12 @@ class Compiler:
         self.constants = []
         self.line_col_map = {}
         self.loop_stack = [] # Stack of (start_label, end_label)
+        self.fn_stack = []   # FunctionNode context chain for closure resolution
+
+    def _deref_index(self, depth, name):
+        """Index of a free variable in the current function's cell table."""
+        fn = self.fn_stack[-1]
+        return fn.free_slots.index((depth, name))
 
     def emit(self, opcode, arg=None, node=None, line=None, column=None):
         if node:
@@ -73,8 +79,16 @@ class Compiler:
 
     def compile_AssignNode(self, node):
         self.compile(node.value)
+        if node.scope_level == 2:
+            self.emit(OpCode.STORE_DEREF, self._deref_index(node.deref_depth, node.deref_name), node=node)
+            return
         if node.scope_level == 0:
-            self.emit(OpCode.STORE_FAST, node.slot_index, node=node)
+            fn = self.fn_stack[-1] if self.fn_stack else None
+            cell_slots = getattr(fn, 'cell_slots', ()) if fn is not None else ()
+            if node.name in cell_slots:
+                self.emit(OpCode.STORE_DEREF, cell_slots.index(node.name), node=node)
+            else:
+                self.emit(OpCode.STORE_FAST, node.slot_index, node=node)
         else:
             const_idx = self.add_const(SdString(node.name))
             has_explicit_type = node.has_explicit_type and node.type is not None
@@ -87,8 +101,15 @@ class Compiler:
             self.emit(OpCode.STORE_GLOBAL, info, node=node)
 
     def compile_VariableNode(self, node):
-        if node.scope_level == 0:
-            self.emit(OpCode.LOAD_FAST, node.slot_index, node=node)
+        if node.scope_level == 2:
+            self.emit(OpCode.LOAD_DEREF, self._deref_index(node.deref_depth, node.deref_name), node=node)
+        elif node.scope_level == 0:
+            fn = self.fn_stack[-1] if self.fn_stack else None
+            cell_slots = getattr(fn, 'cell_slots', ()) if fn is not None else ()
+            if node.name in cell_slots:
+                self.emit(OpCode.LOAD_DEREF, cell_slots.index(node.name), node=node)
+            else:
+                self.emit(OpCode.LOAD_FAST, node.slot_index, node=node)
         else:
             const_idx = self.add_const(SdString(node.name))
             self.emit(OpCode.LOAD_GLOBAL, const_idx, node=node)
@@ -353,9 +374,16 @@ class Compiler:
         return total_args
 
     def compile_CallNode(self, node):
-        total_args = self._compile_call_args(node)
-        const_idx = self.add_const(SdString(node.name))
-        self.emit(OpCode.CALL_FUNCTION, (const_idx, total_args), node=node)
+        if isinstance(node.name, str):
+            total_args = self._compile_call_args(node)
+            const_idx = self.add_const(SdString(node.name))
+            self.emit(OpCode.CALL_FUNCTION, (const_idx, total_args), node=node)
+        else:
+            # Expression callee (f()(), factory results): callee first,
+            # then args; CALL_VALUE pops args then the callee.
+            self.compile(node.name)
+            total_args = self._compile_call_args(node)
+            self.emit(OpCode.CALL_VALUE, total_args, node=node)
 
     def compile_MethodCallNode(self, node):
         self.compile(node.instance)
@@ -397,6 +425,10 @@ class Compiler:
     def compile_GlobalNode(self, node):
         pass
 
+    def compile_NonLocalNode(self, node):
+        # Declaration only: the resolver registered the capture
+        pass
+
     def compile_FunctionNode(self, node):
         line = getattr(node, 'line', 0)
         column = getattr(node, 'column', 0)
@@ -408,6 +440,7 @@ class Compiler:
         self.line_col_map = {}
 
         # Compile body - call compile_BlockNode directly to pass is_function_body=True
+        self.fn_stack.append(node)
         self.compile_BlockNode(node.body, is_function_body=True)
 
         # Implicit return at end (if not already returned by compile_BlockNode)
@@ -421,6 +454,7 @@ class Compiler:
         # Restore state
         self.instructions = old_instructions
         self.line_col_map = old_line_col_map
+        self.fn_stack.pop()
 
         # Create function object
         func_obj = SdFunction(
@@ -431,7 +465,9 @@ class Compiler:
             func_line_col_map,
             getattr(node, 'slot_count', 0),
             getattr(node, 'slot_metadata', {}),
-            node.return_type
+            node.return_type,
+            cell_names=getattr(node, 'cell_slots', ()) or (),
+            free_specs=getattr(node, 'free_slots', ()) or (),
         )
 
         const_idx = self.add_const(func_obj)

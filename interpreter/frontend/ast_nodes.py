@@ -95,19 +95,23 @@ class NullNode(Node):
 
 class VariableNode(Node):
     """Variable reference by name."""
-    __slots__ = ('name', 'slot_index', 'scope_level', 'line', 'column')
+    __slots__ = ('name', 'slot_index', 'scope_level', 'deref_depth',
+                 'deref_name', 'line', 'column')
 
     def __init__(self, name: str, line: int = 0, column: int = 0):
         super().__init__(line, column)
         self.name = name
         self.slot_index = None
         self.scope_level = None
+        self.deref_depth = None
+        self.deref_name = None
 
 
 class AssignNode(Node):
     """Variable declaration/assignment with optional type annotation."""
     __slots__ = ('name', 'value', 'type', 'is_const', 'element_type',
-                 'has_explicit_type', 'slot_index', 'scope_level', 'line', 'column')
+                 'has_explicit_type', 'slot_index', 'scope_level',
+                 'deref_depth', 'deref_name', 'line', 'column')
 
     def __init__(self, name: str, value, type=None, is_const: bool = False,
                  element_type=None, has_explicit_type: bool = False,
@@ -121,6 +125,8 @@ class AssignNode(Node):
         self.has_explicit_type = has_explicit_type
         self.slot_index = None
         self.scope_level = None
+        self.deref_depth = None
+        self.deref_name = None
 
 
 # ── Operators ───────────────────────────────────────────────────
@@ -301,7 +307,8 @@ class ParamNode(Node):
 
 class FunctionNode(Node):
     """Function definition (kaam)."""
-    __slots__ = ('name', 'params', 'body', 'return_type', 'slot_count', 'slot_metadata', 'line', 'column')
+    __slots__ = ('name', 'params', 'body', 'return_type', 'slot_count',
+                 'slot_metadata', 'cell_slots', 'free_slots', 'line', 'column')
 
     def __init__(self, name: str, params: list, body, return_type=None,
                  line: int = 0, column: int = 0):
@@ -311,6 +318,8 @@ class FunctionNode(Node):
         self.body = body
         self.return_type = return_type
         self.slot_count = 0
+        self.cell_slots = ()
+        self.free_slots = ()
 
 
 class CallNode(Node):

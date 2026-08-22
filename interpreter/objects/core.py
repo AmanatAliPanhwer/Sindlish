@@ -53,10 +53,21 @@ class SdResult(SdShey):
     def __hash__(self):
         return hash((self.variant, self.value))
 
-class SdFunction(SdShey):
-    __slots__ = ('name', 'params', 'instructions', 'constants', 'line_col_map', 'slot_count', 'slot_metadata', 'return_type', 'defaults')
+class Cell:
+    """Mutable box shared between a function frame and its closures."""
+    __slots__ = ('value',)
 
-    def __init__(self, name, params, instructions, constants, line_col_map, slot_count, slot_metadata, return_type=None, defaults=()):
+    def __init__(self, value=None):
+        self.value = value
+
+class SdFunction(SdShey):
+    __slots__ = ('name', 'params', 'instructions', 'constants', 'line_col_map',
+                 'slot_count', 'slot_metadata', 'return_type', 'defaults',
+                 'cell_names', 'free_specs', 'cells')
+
+    def __init__(self, name, params, instructions, constants, line_col_map,
+                 slot_count, slot_metadata, return_type=None, defaults=(),
+                 cell_names=(), free_specs=(), cells=()):
         super().__init__(KAAM_TYPE)
         self.name = name
         self.params = params
@@ -67,6 +78,9 @@ class SdFunction(SdShey):
         self.slot_metadata = slot_metadata
         self.return_type = return_type
         self.defaults = tuple(defaults)
+        self.cell_names = tuple(cell_names)
+        self.free_specs = tuple(free_specs)
+        self.cells = tuple(cells)
 
     def bind_defaults(self, defaults):
         """Return a copy of this function carrying evaluated default values."""
@@ -80,6 +94,9 @@ class SdFunction(SdShey):
             self.slot_metadata,
             self.return_type,
             defaults,
+            self.cell_names,
+            self.free_specs,
+            self.cells,
         )
 
     def __str__(self):

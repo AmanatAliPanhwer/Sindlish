@@ -15,11 +15,24 @@ from ..frontend.ast_nodes import (
 from ..frontend.tokens import TokenType
 
 
+class _FnRec:
+    """Per-function resolution state for closure analysis."""
+    __slots__ = ('captured', 'free', 'free_keys', 'nonlocal_names')
+
+    def __init__(self):
+        self.captured = []      # own locals captured by inner functions
+        self.free = []          # [(depth_up, name)] inherited from enclosing fns
+        self.free_keys = set()
+        self.nonlocal_names = set()   # names declared via 'bahari'
+
+
 class Resolver:
     def __init__(self, code):
         self.code = code
         self.scopes = [{}]
         self.function_scopes = [set()]
+        self.fn_records = [_FnRec()]          # program-level sentinel first
+        self.scope_rec = [self.fn_records[0]]  # parallel to scopes
         self.declared_globals = set()
         self.global_var_names = set()
         self.slot_indices = {}
@@ -127,6 +140,16 @@ class Resolver:
             self._verify_assignment_types(node)
 
         found = self._find(node.name)
+
+        # Assignment through a 'bahari' declaration targets the outer cell
+        top_rec = self.fn_records[-1]
+        if node.name in top_rec.nonlocal_names:
+            depth, _ = next(e for e in top_rec.free if e[1] == node.name)
+            node.scope_level = 2
+            node.deref_depth = depth
+            node.deref_name = node.name
+            return
+
         goes_global = (
             node.name in self.declared_globals
             or len(self.scopes) == 1
@@ -143,6 +166,15 @@ class Resolver:
 
         if found is None or found[0] == "function":
             slot = self.define(node.name, node)
+        elif found[3] is not None and found[3] is not top_rec:
+            # Name belongs to an enclosing function's local scope.
+            # Writes require an explicit 'bahari' declaration.
+            line = getattr(node, 'line', 0)
+            column = getattr(node, 'column', 0)
+            raise QisamJeGhalti(
+                f"'{node.name}' baharli kaam jo variable aahe; us khe badhayn laai 'bahari {node.name}' likho.",
+                line, column, self.code,
+            )
         else:
             slot = found[1]
 
@@ -167,10 +199,12 @@ class Resolver:
     def push_scope(self):
         self.scopes.append({})
         self.function_scopes.append(set())
+        self.scope_rec.append(self.fn_records[-1])
 
     def pop_scope(self):
         self.scopes.pop()
         self.function_scopes.pop()
+        self.scope_rec.pop()
 
     def define(self, name, node=None):
         if name in self.scopes[-1]:
@@ -218,22 +252,41 @@ class Resolver:
     def _find(self, name):
         """Find a name across scopes.
 
-        Returns ("slot", slot_index, owner_scope_index), ("function", None,
-        owner_scope_index), ("global", -1, 0) for program-level variables,
-        or None when the name is unknown. Scope indices >= 1 hold frame-local
-        slots; scope 0 is the program-global scope whose variables live in
-        the globals environment.
+        Returns ("slot", slot_index, owner_scope_index, owner_record),
+        ("function", None, owner_scope_index, None), ("global", -1, 0, None)
+        for program-level variables, or None when the name is unknown.
+        Scope indices >= 1 hold frame-local slots; scope 0 is the
+        program-global scope whose variables live in the globals environment.
         """
         for i in range(len(self.scopes) - 1, 0, -1):
             if name in self.function_scopes[i]:
-                return ("function", None, i)
+                return ("function", None, i, None)
             if name in self.scopes[i]:
-                return ("slot", self.scopes[i][name], i)
+                return ("slot", self.scopes[i][name], i, self.scope_rec[i])
         if name in self.function_scopes[0]:
-            return ("function", None, 0)
+            return ("function", None, 0, None)
         if name in self.global_var_names:
-            return ("global", -1, 0)
+            return ("global", -1, 0, None)
         return None
+
+    def _register_capture(self, name, owner):
+        """Mark `name` (a local of `owner`) as captured by the current function.
+
+        Registers a cell on the owning function and pass-through free
+        entries on every intermediate function. Returns the upvalue depth
+        from the current (innermost) function.
+        """
+        top_idx = len(self.fn_records) - 1
+        own_idx = self.fn_records.index(owner)
+        if name not in owner.captured:
+            owner.captured.append(name)
+        for lvl in range(own_idx + 1, top_idx + 1):
+            rec = self.fn_records[lvl]
+            entry = (lvl - own_idx, name)
+            if entry not in rec.free_keys:
+                rec.free_keys.add(entry)
+                rec.free.append(entry)
+        return top_idx - own_idx
     
     def get_slot_metadata(self):
         return self.slot_metadata
@@ -246,8 +299,15 @@ class Resolver:
             and found[2] > 0
             and node.name not in self.declared_globals
         ):
-            node.slot_index = found[1]
-            node.scope_level = 0
+            owner = found[3]
+            if owner is not None and owner is not self.fn_records[-1]:
+                # Reference to an enclosing function's local: closure capture
+                node.scope_level = 2
+                node.deref_depth = self._register_capture(node.name, owner)
+                node.deref_name = node.name
+            else:
+                node.slot_index = found[1]
+                node.scope_level = 0
         else:
             node.scope_level = 1
 
@@ -331,6 +391,8 @@ class Resolver:
         self.next_slot = 0
         self.slot_metadata = {}
 
+        rec = _FnRec()
+        self.fn_records.append(rec)
         self.push_scope()
         for param in node.params:
             param_slot = self.define(param.name, param)
@@ -338,7 +400,10 @@ class Resolver:
         self.resolve(node.body)
         node.slot_count = self.next_slot
         node.slot_metadata = self.slot_metadata
+        node.cell_slots = tuple(rec.captured)
+        node.free_slots = tuple(rec.free)
         self.pop_scope()
+        self.fn_records.pop()
 
         self.next_slot = old_next_slot
         self.slot_metadata = old_slot_metadata
@@ -348,12 +413,30 @@ class Resolver:
         self.global_var_names.add(node.name)
 
     def resolve_NonLocalNode(self, node):
-        raise QisamJeGhalti(
-            "'bahari' (closures) abhi support natho; hale roadmap mein aahe.",
-            getattr(node, 'line', 0),
-            getattr(node, 'column', 0),
-            self.code,
-        )
+        name = node.name
+        line = getattr(node, 'line', 0)
+        column = getattr(node, 'column', 0)
+        if len(self.fn_records) == 1:
+            raise QisamJeGhalti(
+                "'bahari' sirf kaam ke andar istemaal thyo sendho.",
+                line, column, self.code,
+            )
+        owner = None
+        for lvl in range(len(self.fn_records) - 2, -1, -1):
+            rec = self.fn_records[lvl]
+            for i in range(len(self.scopes) - 1, 0, -1):
+                if self.scope_rec[i] is rec and name in self.scopes[i]:
+                    owner = rec
+                    break
+            if owner is not None:
+                break
+        if owner is None:
+            raise QisamJeGhalti(
+                f"'bahari {name}' laai baharli kaam mein '{name}' naatho milio.",
+                line, column, self.code,
+            )
+        self._register_capture(name, owner)
+        self.fn_records[-1].nonlocal_names.add(name)
 
     def resolve_ReturnNode(self, node):
         if node.value:
