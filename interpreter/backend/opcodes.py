@@ -51,8 +51,6 @@ class OpCode(IntEnum):
     GET_ITER = auto()
     FOR_ITER = auto()
 
-    # Output
-    PRINT_ITEM = auto()
 
     # Collections
     BUILD_LIST = auto()

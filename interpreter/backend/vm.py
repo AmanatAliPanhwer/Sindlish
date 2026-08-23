@@ -117,7 +117,6 @@ class VM:
             OpCode.JUMP_IF_TRUE_OR_POP: self._op_jump_if_true_or_pop,
             OpCode.GET_ITER: self._op_get_iter,
             OpCode.FOR_ITER: self._op_for_iter,
-            OpCode.PRINT_ITEM: self._op_print_item,
             OpCode.CALL_FUNCTION: self._op_call_function,
             OpCode.CALL_VALUE: self._op_call_value,
             OpCode.CALL_METHOD: self._op_call_method,
@@ -551,9 +550,6 @@ class VM:
         except StopIteration:
             self.pop()  # Pop the iterator
             frame.ip = arg  # Jump to end
-
-    def _op_print_item(self, frame, arg, line, column):
-        print(self.pop())
 
     def _op_call_function(self, frame, arg, line, column):
         const_idx, num_args = arg

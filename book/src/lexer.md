@@ -34,8 +34,6 @@ KEYWORDS: dict[str, TokenType] = {
 }
 ```
 
-> 🔍 **Sharp-eyed moment:** there *is* a `TokenType.LIKH` for print — but `likh` is absent from `KEYWORDS`, so the lexer can never produce it. In practice `likh(...)` arrives as a plain `IDENTIFIER` and works as a **builtin function call** (it's registered in `runtime/builtins.py`). The whole dedicated print-statement path (`parse_print` → `PrintNode` → the `PRINT_ITEM` opcode) is currently unreachable dead code — logged in `roadmap/TODO.md`. When reading old docs that describe "the likh statement", know that today it's really "the likh function."
-
 ## 🔬 Under the hood
 
 ### The main loop: a decision tree

@@ -11,10 +11,10 @@ from .ast_nodes import (
     ForNode,
     FunctionNode,
     GetAttrNode,
+    GhaltiNode,
     GlobalNode,
     IfNode,
     IndexNode,
-    KharabiNode,
     ListNode,
     MethodCallNode,
     NonLocalNode,
@@ -22,7 +22,6 @@ from .ast_nodes import (
     NumberNode,
     ParamNode,
     PostfixOpNode,
-    PrintNode,
     ProgramNode,
     ResultConstructorNode,
     ResultMethodCallNode,
@@ -133,8 +132,6 @@ class Parser:
     def parse_statement(self):
         token = self.peek()
 
-        if token.type == TokenType.LIKH:
-            return self.parse_print().set_pos(token.line, token.column)
 
         if token.type == TokenType.AGAR:
             return self.parse_if().set_pos(token.line, token.column)
@@ -238,7 +235,7 @@ class Parser:
             expr = self.parse_expression()
             # If it's a standalone ghalti(...) call, it should panic (Trigger Panic)
             if isinstance(expr, ResultConstructorNode) and expr.variant == "GHALTI":
-                return KharabiNode(expr.value).set_pos(token.line, token.column)
+                return GhaltiNode(expr.value).set_pos(token.line, token.column)
             return expr
         except LikhaiJeGhalti:
             raise
@@ -374,35 +371,6 @@ class Parser:
         if self.peek().type not in (TokenType.NEWLINE, TokenType.EOF, TokenType.RBRACE):
             value = self.parse_expression()
         return ReturnNode(value)
-
-    def parse_print(self):
-        token = self.peek()
-        self.advance()  # likh
-        if self.peek() and self.peek().type == TokenType.LPAREN:
-            self.advance()  # (
-
-            if self.peek() and self.peek().type == TokenType.RPAREN:
-                self.advance()
-                return PrintNode(StringNode("")).set_pos(token.line, token.column)
-
-            expr = self.parse_expression()
-
-            if self.peek() and self.peek().type == TokenType.RPAREN:
-                self.advance()  # )
-                return PrintNode(expr).set_pos(token.line, token.column)
-            else:
-                raise LikhaiJeGhalti(
-                    "'likh(' khaan poe ')' lazmi aahe.",
-                    token.line,
-                    token.column,
-                    self.code,
-                )
-
-        if self.peek() and self.peek().type == TokenType.NEWLINE:
-            self.advance()
-            return PrintNode(StringNode("")).set_pos(token.line, token.column)
-        expr = self.parse_expression()
-        return PrintNode(expr).set_pos(token.line, token.column)
 
     def parse_if(self):
         token = self.peek()
@@ -548,25 +516,6 @@ class Parser:
             return ResultConstructorNode("GHALTI", args[0]).set_pos(
                 token.line, token.column
             )
-
-        if token.type == TokenType.KHARABI:
-            self.advance()
-            if self.peek().type != TokenType.LPAREN:
-                raise LikhaiJeGhalti(
-                    "'kharabi' khaan poe '(' lazmi aahe.",
-                    token.line,
-                    token.column,
-                    self.code,
-                )
-            args, keywords, star_args, kw_args = self.parse_call_arguments()
-            if len(args) != 1 or keywords or star_args or kw_args:
-                raise LikhaiJeGhalti(
-                    "'kharabi' khe sirf 1 argument khapay.",
-                    token.line,
-                    token.column,
-                    self.code,
-                )
-            return KharabiNode(args[0]).set_pos(token.line, token.column)
 
         if token.type == TokenType.LBRACKET:
             return self.parse_list().set_pos(token.line, token.column)

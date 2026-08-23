@@ -197,9 +197,6 @@ class Compiler:
         elif node.op.type == TokenType.PLUS:
             self.compile(node.right)
 
-    def compile_PrintNode(self, node):
-        self.compile(node.value)
-        self.emit(OpCode.PRINT_ITEM, node=node)
 
     EXPRESSION_NODES = (
         NumberNode,

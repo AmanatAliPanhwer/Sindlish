@@ -25,22 +25,25 @@ _ESCAPE_MAP = {
 
 
 def _unescape(raw: str) -> str:
-    out = []
-    i = 0
-    n = len(raw)
-    while i < n:
-        ch = raw[i]
-        if ch == "\\" and i + 1 < n:
-            nxt = raw[i + 1]
-            out.append(_ESCAPE_MAP.get(nxt, "\\" + nxt))
-            i += 2
+    decoded_chars = []
+    index = 0
+    length = len(raw)
+
+    while index < length:
+        current_char = raw[index]
+
+        if current_char == "\\" and index + 1 < length:
+            next_char = raw[index + 1]
+            decoded_chars.append(_ESCAPE_MAP.get(next_char, "\\" + next_char))
+            index += 2
         else:
-            out.append(ch)
-            i += 1
-    return "".join(out)
+            decoded_chars.append(current_char)
+            index += 1
+
+    return "".join(decoded_chars)
 
 
-# ── Single-character token dispatch table ───────────────────────
+# ===== Single-character token dispatch table =====
 _SINGLE_CHAR_TOKENS: dict[str, TokenType] = {
     "+": TokenType.PLUS,
     "-": TokenType.MINUS,
@@ -78,7 +81,7 @@ class Lexer:
         self.line = 1
         self.column = 1
 
-    # ── Character access ────────────────────────────────────────
+    # ===== Character access =====
 
     def _peek(self) -> str | None:
         """Return current character without consuming it."""
@@ -103,7 +106,7 @@ class Lexer:
             self.column += 1
         return char
 
-    # ── Complex token scanners ──────────────────────────────────
+    # ===== Complex token scanners =====
 
     def _scan_number(self) -> Token:
         """Scan an integer or float literal."""
@@ -278,7 +281,7 @@ class Lexer:
         # Should never reach here
         raise LikhaiJeGhalti(f"Illegal akhar {char}.", line, col, self.code)
 
-    # ── Main tokenization entry point ───────────────────────────
+    # ===== Main tokenization entry point =====
 
     def generate_tokens(self) -> list[Token]:
         """
@@ -291,54 +294,54 @@ class Lexer:
         while self.pos < len(self.code):
             char = self._peek()
 
-            # ── Whitespace ──
+            # ===== Whitespace =====
             if char in " \t":
                 self._advance()
                 continue
 
-            # ── Newline ──
+            # ===== Newline =====
             if char == "\n":
                 tokens.append(Token(TokenType.NEWLINE, "\\n", self.line, self.column))
                 self._advance()
                 continue
 
-            # ── Numbers ──
+            # ===== Numbers =====
             if char.isdigit() or (
                 char == "." and self._peek_ahead() and self._peek_ahead().isdigit()
             ):
                 tokens.append(self._scan_number())
                 continue
 
-            # ── Line comments ──
+            # ===== Line comments =====
             if char == "#":
                 self._skip_line_comment()
                 continue
 
-            # ── Strings ──
+            # ===== Strings =====
             if char in ('"', "'"):
                 tokens.append(self._scan_string())
                 continue
 
-            # ── Identifiers / Keywords ──
+            # ===== Identifiers / Keywords =====
             if char.isalpha() or char == "_":
                 tokens.append(self._scan_identifier())
                 continue
 
-            # ── Compound operators (multi-char) ──
+            # ===== Compound operators (multi-char) =====
             if char in _COMPOUND_STARTERS:
                 token = self._scan_compound_operator(char)
                 if token is not None:
                     tokens.append(token)
                 continue
 
-            # ── Single-character tokens (dispatch table) ──
+            # ===== Single-character tokens (dispatch table) =====
             token_type = _SINGLE_CHAR_TOKENS.get(char)
             if token_type is not None:
                 tokens.append(Token(token_type, char, self.line, self.column))
                 self._advance()
                 continue
 
-            # ── Unknown character ──
+            # ===== Unknown character =====
             raise LikhaiJeGhalti(
                 f"Illegal akhar {char}.", self.line, self.column, self.code
             )
