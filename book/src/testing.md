@@ -35,7 +35,7 @@ with pytest.raises(QisamJeGhalti):
 1. **Bug fixes earn regression tests** — `tests/test_bugfixes.py` mirrors `roadmap/TODO.md`'s fixed-items list; every `[x]` there has a matching test here.
 2. **One concept per test function**, Sindlish snippet as a triple-quoted string at the top — readable even for non-Pythonistas.
 3. **Snapshot bytecode when compiler behavior matters**: compile in the test and compare `(opcode.name, arg)` lists against expected tuples (see [opcodes.md](opcodes.md) for the vocabulary).
-4. **Known wart:** `conftest.py:12` hardcodes `sys.path.insert(0, "d:/Code/Sindlish")` — machine-specific; logged to `roadmap/TODO.md`. On other machines rely on running pytest from the repo root instead.
+
 
 > 💡 When you fix any bug from this book's "known sharp edges" callouts, add the failing snippet *as* the regression test before fixing — cheapest insurance in the repo.
 
