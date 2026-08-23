@@ -5,24 +5,30 @@ Provides run() to execute Sindlish code and helpers to extract values
 from the VM for assertions.
 """
 
-import sys
 import io
-import pytest
+import sys
+from pathlib import Path
 
-sys.path.insert(0, "d:/Code/Sindlish")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from interpreter.frontend.lexer import Lexer
-from interpreter.frontend.parser import Parser
 from interpreter.analysis.resolver import Resolver
 from interpreter.backend.compiler import Compiler
 from interpreter.backend.vm import VM
-from interpreter.runtime.env import Environment
+from interpreter.frontend.lexer import Lexer
+from interpreter.frontend.parser import Parser
 from interpreter.frontend.tokens import TokenType
-from interpreter.runtime.builtins import SimpleBuiltins
 from interpreter.objects import (
-    SdNumber, SdString, SdBool, SdList, SdDict, SdSet, SdNull, SdResult,
-    ADAD_TYPE, DAHAI_TYPE, LAFZ_TYPE, FAISLO_TYPE, FEHRIST_TYPE, LUGHAT_TYPE, MAJMUO_TYPE, KHALI_TYPE,
+    SdBool,
+    SdDict,
+    SdList,
+    SdNull,
+    SdNumber,
+    SdResult,
+    SdSet,
+    SdString,
 )
+from interpreter.runtime.builtins import SimpleBuiltins
+from interpreter.runtime.env import Environment
 
 
 def create_globals_env():
