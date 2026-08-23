@@ -7,10 +7,7 @@ from the VM for assertions.
 
 import io
 import sys
-<<<<<<< HEAD
 from pathlib import Path
-=======
->>>>>>> 4517b08e78b57885913ec5e654328c441d308f59
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
