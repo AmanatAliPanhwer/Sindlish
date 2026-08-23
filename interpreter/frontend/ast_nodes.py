@@ -26,29 +26,33 @@ from .tokens import TokenType
 class Node:
     """Base class for all AST nodes. Carries source position."""
 
-    __slots__ = ('line', 'column')
+    __slots__ = ("column", "line")
 
     def __init__(self, line: int = 0, column: int = 0):
         self.line = line
         self.column = column
 
-    def set_pos(self, line: int, column: int) -> 'Node':
+    def set_pos(self, line: int, column: int) -> "Node":
         """Set source position and return self (for chaining)."""
         self.line = line
         self.column = column
         return self
 
     def __repr__(self) -> str:
-        fields = {k: getattr(self, k) for k in self.__slots__ if k not in ('line', 'column')}
+        fields = {
+            k: getattr(self, k) for k in self.__slots__ if k not in ("line", "column")
+        }
         field_str = ", ".join(f"{k}={v!r}" for k, v in fields.items())
         return f"{type(self).__name__}({field_str})"
 
 
 # ── Literals ────────────────────────────────────────────────────
 
+
 class NumberNode(Node):
     """Integer or float literal."""
-    __slots__ = ('value', 'line', 'column')
+
+    __slots__ = ("column", "line", "value")
 
     def __init__(self, value, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -60,7 +64,8 @@ class NumberNode(Node):
 
 class StringNode(Node):
     """String literal."""
-    __slots__ = ('value', 'line', 'column')
+
+    __slots__ = ("column", "line", "value")
 
     def __init__(self, value: str, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -72,7 +77,8 @@ class StringNode(Node):
 
 class BoolNode(Node):
     """Boolean literal (sach / koorh)."""
-    __slots__ = ('value', 'line', 'column')
+
+    __slots__ = ("column", "line", "value")
 
     def __init__(self, value: bool, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -84,7 +90,8 @@ class BoolNode(Node):
 
 class NullNode(Node):
     """Null literal (khali)."""
-    __slots__ = ('value', 'line', 'column')
+
+    __slots__ = ("column", "line", "value")
 
     def __init__(self, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -93,10 +100,19 @@ class NullNode(Node):
 
 # ── Variables & Assignment ──────────────────────────────────────
 
+
 class VariableNode(Node):
     """Variable reference by name."""
-    __slots__ = ('name', 'slot_index', 'scope_level', 'deref_depth',
-                 'deref_name', 'line', 'column')
+
+    __slots__ = (
+        "column",
+        "deref_depth",
+        "deref_name",
+        "line",
+        "name",
+        "scope_level",
+        "slot_index",
+    )
 
     def __init__(self, name: str, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -109,13 +125,33 @@ class VariableNode(Node):
 
 class AssignNode(Node):
     """Variable declaration/assignment with optional type annotation."""
-    __slots__ = ('name', 'value', 'type', 'is_const', 'element_type',
-                 'has_explicit_type', 'slot_index', 'scope_level',
-                 'deref_depth', 'deref_name', 'line', 'column')
 
-    def __init__(self, name: str, value, type=None, is_const: bool = False,
-                 element_type=None, has_explicit_type: bool = False,
-                 line: int = 0, column: int = 0):
+    __slots__ = (
+        "column",
+        "deref_depth",
+        "deref_name",
+        "element_type",
+        "has_explicit_type",
+        "is_const",
+        "line",
+        "name",
+        "scope_level",
+        "slot_index",
+        "type",
+        "value",
+    )
+
+    def __init__(
+        self,
+        name: str,
+        value,
+        type=None,
+        is_const: bool = False,
+        element_type=None,
+        has_explicit_type: bool = False,
+        line: int = 0,
+        column: int = 0,
+    ):
         super().__init__(line, column)
         self.name = name
         self.value = value
@@ -131,9 +167,11 @@ class AssignNode(Node):
 
 # ── Operators ───────────────────────────────────────────────────
 
+
 class BinaryOpNode(Node):
     """Binary operation (e.g. a + b, x == y)."""
-    __slots__ = ('left', 'op', 'right', 'line', 'column')
+
+    __slots__ = ("column", "left", "line", "op", "right")
 
     def __init__(self, left, op, right, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -144,7 +182,8 @@ class BinaryOpNode(Node):
 
 class UnaryOpNode(Node):
     """Unary operation (e.g. -x, nah x)."""
-    __slots__ = ('op', 'right', 'line', 'column')
+
+    __slots__ = ("column", "line", "op", "right")
 
     def __init__(self, op, right, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -154,7 +193,8 @@ class UnaryOpNode(Node):
 
 class PostfixOpNode(Node):
     """Postfix operation (? or !!)."""
-    __slots__ = ('expr', 'op', 'line', 'column')
+
+    __slots__ = ("column", "expr", "line", "op")
 
     def __init__(self, expr, op, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -164,9 +204,11 @@ class PostfixOpNode(Node):
 
 # ── Statements ──────────────────────────────────────────────────
 
+
 class PrintNode(Node):
     """Print statement (likh)."""
-    __slots__ = ('value', 'line', 'column')
+
+    __slots__ = ("column", "line", "value")
 
     def __init__(self, value, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -175,10 +217,18 @@ class PrintNode(Node):
 
 class IfNode(Node):
     """If/else-if/else statement (agar/yawari/warna)."""
-    __slots__ = ('condition', 'body', 'else_body', 'else_if_bodies', 'line', 'column')
 
-    def __init__(self, condition, body, else_body, else_if_bodies=None,
-                 line: int = 0, column: int = 0):
+    __slots__ = ("body", "column", "condition", "else_body", "else_if_bodies", "line")
+
+    def __init__(
+        self,
+        condition,
+        body,
+        else_body,
+        else_if_bodies=None,
+        line: int = 0,
+        column: int = 0,
+    ):
         super().__init__(line, column)
         self.condition = condition
         self.body = body
@@ -188,7 +238,8 @@ class IfNode(Node):
 
 class WhileNode(Node):
     """While loop (jistain)."""
-    __slots__ = ('condition', 'body', 'line', 'column')
+
+    __slots__ = ("body", "column", "condition", "line")
 
     def __init__(self, condition, body, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -198,7 +249,8 @@ class WhileNode(Node):
 
 class ForNode(Node):
     """For loop (har)."""
-    __slots__ = ('iterator', 'iterable', 'body', 'iterator_slot', 'line', 'column')
+
+    __slots__ = ("body", "column", "iterable", "iterator", "iterator_slot", "line")
 
     def __init__(self, iterator: str, iterable, body, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -210,7 +262,8 @@ class ForNode(Node):
 
 class BreakNode(Node):
     """Break statement (tor)."""
-    __slots__ = ('line', 'column')
+
+    __slots__ = ("column", "line")
 
     def __init__(self, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -218,7 +271,8 @@ class BreakNode(Node):
 
 class ContinueNode(Node):
     """Continue statement (jari)."""
-    __slots__ = ('line', 'column')
+
+    __slots__ = ("column", "line")
 
     def __init__(self, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -226,7 +280,8 @@ class ContinueNode(Node):
 
 class BlockNode(Node):
     """A block of statements enclosed in { }."""
-    __slots__ = ('statements', 'line', 'column')
+
+    __slots__ = ("column", "line", "statements")
 
     def __init__(self, statements: list, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -235,7 +290,8 @@ class BlockNode(Node):
 
 class ProgramNode(Node):
     """Top-level program: a sequence of statements."""
-    __slots__ = ('statements', 'slot_count', 'line', 'column')
+
+    __slots__ = ("column", "line", "slot_count", "statements")
 
     def __init__(self, statements: list, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -245,9 +301,11 @@ class ProgramNode(Node):
 
 # ── Collections ─────────────────────────────────────────────────
 
+
 class ListNode(Node):
     """List literal [a, b, c]."""
-    __slots__ = ('elements', 'line', 'column')
+
+    __slots__ = ("column", "elements", "line")
 
     def __init__(self, elements: list, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -259,7 +317,8 @@ class ListNode(Node):
 
 class DictNode(Node):
     """Dictionary literal {k: v, ...}."""
-    __slots__ = ('pairs', 'line', 'column')
+
+    __slots__ = ("column", "line", "pairs")
 
     def __init__(self, pairs: list, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -268,7 +327,8 @@ class DictNode(Node):
 
 class SetNode(Node):
     """Set literal {a, b, c}."""
-    __slots__ = ('elements', 'line', 'column')
+
+    __slots__ = ("column", "elements", "line")
 
     def __init__(self, elements: list, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -277,7 +337,8 @@ class SetNode(Node):
 
 class IndexNode(Node):
     """Index access or assignment (obj[index] or obj[index] = value)."""
-    __slots__ = ('left', 'index', 'value', 'line', 'column')
+
+    __slots__ = ("column", "index", "left", "line", "value")
 
     def __init__(self, left, index, value=None, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -288,14 +349,31 @@ class IndexNode(Node):
 
 # ── Functions ───────────────────────────────────────────────────
 
+
 class ParamNode(Node):
     """Function parameter definition."""
-    __slots__ = ('name', 'type', 'default', 'is_star', 'is_kw',
-                 'slot_index', 'line', 'column')
 
-    def __init__(self, name: str, type=None, default=None,
-                 is_star: bool = False, is_kw: bool = False,
-                 line: int = 0, column: int = 0):
+    __slots__ = (
+        "column",
+        "default",
+        "is_kw",
+        "is_star",
+        "line",
+        "name",
+        "slot_index",
+        "type",
+    )
+
+    def __init__(
+        self,
+        name: str,
+        type=None,
+        default=None,
+        is_star: bool = False,
+        is_kw: bool = False,
+        line: int = 0,
+        column: int = 0,
+    ):
         super().__init__(line, column)
         self.name = name
         self.type = type
@@ -307,11 +385,29 @@ class ParamNode(Node):
 
 class FunctionNode(Node):
     """Function definition (kaam)."""
-    __slots__ = ('name', 'params', 'body', 'return_type', 'slot_count',
-                 'slot_metadata', 'cell_slots', 'free_slots', 'line', 'column')
 
-    def __init__(self, name: str, params: list, body, return_type=None,
-                 line: int = 0, column: int = 0):
+    __slots__ = (
+        "body",
+        "cell_slots",
+        "column",
+        "free_slots",
+        "line",
+        "name",
+        "params",
+        "return_type",
+        "slot_count",
+        "slot_metadata",
+    )
+
+    def __init__(
+        self,
+        name: str,
+        params: list,
+        body,
+        return_type=None,
+        line: int = 0,
+        column: int = 0,
+    ):
         super().__init__(line, column)
         self.name = name
         self.params = params
@@ -324,10 +420,19 @@ class FunctionNode(Node):
 
 class CallNode(Node):
     """Function call."""
-    __slots__ = ('name', 'args', 'keywords', 'star_args', 'kw_args', 'line', 'column')
 
-    def __init__(self, name: str, args: list, keywords=None,
-                 star_args=None, kw_args=None, line: int = 0, column: int = 0):
+    __slots__ = ("args", "column", "keywords", "kw_args", "line", "name", "star_args")
+
+    def __init__(
+        self,
+        name: str,
+        args: list,
+        keywords=None,
+        star_args=None,
+        kw_args=None,
+        line: int = 0,
+        column: int = 0,
+    ):
         super().__init__(line, column)
         self.name = name
         self.args = args
@@ -338,7 +443,8 @@ class CallNode(Node):
 
 class ReturnNode(Node):
     """Return statement (wapas)."""
-    __slots__ = ('value', 'line', 'column')
+
+    __slots__ = ("column", "line", "value")
 
     def __init__(self, value=None, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -347,12 +453,29 @@ class ReturnNode(Node):
 
 class MethodCallNode(Node):
     """Method call on an object (obj.method(args))."""
-    __slots__ = ('instance', 'method_name', 'args', 'keywords',
-                 'star_args', 'kw_args', 'line', 'column')
 
-    def __init__(self, instance, method_name: str, args: list,
-                 keywords=None, star_args=None, kw_args=None,
-                 line: int = 0, column: int = 0):
+    __slots__ = (
+        "args",
+        "column",
+        "instance",
+        "keywords",
+        "kw_args",
+        "line",
+        "method_name",
+        "star_args",
+    )
+
+    def __init__(
+        self,
+        instance,
+        method_name: str,
+        args: list,
+        keywords=None,
+        star_args=None,
+        kw_args=None,
+        line: int = 0,
+        column: int = 0,
+    ):
         super().__init__(line, column)
         self.instance = instance
         self.method_name = method_name
@@ -364,7 +487,8 @@ class MethodCallNode(Node):
 
 class GetAttrNode(Node):
     """Attribute access (obj.attr)."""
-    __slots__ = ('instance', 'attr_name', 'line', 'column')
+
+    __slots__ = ("attr_name", "column", "instance", "line")
 
     def __init__(self, instance, attr_name: str, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -374,9 +498,11 @@ class GetAttrNode(Node):
 
 # ── Scoping ─────────────────────────────────────────────────────
 
+
 class GlobalNode(Node):
     """Global variable declaration (aalmi)."""
-    __slots__ = ('name', 'line', 'column')
+
+    __slots__ = ("column", "line", "name")
 
     def __init__(self, name: str, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -385,7 +511,8 @@ class GlobalNode(Node):
 
 class NonLocalNode(Node):
     """Non-local variable declaration (bahari)."""
-    __slots__ = ('name', 'line', 'column')
+
+    __slots__ = ("column", "line", "name")
 
     def __init__(self, name: str, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -394,9 +521,11 @@ class NonLocalNode(Node):
 
 # ── Pattern Matching ────────────────────────────────────────────
 
+
 class MatchNode(Node):
     """Match expression."""
-    __slots__ = ('expr', 'cases', 'line', 'column')
+
+    __slots__ = ("cases", "column", "expr", "line")
 
     def __init__(self, expr, cases: list, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -406,7 +535,8 @@ class MatchNode(Node):
 
 class MatchCaseNode(Node):
     """A single case in a match expression."""
-    __slots__ = ('pattern', 'body', 'line', 'column')
+
+    __slots__ = ("body", "column", "line", "pattern")
 
     def __init__(self, pattern, body, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -416,9 +546,11 @@ class MatchCaseNode(Node):
 
 # ── Result System ───────────────────────────────────────────────
 
+
 class ResultConstructorNode(Node):
     """ok(value) or ghalti(value) constructor."""
-    __slots__ = ('variant', 'value', 'line', 'column')
+
+    __slots__ = ("column", "line", "value", "variant")
 
     def __init__(self, variant: str, value, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -428,10 +560,10 @@ class ResultConstructorNode(Node):
 
 class ResultMethodCallNode(Node):
     """Result method: .bachao(fallback) or .lazmi(message)."""
-    __slots__ = ('receiver', 'method_name', 'arg', 'line', 'column')
 
-    def __init__(self, receiver, method_name: str, arg,
-                 line: int = 0, column: int = 0):
+    __slots__ = ("arg", "column", "line", "method_name", "receiver")
+
+    def __init__(self, receiver, method_name: str, arg, line: int = 0, column: int = 0):
         super().__init__(line, column)
         self.receiver = receiver
         self.method_name = method_name
@@ -440,14 +572,18 @@ class ResultMethodCallNode(Node):
 
 class KharabiNode(Node):
     """Kharabi expression: kharabi(message)."""
-    __slots__ = ('message', 'line', 'column')
+
+    __slots__ = ("column", "line", "message")
 
     def __init__(self, message, line: int = 0, column: int = 0):
         super().__init__(line, column)
         self.message = message
+
+
 class TypeCastNode(Node):
     """Type conversion (e.g. adad(x), lafz(y))."""
-    __slots__ = ('target_type', 'expr', 'line', 'column')
+
+    __slots__ = ("column", "expr", "line", "target_type")
 
     def __init__(self, target_type: TokenType, expr, line: int = 0, column: int = 0):
         super().__init__(line, column)

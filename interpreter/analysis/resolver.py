@@ -3,7 +3,6 @@ from ..frontend.ast_nodes import (
     AssignNode,
     BoolNode,
     DictNode,
-    FunctionNode,
     ListNode,
     Node,
     NullNode,
@@ -17,13 +16,14 @@ from ..frontend.tokens import TokenType
 
 class _FnRec:
     """Per-function resolution state for closure analysis."""
-    __slots__ = ('captured', 'free', 'free_keys', 'nonlocal_names')
+
+    __slots__ = ("captured", "free", "free_keys", "nonlocal_names")
 
     def __init__(self):
-        self.captured = []      # own locals captured by inner functions
-        self.free = []          # [(depth_up, name)] inherited from enclosing fns
+        self.captured = []  # own locals captured by inner functions
+        self.free = []  # [(depth_up, name)] inherited from enclosing fns
         self.free_keys = set()
-        self.nonlocal_names = set()   # names declared via 'bahari'
+        self.nonlocal_names = set()  # names declared via 'bahari'
 
 
 class Resolver:
@@ -31,14 +31,14 @@ class Resolver:
         self.code = code
         self.scopes = [{}]
         self.function_scopes = [set()]
-        self.fn_records = [_FnRec()]          # program-level sentinel first
+        self.fn_records = [_FnRec()]  # program-level sentinel first
         self.scope_rec = [self.fn_records[0]]  # parallel to scopes
         self.declared_globals = set()
         self.global_var_names = set()
         self.slot_indices = {}
         self.next_slot = 0
         self.slot_metadata = {}  # slot_index -> {"is_const": bool, "type": TokenType, "element_type": any}
-        self.symbols = [] # List of {"name": str, "type": TokenType, "line": int, "col": int, "kind": str}
+        self.symbols = []  # List of {"name": str, "type": TokenType, "line": int, "col": int, "kind": str}
         self.is_repl = False
 
     def infer_type(self, node):
@@ -73,13 +73,13 @@ class Resolver:
 
     def no_resolve_method(self, node):
         """Default visitor that recursively resolves all Node attributes."""
-        if not hasattr(node, '__slots__'):
+        if not hasattr(node, "__slots__"):
             return
-            
+
         for attr in node.__slots__:
-            if attr in ('line', 'column'):
+            if attr in ("line", "column"):
                 continue
-            
+
             val = getattr(node, attr)
             self._resolve_recursive(val)
 
@@ -104,33 +104,42 @@ class Resolver:
     def _verify_assignment_types(self, node):
         inferred_type = self.infer_type(node.value)
         if inferred_type is not None and inferred_type != node.type:
-            line = getattr(node, 'line', 0)
-            column = getattr(node, 'column', 0)
+            line = getattr(node, "line", 0)
+            column = getattr(node, "column", 0)
             raise QisamJeGhalti(
                 f"Qisam natho mile: {node.type.name.lower()} khapyo paye, par {inferred_type.name.lower()} milyo.",
-                line, column, self.code
+                line,
+                column,
+                self.code,
             )
-        
-        if node.type in (TokenType.FEHRIST, TokenType.MAJMUO) and node.element_type is not None:
+
+        if (
+            node.type in (TokenType.FEHRIST, TokenType.MAJMUO)
+            and node.element_type is not None
+        ):
             if isinstance(node.value, ListNode):
                 for elem in node.value.elements:
                     elem_type = self.infer_type(elem)
                     if elem_type != node.element_type:
-                        line = getattr(elem, 'line', 0)
-                        column = getattr(elem, 'column', 0)
+                        line = getattr(elem, "line", 0)
+                        column = getattr(elem, "column", 0)
                         raise QisamJeGhalti(
                             f"Fehrist je elements jo qisam {node.element_type.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
-                            line, column, self.code
+                            line,
+                            column,
+                            self.code,
                         )
             elif isinstance(node.value, SetNode):
                 for elem in node.value.elements:
                     elem_type = self.infer_type(elem)
                     if elem_type != node.element_type:
-                        line = getattr(elem, 'line', 0)
-                        column = getattr(elem, 'column', 0)
+                        line = getattr(elem, "line", 0)
+                        column = getattr(elem, "column", 0)
                         raise QisamJeGhalti(
                             f"Majmuo je elements jo qisam {node.element_type.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
-                            line, column, self.code
+                            line,
+                            column,
+                            self.code,
                         )
 
     def resolve_AssignNode(self, node):
@@ -169,11 +178,13 @@ class Resolver:
         elif found[3] is not None and found[3] is not top_rec:
             # Name belongs to an enclosing function's local scope.
             # Writes require an explicit 'bahari' declaration.
-            line = getattr(node, 'line', 0)
-            column = getattr(node, 'column', 0)
+            line = getattr(node, "line", 0)
+            column = getattr(node, "column", 0)
             raise QisamJeGhalti(
                 f"'{node.name}' baharli kaam jo variable aahe; us khe badhayn laai 'bahari {node.name}' likho.",
-                line, column, self.code,
+                line,
+                column,
+                self.code,
             )
         else:
             slot = found[1]
@@ -186,14 +197,14 @@ class Resolver:
                 "is_const": node.is_const,
                 "type": node.type,
                 "element_type": node.element_type,
-                "has_explicit_type": True
+                "has_explicit_type": True,
             }
         elif slot not in self.slot_metadata:
             self.slot_metadata[slot] = {
                 "is_const": node.is_const,
                 "type": None,
                 "element_type": node.element_type,
-                "has_explicit_type": False
+                "has_explicit_type": False,
             }
 
     def push_scope(self):
@@ -217,13 +228,15 @@ class Resolver:
 
         # Track symbol for LSP
         if node:
-            self.symbols.append({
-                "name": name,
-                "type": getattr(node, 'type', None),
-                "line": getattr(node, 'line', 0),
-                "col": getattr(node, 'column', 0),
-                "kind": "variable" if isinstance(node, AssignNode) else "function"
-            })
+            self.symbols.append(
+                {
+                    "name": name,
+                    "type": getattr(node, "type", None),
+                    "line": getattr(node, "line", 0),
+                    "col": getattr(node, "column", 0),
+                    "kind": "variable" if isinstance(node, AssignNode) else "function",
+                }
+            )
 
         return slot
 
@@ -235,13 +248,15 @@ class Resolver:
         """
         self.function_scopes[-1].add(name)
         if node:
-            self.symbols.append({
-                "name": name,
-                "type": getattr(node, 'type', None),
-                "line": getattr(node, 'line', 0),
-                "col": getattr(node, 'column', 0),
-                "kind": "function"
-            })
+            self.symbols.append(
+                {
+                    "name": name,
+                    "type": getattr(node, "type", None),
+                    "line": getattr(node, "line", 0),
+                    "col": getattr(node, "column", 0),
+                    "kind": "function",
+                }
+            )
 
     def lookup(self, name):
         for scope in reversed(self.scopes):
@@ -287,7 +302,7 @@ class Resolver:
                 rec.free_keys.add(entry)
                 rec.free.append(entry)
         return top_idx - own_idx
-    
+
     def get_slot_metadata(self):
         return self.slot_metadata
 
@@ -327,13 +342,13 @@ class Resolver:
 
     def resolve_ForNode(self, node):
         self.resolve(node.iterable)
-        
+
         # Iterator variable is defined in a new scope inside the loop
         self.push_scope()
         slot = self.define(node.iterator, node)
         # We need to store this slot info in the ForNode for the compiler
         node.iterator_slot = slot
-        
+
         self.resolve(node.body)
         self.pop_scope()
 
@@ -414,12 +429,14 @@ class Resolver:
 
     def resolve_NonLocalNode(self, node):
         name = node.name
-        line = getattr(node, 'line', 0)
-        column = getattr(node, 'column', 0)
+        line = getattr(node, "line", 0)
+        column = getattr(node, "column", 0)
         if len(self.fn_records) == 1:
             raise QisamJeGhalti(
                 "'bahari' sirf kaam ke andar istemaal thyo sendho.",
-                line, column, self.code,
+                line,
+                column,
+                self.code,
             )
         owner = None
         for lvl in range(len(self.fn_records) - 2, -1, -1):
@@ -433,7 +450,9 @@ class Resolver:
         if owner is None:
             raise QisamJeGhalti(
                 f"'bahari {name}' laai baharli kaam mein '{name}' naatho milio.",
-                line, column, self.code,
+                line,
+                column,
+                self.code,
             )
         self._register_capture(name, owner)
         self.fn_records[-1].nonlocal_names.add(name)

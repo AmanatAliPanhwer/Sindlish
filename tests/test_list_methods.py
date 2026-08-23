@@ -1,6 +1,6 @@
 """Tests for list method calls."""
 
-from tests.conftest import run, extract_value
+from tests.conftest import extract_value, run
 
 
 class TestWadha:

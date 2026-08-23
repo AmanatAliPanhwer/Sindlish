@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sindlish Internals Book
+    url: https://github.com/AmanatAliPanhwer/Sindlish/tree/main/book/src
+    about: Read the relevant chapter before filing — most questions are answered there.
+  - name: Roadmap & known bugs
+    url: https://github.com/AmanatAliPanhwer/Sindlish/blob/main/roadmap/TODO.md
+    about: Check here first — your bug may already be logged with a repro.

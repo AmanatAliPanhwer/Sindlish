@@ -1,19 +1,27 @@
-from .base import SdShey, SdType
 from ..frontend.tokens import TokenType
-from ..errors import QisamJeGhalti
+from .base import SdShey, SdType
 
 KHALI_TYPE = SdType("KHALI", TokenType.KHALI)
 KAAM_TYPE = SdType("KAAM", TokenType.KAAM)
 RESULT_TYPE = SdType("RESULT", None)
 
+
 class SdResult(SdShey):
-    __slots__ = ('variant', 'value', 'ok', 'ghalti', '_captured_traceback', '_error_cls')
-    
+    __slots__ = (
+        "_captured_traceback",
+        "_error_cls",
+        "ghalti",
+        "ok",
+        "value",
+        "variant",
+    )
+
     OK = "OK"
     GHALTI = "GHALTI"
-    
+
     def __init__(self, variant, value, error_cls=None):
-        from .numbers import SdBool # Local import to prevent circular dependency
+        from .numbers import SdBool  # Local import to prevent circular dependency
+
         super().__init__(RESULT_TYPE)
         self.variant = variant
         self.value = value
@@ -26,14 +34,20 @@ class SdResult(SdShey):
         """Captures the current call stack for GHALTI results."""
         if self.variant != self.GHALTI:
             return
-        
+
         from ..errors import TracebackEntry
-        source_lines = code_string.split('\n')
+
+        source_lines = code_string.split("\n")
         for frame in frames:
             line, col = frame.line_col_map.get(frame.ip - 1, (0, 0))
-            if line == 0: continue
-            source_line = source_lines[line-1] if 0 < line <= len(source_lines) else None
-            self._captured_traceback.append(TracebackEntry(frame.name, line, col, source_line))
+            if line == 0:
+                continue
+            source_line = (
+                source_lines[line - 1] if 0 < line <= len(source_lines) else None
+            )
+            self._captured_traceback.append(
+                TracebackEntry(frame.name, line, col, source_line)
+            )
 
     def is_ok(self):
         return self.variant == self.OK
@@ -43,6 +57,7 @@ class SdResult(SdShey):
 
     def __eq__(self, other):
         from .numbers import SdBool
+
         if not isinstance(other, SdResult):
             return SdBool(False)
         return SdBool(self.variant == other.variant and self.value == other.value)
@@ -53,21 +68,47 @@ class SdResult(SdShey):
     def __hash__(self):
         return hash((self.variant, self.value))
 
+
 class Cell:
     """Mutable box shared between a function frame and its closures."""
-    __slots__ = ('value',)
+
+    __slots__ = ("value",)
 
     def __init__(self, value=None):
         self.value = value
 
-class SdFunction(SdShey):
-    __slots__ = ('name', 'params', 'instructions', 'constants', 'line_col_map',
-                 'slot_count', 'slot_metadata', 'return_type', 'defaults',
-                 'cell_names', 'free_specs', 'cells')
 
-    def __init__(self, name, params, instructions, constants, line_col_map,
-                 slot_count, slot_metadata, return_type=None, defaults=(),
-                 cell_names=(), free_specs=(), cells=()):
+class SdFunction(SdShey):
+    __slots__ = (
+        "cell_names",
+        "cells",
+        "constants",
+        "defaults",
+        "free_specs",
+        "instructions",
+        "line_col_map",
+        "name",
+        "params",
+        "return_type",
+        "slot_count",
+        "slot_metadata",
+    )
+
+    def __init__(
+        self,
+        name,
+        params,
+        instructions,
+        constants,
+        line_col_map,
+        slot_count,
+        slot_metadata,
+        return_type=None,
+        defaults=(),
+        cell_names=(),
+        free_specs=(),
+        cells=(),
+    ):
         super().__init__(KAAM_TYPE)
         self.name = name
         self.params = params
@@ -105,26 +146,29 @@ class SdFunction(SdShey):
     def __hash__(self):
         return id(self)
 
+
 class SdNull(SdShey):
-    __slots__ = ('value',)
-    
+    __slots__ = ("value",)
+
     def __init__(self):
         super().__init__(KHALI_TYPE)
         self.value = None
 
     def __eq__(self, other):
         from .numbers import SdBool
+
         return SdBool(isinstance(other, SdNull))
-    
+
     def __ne__(self, other):
         from .numbers import SdBool
+
         return SdBool(not isinstance(other, SdNull))
-    
+
     def __str__(self):
         return "khali"
-    
+
     def __hash__(self):
         return hash(None)
-    
+
     def __bool__(self):
         return False

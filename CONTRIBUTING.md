@@ -44,8 +44,8 @@ If the feature requires new keywords or operators, add entries to `interpreter/f
 ```python
 class TokenType(Enum):
     # ... existing tokens ...
-    MY_KEYWORD = auto()    # New keyword
-    MY_OPERATOR = auto()   # New operator
+    MY_KEYWORD = auto()  # New keyword
+    MY_OPERATOR = auto()  # New operator
 ```
 
 ### Step 2: Lexer
@@ -82,7 +82,7 @@ Add new AST node class(es) to `interpreter/frontend/ast_nodes.py`:
 
 ```python
 class MyNewNode(Node):
-    __slots__ = ('field1', 'field2', 'line', 'column')
+    __slots__ = ("field1", "field2", "line", "column")
 
     def __init__(self, field1, field2, line=0, column=0):
         self.field1 = field1
@@ -179,10 +179,10 @@ Update relevant documentation in `developer-docs/` and the offline docs.
 All error messages are written in Sindhi/Romanized Sindhi:
 
 ```python
-raise LikhaiJeGhalti(f"Illegal akhar {char}.")           # "Illegal character"
-raise NaleJeGhalti(f"'{name}' natho mehalain saghjay.")   # "not found"
-raise QisamJeGhalti("... khe ... mein badal natho...")    # "cannot convert"
-raise HalndeVaktGhalti("...")                              # Runtime error
+raise LikhaiJeGhalti(f"Illegal akhar {char}.")  # "Illegal character"
+raise NaleJeGhalti(f"'{name}' natho mehalain saghjay.")  # "not found"
+raise QisamJeGhalti("... khe ... mein badal natho...")  # "cannot convert"
+raise HalndeVaktGhalti("...")  # Runtime error
 ```
 
 ### AST Nodes
@@ -207,6 +207,7 @@ When adding methods to collection types:
 def my_method(self, args):
     # Implementation
     pass
+
 
 FEHRIST_TYPE.register_method("mymethod", my_method)
 ```

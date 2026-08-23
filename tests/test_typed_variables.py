@@ -1,8 +1,9 @@
 """Tests for typed variable declarations and default values."""
 
 import pytest
-from tests.conftest import run, extract_value
+
 from interpreter.errors import QisamJeGhalti
+from tests.conftest import extract_value, run
 
 
 class TestAdad:

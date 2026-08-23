@@ -13,10 +13,10 @@ The `Environment` class is the symbol table used at runtime for variable storage
 ```python
 @dataclass(slots=True)
 class VariableRecord:
-    value: Any                         # The runtime value
-    type: TokenType | None = None      # Declared type (None if untyped)
+    value: Any  # The runtime value
+    type: TokenType | None = None  # Declared type (None if untyped)
     element_type: list | TokenType | None = None  # For typed collections
-    is_const: bool = False             # pakko (const) flag
+    is_const: bool = False  # pakko (const) flag
 ```
 
 ### Environment Class
@@ -119,6 +119,7 @@ class SimpleBuiltins:
         def decorator(func):
             registry_dict[func.__name__] = func
             return func
+
         return decorator
 ```
 
@@ -167,9 +168,9 @@ def lambi(self, args):
     if len(args) != 1:
         raise HalndeVaktGhalti(...)
     obj = args[0]
-    if hasattr(obj, 'elements'):     # SdList or SdSet
+    if hasattr(obj, "elements"):  # SdList or SdSet
         return SdNumber(len(obj.elements))
-    if hasattr(obj, 'value'):
+    if hasattr(obj, "value"):
         if isinstance(obj.value, (str, dict)):
             return SdNumber(len(obj.value))
     raise QisamJeGhalti(...)
@@ -190,9 +191,18 @@ def range_builtin(self, args):
     if len(args) == 1:
         return SdList([SdNumber(i) for i in range(0, int(args[0].value), 1)])
     elif len(args) == 2:
-        return SdList([SdNumber(i) for i in range(int(args[0].value), int(args[1].value), 1)])
+        return SdList(
+            [SdNumber(i) for i in range(int(args[0].value), int(args[1].value), 1)]
+        )
     elif len(args) == 3:
-        return SdList([SdNumber(i) for i in range(int(args[0].value), int(args[1].value), int(args[2].value))])
+        return SdList(
+            [
+                SdNumber(i)
+                for i in range(
+                    int(args[0].value), int(args[1].value), int(args[2].value)
+                )
+            ]
+        )
 ```
 
 Creates a list of integers.

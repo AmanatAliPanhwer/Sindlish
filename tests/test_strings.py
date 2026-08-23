@@ -1,6 +1,6 @@
 """Tests for string literals, escape sequences, and multiline strings."""
 
-from tests.conftest import run, extract_value
+from tests.conftest import extract_value, run
 
 
 class TestStringLiterals:

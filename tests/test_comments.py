@@ -1,6 +1,6 @@
 """Tests for comments: single-line # and multiline /* */."""
 
-from tests.conftest import run, extract_value
+from tests.conftest import extract_value, run
 
 
 class TestSingleLineComment:

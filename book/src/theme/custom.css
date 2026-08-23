@@ -1,0 +1,39 @@
+/* Cozy theme touches for the Sindlish book */
+
+/* A little more breathing room for prose */
+.content {
+    line-height: 1.75;
+}
+
+/* Recap cards at the end of every chapter */
+div.recap {
+    border: 1px solid var(--quote-border, #4a90d9);
+    border-left: 5px solid var(--quote-border, #4a90d9);
+    border-radius: 8px;
+    padding: 0.6em 1.2em 0.8em 1.2em;
+    margin: 2em 0 1em 0;
+    background: rgba(127, 127, 127, 0.07);
+}
+
+div.recap::before {
+    content: "🧾 TL;DR — recap card";
+    display: block;
+    font-weight: bold;
+    opacity: 0.85;
+    margin-bottom: 0.3em;
+}
+
+/* "You are here" journey strip */
+div.youarehere {
+    font-size: 0.9em;
+    opacity: 0.8;
+    border-bottom: 1px dashed rgba(127, 127, 127, 0.4);
+    padding-bottom: 0.4em;
+    margin-bottom: 1.6em;
+}
+
+/* Mermaid diagrams: center them and give them air */
+pre.mermaid, svg[id^="mermaid"] {
+    display: flex;
+    justify-content: center;
+}

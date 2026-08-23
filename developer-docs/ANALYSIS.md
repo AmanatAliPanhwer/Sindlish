@@ -36,11 +36,11 @@ The Resolver maintains a stack of scopes, where each scope is a dict mapping var
 class Resolver:
     def __init__(self, code):
         self.code = code
-        self.scopes = [{}]          # Stack of {name: slot_index} dicts
-        self.next_slot = 0          # Next available slot index
-        self.slot_metadata = {}     # {slot_index: metadata_dict}
-        self.symbols = []           # For LSP integration
-        self.is_repl = False        # True when running in REPL mode
+        self.scopes = [{}]  # Stack of {name: slot_index} dicts
+        self.next_slot = 0  # Next available slot index
+        self.slot_metadata = {}  # {slot_index: metadata_dict}
+        self.symbols = []  # For LSP integration
+        self.is_repl = False  # True when running in REPL mode
 ```
 
 ### Scope Operations
@@ -197,12 +197,12 @@ Key points:
 
 ```python
 def resolve_ForNode(self, node):
-    self.resolve(node.iterable)        # Resolve the iterable expression
-    self.push_scope()                  # New scope for iterator
+    self.resolve(node.iterable)  # Resolve the iterable expression
+    self.push_scope()  # New scope for iterator
     slot = self.define(node.iterator)  # Define iterator variable
-    node.iterator_slot = slot          # Store slot in AST node
-    self.resolve(node.body)            # Resolve loop body
-    self.pop_scope()                   # Pop iterator scope
+    node.iterator_slot = slot  # Store slot in AST node
+    self.resolve(node.body)  # Resolve loop body
+    self.pop_scope()  # Pop iterator scope
 ```
 
 ## Symbol Tracking for LSP
@@ -210,13 +210,15 @@ def resolve_ForNode(self, node):
 The Resolver records all defined symbols with metadata:
 
 ```python
-self.symbols.append({
-    "name": name,
-    "type": inferred_type,
-    "line": line,
-    "col": col,
-    "kind": "variable" | "function"
-})
+self.symbols.append(
+    {
+        "name": name,
+        "type": inferred_type,
+        "line": line,
+        "col": col,
+        "kind": "variable" | "function",
+    }
+)
 ```
 
 This data is used by the VS Code extension's Language Server for completions and hover information.

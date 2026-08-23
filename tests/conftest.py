@@ -7,7 +7,10 @@ from the VM for assertions.
 
 import io
 import sys
+<<<<<<< HEAD
 from pathlib import Path
+=======
+>>>>>>> 4517b08e78b57885913ec5e654328c441d308f59
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -61,7 +64,15 @@ def run(code: str):
     old_stdout = sys.stdout
     sys.stdout = buffer = io.StringIO()
     try:
-        vm = VM(code, instructions, constants, globals_env, getattr(ast, "slot_count", 0), slot_metadata, line_col_map)
+        vm = VM(
+            code,
+            instructions,
+            constants,
+            globals_env,
+            getattr(ast, "slot_count", 0),
+            slot_metadata,
+            line_col_map,
+        )
         vm.run()
     finally:
         sys.stdout = old_stdout
@@ -79,7 +90,7 @@ def get_variable_value(vm, name):
         return extract_value(vm.globals.records[name].value)
 
     frame = vm.frames[-1]
-    if hasattr(vm, 'slot_names') and name in vm.slot_names:
+    if hasattr(vm, "slot_names") and name in vm.slot_names:
         slot_idx = vm.slot_names[name]
         if 0 <= slot_idx < len(frame.slots) and frame.slots[slot_idx] is not None:
             return extract_value(frame.slots[slot_idx])
@@ -91,18 +102,17 @@ def extract_value(sd_object):
     Extract Python value from a SdShey for testing.
     Recursively converts SdSheys to native Python types.
     """
-    if isinstance(sd_object, SdNumber):
-        return sd_object.value
-    elif isinstance(sd_object, SdString):
-        return sd_object.value
-    elif isinstance(sd_object, SdBool):
+    if isinstance(sd_object, (SdNumber, SdString, SdBool)):
         return sd_object.value
     elif isinstance(sd_object, SdNull):
         return None
     elif isinstance(sd_object, SdList):
         return [extract_value(elem) for elem in sd_object.elements]
     elif isinstance(sd_object, SdDict):
-        return {extract_value(k) if not isinstance(k, str) else k: extract_value(v) for k, v in sd_object.items()}
+        return {
+            extract_value(k) if not isinstance(k, str) else k: extract_value(v)
+            for k, v in sd_object.items()
+        }
     elif isinstance(sd_object, SdSet):
         return {extract_value(elem) for elem in sd_object.elements}
     elif isinstance(sd_object, SdResult):

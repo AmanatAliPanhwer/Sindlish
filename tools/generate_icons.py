@@ -6,7 +6,9 @@
 # ///
 
 import os
+
 from PIL import Image
+
 
 def generate_icons():
     img_path = "..\\vscode-extension\\logo.png"
@@ -18,7 +20,11 @@ def generate_icons():
 
     # 1. Generate Windows ICO
     ico_path = "sindlish.ico"
-    img.save(ico_path, format='ICO', sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    img.save(
+        ico_path,
+        format="ICO",
+        sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
+    )
     print(f"Created {ico_path}")
 
     # 2. Generate Inno Setup BMPs
@@ -29,13 +35,14 @@ def generate_icons():
 
     # 3. Generate macOS ICNS
     icns_path = "sindlish.icns"
-    img.save(icns_path, format='ICNS')
+    img.save(icns_path, format="ICNS")
     print(f"Created {icns_path}")
 
     # 4. Generate Linux PNG (High Res)
     linux_png = "sindlish_icon.png"
     img.resize((512, 512), Image.Resampling.LANCZOS).save(linux_png)
     print(f"Created {linux_png}")
+
 
 if __name__ == "__main__":
     generate_icons()

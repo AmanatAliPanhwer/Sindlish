@@ -1,8 +1,9 @@
 """Tests for dictionary literals, indexing, and typed dicts."""
 
 import pytest
-from tests.conftest import run, extract_value
+
 from interpreter.errors import QisamJeGhalti
+from tests.conftest import extract_value, run
 
 
 class TestDictLiteral:
@@ -40,7 +41,7 @@ class TestTypedDict:
 
     def test_typed_lughat_wrong_key_type(self):
         with pytest.raises(QisamJeGhalti):
-            run('lughat[lafz, adad] x = {1: 100}')
+            run("lughat[lafz, adad] x = {1: 100}")
 
     def test_typed_lughat_wrong_value_type(self):
         with pytest.raises(QisamJeGhalti):

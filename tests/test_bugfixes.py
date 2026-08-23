@@ -2,14 +2,20 @@
 
 import pytest
 
-from tests.conftest import run, extract_value
-from interpreter.errors import HalndeVaktGhalti, LikhaiJeGhalti, NaleJeGhalti, QisamJeGhalti, SindhiBaseError
+from interpreter.errors import (
+    HalndeVaktGhalti,
+    LikhaiJeGhalti,
+    NaleJeGhalti,
+    QisamJeGhalti,
+    SindhiBaseError,
+)
 from interpreter.objects import SdResult
+from tests.conftest import extract_value, run
 
 
 class TestScoping:
     def test_function_reads_top_level_variable(self):
-        interp, out = run("x = 42\nkaam foo() { wapas x }\nlikh(foo())")
+        _interp, out = run("x = 42\nkaam foo() { wapas x }\nlikh(foo())")
         assert "42" in out
 
     def test_function_assigns_to_program_variable(self):
@@ -21,7 +27,9 @@ class TestScoping:
         assert "7" in out
 
     def test_recursion_still_works(self):
-        interp, _ = run("kaam fact(n) { agar n <= 1 { wapas 1 } wapas n * fact(n - 1) }\nx = fact(5)")
+        interp, _ = run(
+            "kaam fact(n) { agar n <= 1 { wapas 1 } wapas n * fact(n - 1) }\nx = fact(5)"
+        )
         assert extract_value(interp.variables["x"]["value"]) == 120
 
     def test_bahari_unknown_name_rejected(self):
@@ -76,7 +84,9 @@ class TestParserErrors:
 
 class TestParams:
     def test_default_param_evaluated(self):
-        _, out = run('kaam greet(naam = "Dost") { wapas "Salam " + naam }\nlikh(greet())')
+        _, out = run(
+            'kaam greet(naam = "Dost") { wapas "Salam " + naam }\nlikh(greet())'
+        )
         assert "Salam Dost" in out
 
     def test_typed_default_param(self):
@@ -84,7 +94,9 @@ class TestParams:
         assert "10" in out
 
     def test_call_site_overrides_default(self):
-        _, out = run('kaam greet(naam = "Dost") { wapas "Salam " + naam }\nlikh(greet("Ali"))')
+        _, out = run(
+            'kaam greet(naam = "Dost") { wapas "Salam " + naam }\nlikh(greet("Ali"))'
+        )
         assert "Salam Ali" in out
 
     def test_missing_required_param_raises(self):
@@ -120,7 +132,9 @@ class TestTruthiness:
 
 class TestShortCircuit:
     def test_and_does_not_evaluate_right_operand(self):
-        _, out = run('x = 0\nagar x != 0 aen 10 / x > 1 { likh("boom") } warna { likh("safe") }')
+        _, out = run(
+            'x = 0\nagar x != 0 aen 10 / x > 1 { likh("boom") } warna { likh("safe") }'
+        )
         assert "safe" in out
 
     def test_or_returns_first_truthy(self):
@@ -142,7 +156,9 @@ class TestResultTyping:
             run("adad x = 10 / 2")
 
     def test_error_results_stay_results(self):
-        interp, out = run("kaam vind(a, b) { wapas a / b }\nr = vind(5, 0)\nagar r.ghalti { likh(\"failed\") }")
+        _interp, out = run(
+            'kaam vind(a, b) { wapas a / b }\nr = vind(5, 0)\nagar r.ghalti { likh("failed") }'
+        )
         assert "failed" in out
 
     def test_while_terminates_on_result_condition(self):
@@ -160,12 +176,14 @@ class TestCallArgs:
         assert extract_value(interp.variables["x"]["value"]) == 8
 
     def test_star_unpacking(self):
-        interp, _ = run("kaam jorr(a, b, c) { wapas a + b + c }\nnums = [10, 20, 30]\nx = jorr(*nums)")
+        interp, _ = run(
+            "kaam jorr(a, b, c) { wapas a + b + c }\nnums = [10, 20, 30]\nx = jorr(*nums)"
+        )
         assert extract_value(interp.variables["x"]["value"]) == 60
 
     def test_double_star_unpacking(self):
         _, out = run(
-            'kaam profile(naamo, umaro) { likh(naamo)\nlikh(umaro) }\n'
+            "kaam profile(naamo, umaro) { likh(naamo)\nlikh(umaro) }\n"
             'info = {"naamo": "Ali", "umaro": 25}\nprofile(**info)'
         )
         assert "Ali" in out
@@ -176,7 +194,9 @@ class TestCallArgs:
         assert extract_value(interp.variables["x"]["value"]) == 3
 
     def test_kw_param_collects_extras(self):
-        interp, _ = run("kaam f(**baqiyaa) { wapas lambi(baqiyaa) }\nx = f(p = 1, q = 2)")
+        interp, _ = run(
+            "kaam f(**baqiyaa) { wapas lambi(baqiyaa) }\nx = f(p = 1, q = 2)"
+        )
         assert extract_value(interp.variables["x"]["value"]) == 2
 
     def test_unknown_kwarg_raises(self):
@@ -246,7 +266,9 @@ class TestFunctionLocalConstraints:
             run("kaam f() { agar sach { pakko b = 9\nb = 10 } }\nf()")
 
     def test_function_metadata_does_not_leak_to_main_frame(self):
-        interp, _ = run('adad x = 5\nkaam f() { lafz y = "s"\ny = "t"\nwapas y }\nx = 6')
+        interp, _ = run(
+            'adad x = 5\nkaam f() { lafz y = "s"\ny = "t"\nwapas y }\nx = 6'
+        )
         assert extract_value(interp.variables["x"]["value"]) == 6
 
 
@@ -260,11 +282,13 @@ class TestLazyRange:
         assert extract_value(interp.variables["x"]["value"]) == 200000000
 
     def test_range_does_not_materialize(self):
-        interp, _ = run("x = 0\nhar v mein range(1000000000000, 1000000000010) { x = v }")
+        interp, _ = run(
+            "x = 0\nhar v mein range(1000000000000, 1000000000010) { x = v }"
+        )
         assert extract_value(interp.variables["x"]["value"]) == 1000000000009
 
     def test_negative_step(self):
-        interp, out = run("r = range(10, 0, -2)\nlikh(r[2])")
+        _interp, out = run("r = range(10, 0, -2)\nlikh(r[2])")
         assert "6" in out
 
     def test_indexing_and_length(self):
@@ -277,7 +301,9 @@ class TestLazyRange:
         assert "range(1, 5, 2)" in out
 
     def test_truthiness(self):
-        _, out = run('agar range(5, 5) { likh("t") } warna { likh("f") }\nagar range(1) { likh("big") }')
+        _, out = run(
+            'agar range(5, 5) { likh("t") } warna { likh("f") }\nagar range(1) { likh("big") }'
+        )
         assert "f" in out
         assert "big" in out
 
@@ -307,11 +333,15 @@ class TestResultSemantics:
         assert interp.variables["r"]["value"].is_error()
 
     def test_ghalti_gate(self):
-        _, out = run("kaam vind(a, b) { wapas a / b }\nr = vind(5, 0)\nagar r.ghalti { likh(\"caught\") }")
+        _, out = run(
+            'kaam vind(a, b) { wapas a / b }\nr = vind(5, 0)\nagar r.ghalti { likh("caught") }'
+        )
         assert "caught" in out
 
     def test_bachao_fallback(self):
-        _, out = run("kaam vind(a, b) { wapas a / b }\nval = vind(5, 0).bachao(0)\nlikh(val)")
+        _, out = run(
+            "kaam vind(a, b) { wapas a / b }\nval = vind(5, 0).bachao(0)\nlikh(val)"
+        )
         assert "0" in out
 
     def test_err_in_operation_raises_strict(self):
@@ -320,10 +350,10 @@ class TestResultSemantics:
 
     def test_err_in_condition_raises_strict(self):
         with pytest.raises(SindhiBaseError):
-            run("agar 10 / 0 { likh(\"x\") }")
+            run('agar 10 / 0 { likh("x") }')
 
     def test_ok_in_condition_unwraps(self):
-        _, out = run("agar (2 + 3) > 4 { likh(\"yes\") } warna { likh(\"no\") }")
+        _, out = run('agar (2 + 3) > 4 { likh("yes") } warna { likh("no") }')
         assert "yes" in out
 
     def test_typed_declaration_accepts_wrapped_result(self):

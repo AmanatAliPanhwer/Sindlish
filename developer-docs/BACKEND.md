@@ -145,10 +145,10 @@ The Compiler (~407 lines) is a tree-walking compiler that translates AST nodes i
 class Compiler:
     def __init__(self, code):
         self.code = code
-        self.instructions = []       # List of (opcode, arg) tuples
-        self.constants = []          # Constant pool
-        self.line_col_map = {}       # instruction_index -> (line, column)
-        self.loop_stack = []         # Stack for break/continue patching
+        self.instructions = []  # List of (opcode, arg) tuples
+        self.constants = []  # Constant pool
+        self.line_col_map = {}  # instruction_index -> (line, column)
+        self.loop_stack = []  # Stack for break/continue patching
 ```
 
 ### Core Methods
@@ -297,7 +297,7 @@ flowchart TD
 ```python
 def compile_BlockNode(self, node, is_function_body=False):
     for i, stmt in enumerate(node.statements):
-        is_last = (i == len(node.statements) - 1)
+        is_last = i == len(node.statements) - 1
         if is_last and is_function_body and isinstance(stmt, EXPRESSION_NODES):
             # Implicit return: compile expression, wrap in Ok, return
             self.compile(stmt)
@@ -317,7 +317,7 @@ def compile_ReturnNode(self, node):
         self.compile(node.value)
     else:
         self.emit(OpCode.PUSH_NULL, node=node)
-    self.emit(OpCode.MAKE_OK, node=node)      # Auto-wrap in Ok
+    self.emit(OpCode.MAKE_OK, node=node)  # Auto-wrap in Ok
     self.emit(OpCode.RETURN_VALUE, node=node)
 ```
 
@@ -356,14 +356,14 @@ A lightweight execution frame, one per function call (including main).
 ```python
 class BytecodeFrame:
     __slots__ = (
-        'name',              # str: function name or "main"
-        'instructions',      # list[(opcode, arg)]: bytecode
-        'constants',         # list: constant pool
-        'line_col_map',      # dict[int, (line, col)]: source positions
-        'slots',             # list[None] * slot_count: local variable storage
-        'slot_metadata',     # dict[int, dict]: slot -> {is_const, type, ...}
-        'ip',                # int: instruction pointer
-        'call_metadata',     # dict: {return_type, function_name}
+        "name",  # str: function name or "main"
+        "instructions",  # list[(opcode, arg)]: bytecode
+        "constants",  # list: constant pool
+        "line_col_map",  # dict[int, (line, col)]: source positions
+        "slots",  # list[None] * slot_count: local variable storage
+        "slot_metadata",  # dict[int, dict]: slot -> {is_const, type, ...}
+        "ip",  # int: instruction pointer
+        "call_metadata",  # dict: {return_type, function_name}
     )
 ```
 
@@ -408,14 +408,23 @@ flowchart TD
 
 ```python
 class VM:
-    def __init__(self, code_string, instructions, constants,
-                 globals_env, slot_count, slot_metadata, line_col_map):
+    def __init__(
+        self,
+        code_string,
+        instructions,
+        constants,
+        globals_env,
+        slot_count,
+        slot_metadata,
+        line_col_map,
+    ):
         self.code_string = code_string
         self.globals = globals_env
         self.stack = []
         self.frames = [
-            BytecodeFrame("main", instructions, constants,
-                          line_col_map, slot_count, slot_metadata)
+            BytecodeFrame(
+                "main", instructions, constants, line_col_map, slot_count, slot_metadata
+            )
         ]
         self.simple_handler = SimpleBuiltins()
         self._setup_dispatch_table()
@@ -458,14 +467,15 @@ All handlers follow the signature: `_op_<name>(self, frame, arg, line, column)`.
 def _op_load_fast(self, frame, arg, line, column):
     self.push(frame.slots[arg])
 
+
 def _op_store_fast(self, frame, arg, line, column):
     value = self.pop()
     # Check const enforcement
-    if arg in frame.slot_metadata and frame.slot_metadata[arg].get('is_const'):
+    if arg in frame.slot_metadata and frame.slot_metadata[arg].get("is_const"):
         if frame.slots[arg] is not None:
             raise HalndeVaktGhalti(...)
     # Check type enforcement
-    if frame.slot_metadata[arg].get('has_explicit_type'):
+    if frame.slot_metadata[arg].get("has_explicit_type"):
         self._check_type(value, ...)
     frame.slots[arg] = value
 ```

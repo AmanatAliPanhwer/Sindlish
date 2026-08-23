@@ -1,6 +1,6 @@
 """Tests for arithmetic operations."""
 
-from tests.conftest import run, extract_value
+from tests.conftest import extract_value, run
 
 
 class TestAddition:

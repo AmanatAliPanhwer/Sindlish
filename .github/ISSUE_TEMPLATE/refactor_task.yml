@@ -1,0 +1,40 @@
+name: 🔧 Refactor task
+description: One focused refactor step (structure/readability/perf) — no behavior changes
+labels: ["refactor"]
+body:
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Refactor phase
+      options:
+        - "0 — Safety net (golden tests)"
+        - "1 — Dead weight removal"
+        - "2 — Correctness fixes"
+        - "3 — Error philosophy unification"
+        - "4 — Frontend cleanup"
+        - "5 — Resolver restructure"
+        - "6 — VM hygiene"
+        - "7 — Performance pass"
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What exactly moves/changes? Files and symbols.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Bullet list of checkable outcomes (tests, book chapter, TODO tick)
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Ground rules acknowledged
+      options:
+        - label: Tests green before & after; one commit-sized step
+        - label: No behavior change mixed in (that's a separate bug/refactor issue)

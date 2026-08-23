@@ -1,6 +1,6 @@
 """Tests for har (for) and kar-jistain (do-while) loops."""
 
-from tests.conftest import run, extract_value
+from tests.conftest import extract_value, run
 
 
 class TestForLoop:
@@ -73,7 +73,7 @@ har i mein range(10) {
 }
 """
         interp, _ = run(code)
-        assert extract_value(interp.variables["total"]["value"]) == 10 # 0+1+2+3+4
+        assert extract_value(interp.variables["total"]["value"]) == 10  # 0+1+2+3+4
 
     def test_while_continue(self):
         code = """
@@ -104,4 +104,3 @@ har i mein range(5) {
         interp, _ = run(code)
         # 0 + 1 + (skip 2) + 3 + 4 = 8
         assert extract_value(interp.variables["total"]["value"]) == 8
-

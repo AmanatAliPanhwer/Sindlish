@@ -1,0 +1,48 @@
+name: 🐛 Bug report
+description: The interpreter did something wrong (crash, wrong output, misleading error)
+labels: ["bug"]
+body:
+  - type: textarea
+    id: repro
+    attributes:
+      label: Sindlish snippet
+      description: Minimal `.sd` code that triggers the bug
+      placeholder: |
+        kaam test() {
+            adad x = 1
+        }
+      render: sd
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include full error/output. Run via `python main.py run file.sd`
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Pipeline stage (best guess)
+      options:
+        - Lexer / Parser
+        - Resolver (names, slots, types)
+        - Compiler / Bytecode
+        - VM runtime
+        - Objects / methods
+        - CLI / tooling
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: Not already in roadmap/TODO.md
+        - label: Book chapter for this stage read
