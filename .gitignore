@@ -22,3 +22,7 @@ target/
 
 # Agent scratch dir
 .opencode/
+
+# mdBook build output
+book/html/
+

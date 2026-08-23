@@ -1,6 +1,6 @@
 """Tests for variable assignment and dynamic typing."""
 
-from tests.conftest import run, extract_value
+from tests.conftest import extract_value, run
 
 
 class TestBasicAssignment:

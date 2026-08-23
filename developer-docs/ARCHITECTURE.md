@@ -54,8 +54,15 @@ class Interpreter:
         # 4. Compile
         instructions, constants, line_col_map = Compiler(code).compile(ast)
         # 5. Execute
-        vm = VM(code, instructions, constants, self._globals_env,
-                ast.slot_count, resolver.slot_metadata, line_col_map)
+        vm = VM(
+            code,
+            instructions,
+            constants,
+            self._globals_env,
+            ast.slot_count,
+            resolver.slot_metadata,
+            line_col_map,
+        )
         vm.run()
         return vm
 ```

@@ -1,6 +1,6 @@
 """Tests for boolean values (sach / koorh)."""
 
-from tests.conftest import run, extract_value
+from tests.conftest import extract_value, run
 
 
 class TestBooleanLiterals:

@@ -175,7 +175,7 @@ class TestMyFeature:
 
     def test_error_case(self):
         with pytest.raises(QisamJeGhalti):
-            run("adad x = \"hello\"")
+            run('adad x = "hello"')
 ```
 
 2. **Run the test** to verify:

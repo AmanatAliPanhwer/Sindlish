@@ -7,8 +7,8 @@ Cell, and inner functions read/write through it by reference.
 
 import pytest
 
-from tests.conftest import run, get_variable_value
 from interpreter.errors import SindhiBaseError
+from tests.conftest import run
 
 
 def _run_expect_error(code):

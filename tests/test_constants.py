@@ -1,8 +1,9 @@
 """Tests for pakko (constant) declarations."""
 
 import pytest
-from tests.conftest import run, extract_value
+
 from interpreter.errors import HalndeVaktGhalti, LikhaiJeGhalti
+from tests.conftest import extract_value, run
 
 
 class TestConstantDeclaration:

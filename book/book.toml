@@ -1,0 +1,26 @@
+[book]
+title = "Sindlish Internals — A Cozy Field Guide"
+authors = ["The Sindlish Project"]
+description = "How the Sindlish interpreter really works: from characters to bytecode, told one warm chapter at a time."
+src = "src"
+language = "en"
+
+[build]
+build-dir = "html"
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output.html]
+default-theme = "coal"
+preferred-dark-theme = "coal"
+smart-punctuation = true
+mathjax-support = false
+additional-css = ["src/theme/custom.css"]
+git-repository-url = "https://github.com/sindlish/sindlish"
+edit-url-template = "https://github.com/sindlish/sindlish/edit/main/book/src/{path}"
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[output.html.search]
+enable = true
+boost-hierarchy = 2

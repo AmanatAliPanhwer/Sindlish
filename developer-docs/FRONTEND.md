@@ -425,9 +425,10 @@ All 36 AST node classes inherit from `Node`, which provides `line` and `column` 
 
 ```python
 class Node:
-    __slots__ = ('line', 'column')
+    __slots__ = ("line", "column")
+
     def __init__(self, line=0, column=0): ...
-    def set_pos(self, line, column) -> 'Node': ...
+    def set_pos(self, line, column) -> "Node": ...
 ```
 
 ### Complete Node Reference

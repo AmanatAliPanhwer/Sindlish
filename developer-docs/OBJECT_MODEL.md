@@ -48,7 +48,14 @@ classDiagram
 
 ```python
 class SdType:
-    __slots__ = ('name', 'token_type', '_methods', '_bases', '_mro_cache', '_instance_class')
+    __slots__ = (
+        "name",
+        "token_type",
+        "_methods",
+        "_bases",
+        "_mro_cache",
+        "_instance_class",
+    )
 ```
 
 | Field | Type | Description |
@@ -66,6 +73,7 @@ class SdType:
 def __call__(self, *args, **kwargs):
     return self._new(*args, **kwargs)
 
+
 def _new(self, *args, **kwargs):
     if self._instance_class:
         instance = object.__new__(self._instance_class)
@@ -73,7 +81,7 @@ def _new(self, *args, **kwargs):
         instance = object.__new__(type(self))
     instance._type = self
     instance._ref_count = 1
-    if hasattr(instance, '__init__'):
+    if hasattr(instance, "__init__"):
         instance.__init__(*args, **kwargs)
     return instance
 ```
@@ -83,6 +91,7 @@ def _new(self, *args, **kwargs):
 ```python
 def register_method(self, name, method):
     self._methods[name] = method
+
 
 def get_method(self, name):
     return self._methods.get(name)
@@ -132,7 +141,7 @@ def _c3_merge(self, sequences):
 
 ```python
 def lookup_method(self, name):
-    for cls in self.mro:           # Walk MRO chain
+    for cls in self.mro:  # Walk MRO chain
         method = cls.get_method(name)
         if method is not None:
             return method
@@ -143,7 +152,12 @@ def lookup_method(self, name):
 
 ```python
 def __eq__(self, other):
-    return isinstance(other, SdType) and self.name == other.name and self.token_type == other.token_type
+    return (
+        isinstance(other, SdType)
+        and self.name == other.name
+        and self.token_type == other.token_type
+    )
+
 
 def __hash__(self):
     return hash((self.name, self.token_type))
@@ -163,7 +177,7 @@ def __hash__(self):
 
 ```python
 class SdShey:
-    __slots__ = ('_type', '_ref_count')
+    __slots__ = ("_type", "_ref_count")
 ```
 
 ### Protocol Methods

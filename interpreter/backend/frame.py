@@ -6,7 +6,6 @@ within the VM, holding its own instruction stream, local variable slots,
 and instruction pointer.
 """
 
-from ..runtime.env import Environment
 from ..objects.core import Cell
 
 
@@ -22,13 +21,29 @@ class BytecodeFrame:
     - ip: instruction pointer
     """
 
-    __slots__ = ('name', 'instructions', 'constants', 'line_col_map',
-                 'slots', 'slot_metadata', 'cells', 'cell_map',
-                 'ip', 'call_metadata')
+    __slots__ = (
+        "call_metadata",
+        "cell_map",
+        "cells",
+        "constants",
+        "instructions",
+        "ip",
+        "line_col_map",
+        "name",
+        "slot_metadata",
+        "slots",
+    )
 
-    def __init__(self, name: str, instructions: list, constants: list,
-                 line_col_map: dict, slot_count: int, slot_metadata: dict,
-                 func=None):
+    def __init__(
+        self,
+        name: str,
+        instructions: list,
+        constants: list,
+        line_col_map: dict,
+        slot_count: int,
+        slot_metadata: dict,
+        func=None,
+    ):
         self.name = name
         self.instructions = instructions
         self.constants = constants
@@ -39,12 +54,12 @@ class BytecodeFrame:
         self.cell_map = {}
         if func is not None:
             idx = 0
-            for n in getattr(func, 'cell_names', ()):
+            for n in getattr(func, "cell_names", ()):
                 self.cells.append(Cell())
                 self.cell_map[n] = idx
                 idx += 1
-            inherited = tuple(getattr(func, 'cells', ()) or ())
-            for j, (_, n) in enumerate(getattr(func, 'free_specs', ())):
+            inherited = tuple(getattr(func, "cells", ()) or ())
+            for j, (_, n) in enumerate(getattr(func, "free_specs", ())):
                 if n not in self.cell_map:
                     self.cell_map[n] = len(self.cells)
                     self.cells.append(inherited[j] if j < len(inherited) else None)

@@ -69,8 +69,15 @@ The base class for all Sindlish errors:
 
 ```python
 class SindhiBaseError(Exception):
-    def __init__(self, error_name, details, line=None, column=None,
-                 code_string=None, traceback=None):
+    def __init__(
+        self,
+        error_name,
+        details,
+        line=None,
+        column=None,
+        code_string=None,
+        traceback=None,
+    ):
         self.error_name = error_name
         self.details = details
         self.line = line
@@ -79,9 +86,7 @@ class SindhiBaseError(Exception):
         self.traceback = traceback or []
 
     def add_traceback(self, context_name, line, column, source_line=None):
-        self.traceback.append(
-            TracebackEntry(context_name, line, column, source_line)
-        )
+        self.traceback.append(TracebackEntry(context_name, line, column, source_line))
 ```
 
 ### TracebackEntry
@@ -89,7 +94,7 @@ class SindhiBaseError(Exception):
 ```python
 @dataclass
 class TracebackEntry:
-    context_name: str    # Function name or "main"
+    context_name: str  # Function name or "main"
     line: int
     column: int
     source_line: str | None = None

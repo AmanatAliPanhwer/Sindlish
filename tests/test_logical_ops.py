@@ -1,6 +1,6 @@
 """Tests for logical operators: aen (and), ya (or), nah (not)."""
 
-from tests.conftest import run, extract_value
+from tests.conftest import extract_value, run
 
 
 class TestAnd:

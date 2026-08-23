@@ -66,7 +66,9 @@ class Interpreter:
 
             # 5. Execute
             vm = VM(
-                code, instructions, constants,
+                code,
+                instructions,
+                constants,
                 self._globals_env,
                 getattr(ast, "slot_count", 0),
                 resolver.slot_metadata,

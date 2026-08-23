@@ -1,8 +1,9 @@
 """Tests for error cases: undefined variables, type mismatches, immutability."""
 
 import pytest
-from tests.conftest import run
+
 from interpreter.errors import *
+from tests.conftest import run
 
 
 class TestUndefinedVariable:
@@ -40,7 +41,7 @@ class TestTypeMismatch:
 
     def test_lughat_typed_rejects_wrong_key(self):
         with pytest.raises(QisamJeGhalti):
-            run('lughat[lafz, adad] x = {1: 100}')
+            run("lughat[lafz, adad] x = {1: 100}")
 
 
 class TestImmutableKeyInSet:

@@ -6,10 +6,9 @@ Uses a dispatch-table approach for single-character tokens and
 dedicated methods for multi-character / complex tokens.
 """
 
-from .tokens import Token, TokenType
-from .keywords import KEYWORDS
 from ..errors import LikhaiJeGhalti
-
+from .keywords import KEYWORDS
+from .tokens import Token, TokenType
 
 _ESCAPE_MAP = {
     "n": "\n",
@@ -71,7 +70,7 @@ class Lexer:
     Tracks line and column for accurate error reporting.
     """
 
-    __slots__ = ('code', 'pos', 'line', 'column')
+    __slots__ = ("code", "column", "line", "pos")
 
     def __init__(self, code: str):
         self.code = code
@@ -340,7 +339,9 @@ class Lexer:
                 continue
 
             # ── Unknown character ──
-            raise LikhaiJeGhalti(f"Illegal akhar {char}.", self.line, self.column, self.code)
+            raise LikhaiJeGhalti(
+                f"Illegal akhar {char}.", self.line, self.column, self.code
+            )
 
         tokens.append(Token(TokenType.EOF, None, self.line, self.column))
         return tokens

@@ -1,8 +1,9 @@
 """Tests for list literals, indexing, and typed lists."""
 
-from tests.conftest import run, extract_value
 import pytest
+
 from interpreter.errors import QisamJeGhalti
+from tests.conftest import extract_value, run
 
 
 class TestListLiteral:
