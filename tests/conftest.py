@@ -7,8 +7,9 @@ from the VM for assertions.
 
 import io
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "d:/Code/Sindlish")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from interpreter.analysis.resolver import Resolver
 from interpreter.backend.compiler import Compiler
