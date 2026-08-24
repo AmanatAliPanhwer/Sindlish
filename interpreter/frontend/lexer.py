@@ -89,22 +89,26 @@ class Lexer:
             return self.code[self.pos]
         return None
 
-    def _peek_ahead(self) -> str | None:
+    def _peek_ahead(self, steps: int = 1) -> str | None:
         """Return the character after current without consuming."""
         if self.pos + 1 < len(self.code):
-            return self.code[self.pos + 1]
+            return self.code[self.pos + steps]
         return None
 
-    def _advance(self) -> str:
+    def _advance(self, times: int = 1) -> str:
         """Consume and return current character, updating position."""
-        char = self._peek()
-        self.pos += 1
-        if char == "\n":
-            self.line += 1
-            self.column = 1
-        else:
-            self.column += 1
-        return char
+        chars = ""
+        for _ in range(times):
+            if self._peek() is not None:
+                char = self._peek()
+                chars += char
+                self.pos += 1
+                if char == "\n":
+                    self.line += 1
+                    self.column = 1
+                else:
+                    self.column += 1
+        return chars
 
     # ===== Complex token scanners =====
 
@@ -135,8 +139,7 @@ class Lexer:
         # Check for triple-quote
         is_multiline = False
         if self._peek() == quote and self._peek_ahead() == quote:
-            self._advance()
-            self._advance()
+            self._advance(times = 2)
             is_multiline = True
 
         string_content = ""
@@ -147,12 +150,10 @@ class Lexer:
             if (
                 self._peek() == quote
                 and self.pos + 2 < len(self.code)
-                and self.code[self.pos + 1] == quote
-                and self.code[self.pos + 2] == quote
+                and self._peek_ahead() == quote
+                and self._peek_ahead(2) == quote
             ):
-                self._advance()
-                self._advance()
-                self._advance()
+                self._advance(times = 3)
                 terminated = True
                 break
             else:
@@ -164,9 +165,7 @@ class Lexer:
 
             # Escape sequences
             if self._peek() == "\\":
-                string_content += self._advance()
-                if self._peek() is not None:
-                    string_content += self._advance()
+                string_content += self._advance(times = 2)
                 continue
 
             string_content += self._advance()
@@ -205,8 +204,7 @@ class Lexer:
         start_line, start_col = self.line, self.column
         while self._peek() is not None:
             if self._peek() == "*" and self._peek_ahead() == "/":
-                self._advance()  # *
-                self._advance()  # /
+                self._advance(times = 2)  # */
                 return
             self._advance()
         raise LikhaiJeGhalti(
@@ -227,16 +225,14 @@ class Lexer:
 
         if char == "*":
             if next_char == "*":
-                self._advance()
-                self._advance()
+                self._advance(times = 2)
                 return Token(TokenType.DBLSTAR, "**", line, col)
             self._advance()
             return Token(TokenType.MUL, "*", line, col)
 
         if char == "/":
             if next_char == "*":
-                self._advance()
-                self._advance()
+                self._advance(times = 2)
                 self._skip_block_comment()
                 return None  # Signal: no token produced
             self._advance()
@@ -244,36 +240,31 @@ class Lexer:
 
         if char == ">":
             if next_char == "=":
-                self._advance()
-                self._advance()
+                self._advance(times = 2)
                 return Token(TokenType.GTEQ, ">=", line, col)
             self._advance()
             return Token(TokenType.GT, ">", line, col)
 
         if char == "<":
             if next_char == "=":
-                self._advance()
-                self._advance()
+                self._advance(times = 2)
                 return Token(TokenType.LTEQ, "<=", line, col)
             self._advance()
             return Token(TokenType.LT, "<", line, col)
 
         if char == "=":
             if next_char == "=":
-                self._advance()
-                self._advance()
+                self._advance(times = 2)
                 return Token(TokenType.EQEQ, "==", line, col)
             self._advance()
             return Token(TokenType.EQ, "=", line, col)
 
         if char == "!":
             if next_char == "=":
-                self._advance()
-                self._advance()
+                self._advance(times = 2)
                 return Token(TokenType.NOTEQ, "!=", line, col)
             if next_char == "!":
-                self._advance()
-                self._advance()
+                self._advance(times = 2)
                 return Token(TokenType.BANGBANG, "!!", line, col)
             self._advance()
             return Token(TokenType.NOT, "!", line, col)
