@@ -132,7 +132,6 @@ class Parser:
     def parse_statement(self):
         token = self.peek()
 
-
         if token.type == TokenType.AGAR:
             return self.parse_if().set_pos(token.line, token.column)
 

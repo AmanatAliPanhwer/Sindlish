@@ -197,7 +197,6 @@ class Compiler:
         elif node.op.type == TokenType.PLUS:
             self.compile(node.right)
 
-
     EXPRESSION_NODES = (
         NumberNode,
         StringNode,

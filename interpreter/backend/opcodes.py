@@ -51,7 +51,6 @@ class OpCode(IntEnum):
     GET_ITER = auto()
     FOR_ITER = auto()
 
-
     # Collections
     BUILD_LIST = auto()
     BUILD_DICT = auto()
