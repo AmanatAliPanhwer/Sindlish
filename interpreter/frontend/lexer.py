@@ -90,13 +90,19 @@ class Lexer:
         return None
 
     def _peek_ahead(self, steps: int = 1) -> str | None:
-        """Return the character after current without consuming."""
+        """Return the character after current without consuming.
+        Attributes:
+            steps: Number of character(s) to peek ahead of the current character.
+        """
         if self.pos + 1 < len(self.code):
             return self.code[self.pos + steps]
         return None
 
     def _advance(self, times: int = 1) -> str:
-        """Consume and return current character, updating position."""
+        """Consume and return current character, updating position.
+        Attributes:
+            times: Number of times to repeat advance.
+        """
         chars = ""
         for _ in range(times):
             if self._peek() is not None:
