@@ -468,7 +468,7 @@ class Resolver:
     def resolve_PostfixOpNode(self, node):
         self.resolve(node.expr)
 
-    def resolve_KharabiNode(self, node):
+    def resolve_GhaltiNode(self, node):
         self.resolve(node.message)
 
     def resolve_ResultConstructorNode(self, node):

@@ -455,7 +455,7 @@ class Compiler:
         elif node.op.type == TokenType.BANGBANG:
             self.emit(OpCode.POSTFIX_BANGBANG, node=node)
 
-    def compile_KharabiNode(self, node):
+    def compile_GhaltiNode(self, node):
         self.compile(node.message)
         self.emit(OpCode.PANIC, node=node)
 

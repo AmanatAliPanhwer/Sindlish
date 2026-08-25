@@ -40,7 +40,7 @@ class SindlishLexer(Lexer):
                 (?P<comment>\#.*) |
                 (?P<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*') |
                 (?P<number>\b\d+(?:\.\d+)?\b) |
-                (?P<keyword>\b(?:agar|yawari|warna|jistain|aen|ya|nah|bahari|aalmi|wapas|match|ok|ghalti|kharabi|har|tor|jari|mein)\b) |
+                (?P<keyword>\b(?:agar|yawari|warna|jistain|aen|ya|nah|bahari|aalmi|wapas|match|ok|ghalti|har|tor|jari|mein)\b) |
                 (?P<datatype>\b(?:adad|lafz|dahai|faislo|sach|koorh|khali|pakko|fehrist|lughat|majmuo|kaam)\b) |
                 (?P<builtin>\b(?:majmuo|lambi|likh|puch|range)\b) |
                 (?P<operator>[+\-*/%^=><!?]+) |

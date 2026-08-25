@@ -34,8 +34,13 @@ from .ast_nodes import (
     WhileNode,
 )
 from .keywords import DATATYPES
-from .tokens import TokenType
+from .tokens import Token, TokenType
 
+COLLECTION_TYPES: tuple[TokenType, ...] = (
+    TokenType.FEHRIST,
+    TokenType.LUGHAT,
+    TokenType.MAJMUO,
+)
 
 class Parser:
     def __init__(self, tokens, code):
@@ -52,6 +57,20 @@ class Parser:
         if t:
             node.set_pos(t.line, t.column)
         return node
+
+    def _is_typed_declaration(self, token: Token) -> bool:
+        """True if the current token starts a declaration like
+        `pakko x = ...`, `adad y`, or `fehrist<adad> z = ...`."""
+        if token.type == TokenType.PAKKO:
+            return True
+
+        nxt = self.peek_ahead()
+        if token.type not in DATATYPES or nxt is None:
+            return False
+
+        return nxt.type == TokenType.IDENTIFIER or (
+            token.type in COLLECTION_TYPES and nxt.type == TokenType.LBRACKET
+        )
 
     def peek(self):
         if self.pos < len(self.tokens):
@@ -73,6 +92,9 @@ class Parser:
             self.advance()
 
     def get_default_value_node(self, var_type, token=None):
+        """
+        It is a peace of hybrad typing system responsable for setting a default value for a var.
+        """
         if var_type == TokenType.ADAD:
             return self._at_pos(NumberNode(0), token)
         if var_type == TokenType.DAHAI:
@@ -99,61 +121,76 @@ class Parser:
             ProgramNode(statements), self.tokens[0] if self.tokens else None
         )
 
-    def parse_block(self):
-        statements = []
-        open_line, open_col = self.peek().line, self.peek().column
-
-        while True:
-            token = self.peek()
-
-            if token.type == TokenType.NEWLINE:
-                self.advance()
-                continue
-
-            if token.type == TokenType.EOF:
-                raise LikhaiJeGhalti(
-                    "Block band natho thayo; '}' na milyo.",
-                    open_line,
-                    open_col,
-                    self.code,
-                )
-
-            if token.type == TokenType.WARNA:
-                break
-
-            if token.type == TokenType.RBRACE:
-                self.advance()  # }
-                break
-
-            statements.append(self.parse_statement())
-
-        return BlockNode(statements).set_pos(token.line, token.column)
-
     def parse_statement(self):
         token = self.peek()
 
-        if token.type == TokenType.AGAR:
-            return self.parse_if().set_pos(token.line, token.column)
+        match token.type:
+            case TokenType.AGAR:
+                return self.parse_if().set_pos(token.line, token.column)
 
-        if token.type == TokenType.JISTAIN:
-            return self.parse_while().set_pos(token.line, token.column)
+            case TokenType.JISTAIN:
+                return self.parse_while().set_pos(token.line, token.column)
 
-        if token.type == TokenType.KAAM:
-            return self.parse_function_def().set_pos(token.line, token.column)
+            case TokenType.KAAM:
+                return self.parse_function_def().set_pos(token.line, token.column)
 
-        if token.type == TokenType.WAPAS:
-            return self.parse_return().set_pos(token.line, token.column)
+            case TokenType.WAPAS:
+                return self.parse_return().set_pos(token.line, token.column)
 
-        if token.type == TokenType.HAR:
-            return self.parse_for().set_pos(token.line, token.column)
+            case TokenType.HAR:
+                return self.parse_for().set_pos(token.line, token.column)
 
-        if token.type == TokenType.TOR:
-            self.advance()  # tor
-            return BreakNode().set_pos(token.line, token.column)
+            case TokenType.TOR:
+                self.advance()  # tor
+                return BreakNode().set_pos(token.line, token.column)
 
-        if token.type == TokenType.JARI:
-            self.advance()  # jari
-            return ContinueNode().set_pos(token.line, token.column)
+            case TokenType.JARI:
+                self.advance()  # jari
+                return ContinueNode().set_pos(token.line, token.column)
+
+            case TokenType.LBRACE:
+                self.advance()  # {
+                statements = self.parse_block()
+                return statements
+
+            case TokenType.AALMI:
+                self.advance()  # aalmi
+                if self.peek() and self.peek().type != TokenType.IDENTIFIER:
+                    raise LikhaiJeGhalti(
+                        "'aalmi' khaan poe variable jo naalo lazmi aahe.",
+                        token.line,
+                        token.column,
+                        self.code,
+                    )
+                name = self.advance().value
+                return GlobalNode(name).set_pos(token.line, token.column)
+
+            case TokenType.MATCH:
+                raise LikhaiJeGhalti(
+                    "'match' abhi support natho tho; hale roadmap mein aahe.",
+                    token.line,
+                    token.column,
+                    self.code,
+                )
+
+            case TokenType.BAHARI:
+                self.advance()  # bahari
+                if self.peek() and self.peek().type != TokenType.IDENTIFIER:
+                    raise LikhaiJeGhalti(
+                        "'bahari' khaan poe variable jo naalo lazmi aahe.",
+                        token.line,
+                        token.column,
+                        self.code,
+                    )
+                name = self.advance().value
+                return NonLocalNode(name).set_pos(token.line, token.column)
+
+        # ===== Lookahead-dependent statements =====
+        # PAKKO / DATATYPE / IDENTIFIER cannot be plain `case` labels above:
+        # recognizing them requires peek_ahead() context (e.g. IDENTIFIER)
+        # only starts an assignment when followed by '=' or ':'). Keep them
+        # OUT of the match; adding a wildcard case would silently swallow
+        # this whole section.
 
         if token.type == TokenType.PAKKO or (
             token.type in DATATYPES
@@ -192,42 +229,6 @@ class Parser:
 
             return expr
 
-        if token.type == TokenType.LBRACE:
-            self.advance()  # {
-            statements = self.parse_block()
-            return statements
-
-        if token.type == TokenType.AALMI:
-            self.advance()  # aalmi
-            if self.peek() and self.peek().type != TokenType.IDENTIFIER:
-                raise LikhaiJeGhalti(
-                    "'aalmi' khaan poe variable jo naalo lazmi aahe.",
-                    token.line,
-                    token.column,
-                    self.code,
-                )
-            name = self.advance().value
-            return GlobalNode(name).set_pos(token.line, token.column)
-
-        if token.type == TokenType.MATCH:
-            raise LikhaiJeGhalti(
-                "'match' abhi support natho tho; hale roadmap mein aahe.",
-                token.line,
-                token.column,
-                self.code,
-            )
-
-        if token.type == TokenType.BAHARI:
-            self.advance()  # bahari
-            if self.peek() and self.peek().type != TokenType.IDENTIFIER:
-                raise LikhaiJeGhalti(
-                    "'bahari' khaan poe variable jo naalo lazmi aahe.",
-                    token.line,
-                    token.column,
-                    self.code,
-                )
-            name = self.advance().value
-            return NonLocalNode(name).set_pos(token.line, token.column)
 
         # Catch-all for expression statements
         try:
@@ -238,10 +239,42 @@ class Parser:
             return expr
         except LikhaiJeGhalti:
             raise
-        except:
+        except Exception as exc:
             raise LikhaiJeGhalti(
                 f"Achanak {token.value} milyo.", token.line, token.column, self.code
-            )
+            ) from exc
+
+    
+    def parse_block(self):
+        statements = []
+        open_line, open_col = self.peek().line, self.peek().column
+
+        while True:
+            token = self.peek()
+
+            if token.type == TokenType.NEWLINE:
+                self.advance()
+                continue
+
+            if token.type == TokenType.EOF:
+                raise LikhaiJeGhalti(
+                    "Block band natho thayo; '}' na milyo.",
+                    open_line,
+                    open_col,
+                    self.code,
+                )
+
+            if token.type == TokenType.WARNA:
+                break
+
+            if token.type == TokenType.RBRACE:
+                self.advance()  # }
+                break
+
+            statements.append(self.parse_statement())
+
+        return BlockNode(statements).set_pos(token.line, token.column)
+
 
     def _parse_function_params(self):
         params = []

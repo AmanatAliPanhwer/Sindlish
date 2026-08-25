@@ -49,7 +49,7 @@ Argument markers: kwargs travel as constant-pool `KwargMarker(name)` pairs, `*ar
 
 ## Results & panics
 
-`MAKE_OK` / `MAKE_ERROR` (idempotent wrap) · `POSTFIX_QMARK` / `POSTFIX_BANGBANG` (the `?`/`!!` pair) · `CALL_BACHAO` / `CALL_LAZMI` · `PANIC` (kharabi) · `TYPECAST` (target name via const; unwraps Ok, re-raises Ghalti). Full semantics: [results.md](results.md).
+`MAKE_OK` / `MAKE_ERROR` (idempotent wrap) · `POSTFIX_QMARK` / `POSTFIX_BANGBANG` (the `?`/`!!` pair) · `CALL_BACHAO` / `CALL_LAZMI` · `PANIC` (bare `ghalti(msg)` statement) · `TYPECAST` (target name via const; unwraps Ok, re-raises Ghalti). Full semantics: [results.md](results.md).
 
 ## Completion
 

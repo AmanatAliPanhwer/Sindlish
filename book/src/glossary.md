@@ -40,7 +40,7 @@ Sindlish reads keywords from **Romanized Sindhi**. You never need to learn the l
 | `majmuo` | *collection* | set |
 | `ok(value)` | — | wrap a success Result |
 | `ghalti(msg)` | *mistake* | wrap an error Result |
-| `kharabi(msg)` | *brokenness* | panic immediately |
+| ~~`kharabi(msg)`~~ | *brokenness* | removed in v0.2 — use a bare `ghalti(msg)` statement to panic |
 
 ## The Result toolbox
 

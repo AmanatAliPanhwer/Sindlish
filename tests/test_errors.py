@@ -65,3 +65,16 @@ class TestConstMustBeInitialized:
     def test_pakko_without_value(self):
         with pytest.raises(LikhaiJeGhalti):
             run("pakko adad x")
+
+
+class TestPanicStatement:
+    def test_bare_ghalti_statement_panics(self):
+        """A standalone ghalti(msg) statement is THE panic form (v0.2)."""
+        with pytest.raises(HalndeVaktGhalti, match="boom"):
+            run('x = 1\nghalti("boom")')
+
+    def test_kharabi_keyword_is_retired(self):
+        """kharabi was removed in the v0.2 refactor — it lexes as a plain
+        identifier now, so it dies as an unknown name at runtime."""
+        with pytest.raises(NaleJeGhalti, match="kharabi"):
+            run('kharabi("old spellings die")')
