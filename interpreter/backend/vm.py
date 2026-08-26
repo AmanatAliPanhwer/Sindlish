@@ -33,14 +33,14 @@ from .markers import KwargMarker, KwargsDictMarker, StarArgsMarker
 from .opcodes import OpCode
 
 TYPE_MAP = {
-    "adad": ADAD_TYPE,
-    "dahai": DAHAI_TYPE,
-    "lafz": LAFZ_TYPE,
-    "faislo": FAISLO_TYPE,
-    "fehrist": FEHRIST_TYPE,
-    "lughat": LUGHAT_TYPE,
-    "majmuo": MAJMUO_TYPE,
-    "khali": KHALI_TYPE,
+    TokenType.ADAD: ADAD_TYPE,
+    TokenType.DAHAI: DAHAI_TYPE,
+    TokenType.LAFZ: LAFZ_TYPE,
+    TokenType.FAISLO: FAISLO_TYPE,
+    TokenType.FEHRIST: FEHRIST_TYPE,
+    TokenType.LUGHAT: LUGHAT_TYPE,
+    TokenType.MAJMUO: MAJMUO_TYPE,
+    TokenType.KHALI: KHALI_TYPE,
 }
 
 
@@ -50,10 +50,15 @@ class LocationProxy:
         self.column = column
 
 
-def _get_expected_type(type_name):
-    if type_name is None:
+def _get_expected_type(type_hint):
+    if type_hint is None:
         return None
-    return TYPE_MAP.get(type_name.lower())
+    return TYPE_MAP.get(type_hint)
+
+
+def _type_label(type_hint):
+    """Human-readable name matching pre-refactor messages ('adad', 'MyClass')."""
+    return type_hint.name.lower() if isinstance(type_hint, TokenType) else type_hint
 
 
 class VM:
@@ -711,7 +716,7 @@ class VM:
 
             if param.type and not self._is_type_match(val, param.type):
                 raise QisamJeGhalti(
-                    f"Parameter '{param.name}' khe '{param.type}' khapyo paye par '{val.type.name.lower()}' milyo.",
+                    f"Parameter '{param.name}' khe '{_type_label(param.type)}' khapyo paye par '{val.type.name.lower()}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -1124,7 +1129,7 @@ class VM:
                         "function_name", "unknown"
                     )
                     raise QisamJeGhalti(
-                        f"Wapas khe '{return_type}' khapyo paye, par {func_name} mein '{check_val.type.name.lower()}' milyo.",
+                        f"Wapas khe '{_type_label(return_type)}' khapyo paye, par {func_name} mein '{check_val.type.name.lower()}' milyo.",
                         line,
                         column,
                         self.code_string,

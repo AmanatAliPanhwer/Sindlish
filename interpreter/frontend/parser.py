@@ -42,6 +42,7 @@ COLLECTION_TYPES: tuple[TokenType, ...] = (
     TokenType.MAJMUO,
 )
 
+
 class Parser:
     def __init__(self, tokens, code):
         self.tokens = tokens
@@ -87,7 +88,7 @@ class Parser:
             return self.tokens[self.pos + 1]
         return None
 
-    def skip_newlines(self):
+    def _skip_newlines(self):
         while self.peek() and self.peek().type == TokenType.NEWLINE:
             self.advance()
 
@@ -95,6 +96,7 @@ class Parser:
         """
         It is a peace of hybrad typing system responsable for setting a default value for a var.
         """
+        # TODO: Use match case statements or a dictionary look up whatever you want.
         if var_type == TokenType.ADAD:
             return self._at_pos(NumberNode(0), token)
         if var_type == TokenType.DAHAI:
@@ -109,13 +111,13 @@ class Parser:
         statements = []
 
         while self.peek() and self.peek().type != TokenType.EOF:
-            self.skip_newlines()
+            self._skip_newlines()
             if self.peek().type == TokenType.EOF:
                 break
 
             stmt = self.parse_statement()
             statements.append(stmt)
-            self.skip_newlines()
+            self._skip_newlines()
 
         return self._at_pos(
             ProgramNode(statements), self.tokens[0] if self.tokens else None
@@ -207,10 +209,10 @@ class Parser:
             return self.parse_assignment().set_pos(token.line, token.column)
 
         if token.type == TokenType.IDENTIFIER:
-            if self.peek_ahead() and self.peek_ahead().type in (
-                TokenType.EQ,
-                TokenType.COLON,
-            ):
+            nxt = self.peek_ahead()
+            if nxt and nxt.type in (TokenType.EQ, TokenType.COLON):
+                return self.parse_assignment().set_pos(token.line, token.column)
+            if nxt and nxt.type == TokenType.IDENTIFIER:
                 return self.parse_assignment().set_pos(token.line, token.column)
             expr = self.parse_expression()
 
@@ -229,7 +231,6 @@ class Parser:
 
             return expr
 
-
         # Catch-all for expression statements
         try:
             expr = self.parse_expression()
@@ -244,102 +245,127 @@ class Parser:
                 f"Achanak {token.value} milyo.", token.line, token.column, self.code
             ) from exc
 
-    
     def parse_block(self):
         statements = []
         open_line, open_col = self.peek().line, self.peek().column
 
         while True:
+            self._skip_newlines()
             token = self.peek()
 
-            if token.type == TokenType.NEWLINE:
-                self.advance()
-                continue
+            match token.type:
+                case TokenType.EOF:
+                    raise LikhaiJeGhalti(
+                        "Block band natho thayo; '}' na milyo.",
+                        open_line,
+                        open_col,
+                        self.code,
+                    )
 
-            if token.type == TokenType.EOF:
-                raise LikhaiJeGhalti(
-                    "Block band natho thayo; '}' na milyo.",
-                    open_line,
-                    open_col,
-                    self.code,
-                )
+                case TokenType.WARNA:
+                    break
 
-            if token.type == TokenType.WARNA:
-                break
-
-            if token.type == TokenType.RBRACE:
-                self.advance()  # }
-                break
+                case TokenType.RBRACE:
+                    self.advance()  # }
+                    break
 
             statements.append(self.parse_statement())
 
         return BlockNode(statements).set_pos(token.line, token.column)
 
+    def _parse_annotation(self) -> TokenType | str | None:
+        """One annotation token: builtin datatype -> TokenType,
+        custom class name -> str, otherwise None."""
+        if self.peek().type in DATATYPES:
+            return self.advance().type
+        if self.peek().type == TokenType.IDENTIFIER:
+            return self.advance().value
+        return None
+
+    def _try_prefix_type(self) -> tuple[TokenType | str | None, TokenType | None]:
+        """Consume `[Type]` before a name, if present.
+        Returns (TokenType|str|None, element_type|None)."""
+        t = self.peek()
+        if t.type in DATATYPES:
+            return self._parse_type_annotation()
+        if (
+            t.type == TokenType.IDENTIFIER
+            and self.peek_ahead()
+            and self.peek_ahead().type == TokenType.IDENTIFIER
+        ):
+            return self.advance().value, None
+        return None, None
+
+    def _parse_param(self):
+        """Parse one parameter."""
+        is_star, is_kw = False, False
+        if self.peek().type == TokenType.MUL:
+            self.advance()  # *
+            is_star = True
+        elif self.peek().type == TokenType.DBLSTAR:
+            self.advance()  # **
+            is_kw = True
+
+        # Prefix form: "adad x"
+        param_type, param_element = self._try_prefix_type()
+        if param_element is not None:
+            # TODO: Make them Supported
+            raise LikhaiJeGhalti(
+                "Parameters laai `[]` element types barwakat supported nah aahin.",
+                self.peek().line,
+                self.peek().column,
+                self.code,
+            )
+        if self.peek().type != TokenType.IDENTIFIER:
+            raise LikhaiJeGhalti(
+                "Parameter jo naalo lazmi aahe.",
+                self.peek().line,
+                self.peek().column,
+                self.code,
+            )
+        name = self.advance().value
+
+        if param_type is None and self.peek().type == TokenType.COLON:
+            self.advance()  # :
+            param_type = self._parse_annotation()
+            if param_type is None:
+                raise LikhaiJeGhalti(
+                    "Colon `:` khaan poe type annotation lazmi aahe.",
+                    self.peek().line,
+                    self.peek().column,
+                    self.code,
+                )
+
+        default = None
+        if self.peek().type == TokenType.EQ:
+            self.advance()  # =
+            default = self.parse_expression()
+
+        return ParamNode(name, param_type, default, is_star, is_kw)
 
     def _parse_function_params(self):
+        """Parse `( ... )` parameter list.
+        Grammar per param: [*|**] [datatype] name [: type] [= default]
+        Trailing commas allowed.
+        """
         params = []
-        self.skip_newlines()
-        if self.peek().type != TokenType.RPAREN:
-            while True:
-                self.skip_newlines()
-                is_star = False
-                is_kw = False
+        self._skip_newlines()
 
-                if self.peek().type == TokenType.MUL:
-                    self.advance()  # *
-                    is_star = True
-                elif self.peek().type == TokenType.DBLSTAR:
-                    self.advance()  # **
-                    is_kw = True
+        if self.peek().type == TokenType.RPAREN:
+            self.advance()
+            return params
 
-                # Support "adad a" syntax
-                type_node = None
-                if self.peek().type in DATATYPES:
-                    type_node = self.advance().type.name.lower()
+        while True:
+            params.append(self._parse_param())
 
-                if self.peek().type != TokenType.IDENTIFIER:
-                    raise LikhaiJeGhalti(
-                        "Parameter jo naalo lazmi aahe.",
-                        self.peek().line,
-                        self.peek().column,
-                        self.code,
-                    )
-                param_name = self.advance().value
-
-                # Support "a: adad" syntax
-                if type_node is None and self.peek().type == TokenType.COLON:
-                    self.advance()  # :
-                    if self.peek().type in DATATYPES:
-                        type_node = self.advance().type.name.lower()
-                    elif self.peek().type == TokenType.IDENTIFIER:
-                        type_node = self.advance().value
-                    else:
-                        raise LikhaiJeGhalti(
-                            "Type annotation lazmi aahe.",
-                            self.peek().line,
-                            self.peek().column,
-                            self.code,
-                        )
-
-                default_value = None
-                if self.peek().type == TokenType.EQ:
-                    self.advance()  # =
-                    default_value = self.parse_expression()
-
-                params.append(
-                    ParamNode(param_name, type_node, default_value, is_star, is_kw)
-                )
-                self.skip_newlines()
-
-                if self.peek().type == TokenType.COMMA:
-                    self.advance()
-                    self.skip_newlines()
-                    if self.peek().type == TokenType.RPAREN:
-                        break  # Allow trailing comma
-                else:
-                    break
-
-        self.skip_newlines()
+            self._skip_newlines()
+            if self.peek().type != TokenType.COMMA:
+                break
+            self.advance()  # ,
+            self._skip_newlines()
+            if self.peek().type == TokenType.RPAREN:
+                break
+        self._skip_newlines()
         if self.peek().type != TokenType.RPAREN:
             raise LikhaiJeGhalti(
                 "Parameters khaan poe ')' lazmi aahe.",
@@ -351,16 +377,17 @@ class Parser:
         return params
 
     def _parse_return_type(self):
-        return_type = None
-        if self.peek().type == TokenType.MINUS:
-            if self.peek_ahead() and self.peek_ahead().type == TokenType.GT:
-                self.advance()  # -
-                self.advance()  # >
-                if self.peek().type == TokenType.IDENTIFIER:
-                    return_type = self.advance().value
-                elif self.peek().type in DATATYPES:
-                    return_type = self.advance().type.name.lower()
-        return return_type
+        """Optional `-> Type`. Datatypes -> TokenType, names -> str,
+        nothing valid -> None."""
+        if (
+            self.peek().type == TokenType.MINUS
+            and self.peek_ahead()
+            and self.peek_ahead().type == TokenType.GT
+        ):
+            self.advance()  # -
+            self.advance()  # >
+            return self._parse_annotation()
+        return None
 
     def parse_function_def(self):
         self.advance()  # kaam
@@ -421,7 +448,7 @@ class Parser:
 
         body = self.parse_block()
 
-        self.skip_newlines()
+        self._skip_newlines()
 
         else_if_bodies = []
 
@@ -438,7 +465,7 @@ class Parser:
             self.advance()  # {
             else_if_body = self.parse_block()
             else_if_bodies.append((else_if_condition, else_if_body))
-            self.skip_newlines()
+            self._skip_newlines()
 
         else_body = None
 
@@ -561,9 +588,9 @@ class Parser:
 
         if token.type == TokenType.LPAREN:
             self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             expr = self.parse_expression().set_pos(token.line, token.column)
-            self.skip_newlines()
+            self._skip_newlines()
             if self.peek().type != TokenType.RPAREN:
                 raise LikhaiJeGhalti(
                     "'(' khaan poe ')' lazmi aahe.",
@@ -579,6 +606,8 @@ class Parser:
         )
 
     def _parse_type_annotation(self):
+        if self.peek().type == TokenType.IDENTIFIER:
+            return self.advance().value, None
         _type = self.advance().type
         element_type = None
 
@@ -588,8 +617,11 @@ class Parser:
             and self.peek().type == TokenType.LBRACKET
         ):
             self.advance()  # [
-            if self.peek() and self.peek().type in DATATYPES:
-                element_type = self.advance().type
+            if self.peek() and (
+                self.peek().type in DATATYPES
+                or self.peek().type == TokenType.IDENTIFIER
+            ):
+                element_type = self._parse_annotation()
             else:
                 raise LikhaiJeGhalti(
                     f"{'fehrist' if _type == TokenType.FEHRIST else 'majmuo'} laai [] jhay ander data type jo hovan lazmi aahe",
@@ -612,8 +644,11 @@ class Parser:
             and self.peek().type == TokenType.LBRACKET
         ):
             self.advance()  # [
-            if self.peek() and self.peek().type in DATATYPES:
-                key_type = self.advance().type
+            if self.peek() and (
+                self.peek().type in DATATYPES
+                or self.peek().type == TokenType.IDENTIFIER
+            ):
+                key_type = self._parse_annotation()
                 if self.peek().type not in (TokenType.COMMA, TokenType.COLON):
                     raise LikhaiJeGhalti(
                         "Lughat je key type khaan poe ',' ya ':' lazmi aahe.",
@@ -622,17 +657,20 @@ class Parser:
                         self.code,
                     )
                 self.advance()  # , or :
-                if self.peek() and self.peek().type in DATATYPES:
-                    val_type = self.advance().type
+                if self.peek() and (
+                    self.peek().type in DATATYPES
+                    or self.peek().type == TokenType.IDENTIFIER
+                ):
+                    val_type = self._parse_annotation()
                     element_type = [key_type, val_type]
-            if self.peek() and self.peek().type != TokenType.RBRACKET:
-                raise LikhaiJeGhalti(
-                    "Lughat je element types khaan poe ']' lazmi aahe.",
-                    self.peek().line,
-                    self.peek().column,
-                    self.code,
-                )
-            self.advance()  # ]
+                if self.peek() and self.peek().type != TokenType.RBRACKET:
+                    raise LikhaiJeGhalti(
+                        "Lughat je element types khaan poe ']' lazmi aahe.",
+                        self.peek().line,
+                        self.peek().column,
+                        self.code,
+                    )
+                self.advance()  # ]
 
         return _type, element_type
 
@@ -646,8 +684,12 @@ class Parser:
             self.advance()
             is_const = True
 
-        if self.peek().type in DATATYPES:
-            _type, element_type = self._parse_type_annotation()
+        if self.peek().type in DATATYPES or (
+            self.peek().type == TokenType.IDENTIFIER
+            and self.peek_ahead()
+            and self.peek_ahead().type == TokenType.IDENTIFIER
+        ):
+            _type, element_type = self._try_prefix_type()
 
         if self.peek().type != TokenType.IDENTIFIER:
             raise LikhaiJeGhalti(
@@ -660,13 +702,23 @@ class Parser:
 
         if self.peek().type == TokenType.COLON:
             self.advance()  # :
-            self.skip_newlines()
-            if self.peek().type in DATATYPES:
+            self._skip_newlines()
+            if self.peek() and (
+                self.peek().type in DATATYPES
+                or self.peek().type == TokenType.IDENTIFIER
+            ):
                 _type, element_type = self._parse_type_annotation()
+            else:
+                raise LikhaiJeGhalti(
+                    "Colon `:` khaan poe type annotation lazmi aahe.",
+                    self.peek().line,
+                    self.peek().column,
+                    self.code,
+                )
 
         if self.peek() and self.peek().type == TokenType.EQ:
             self.advance()  # =
-            self.skip_newlines()
+            self._skip_newlines()
             value_node = self.parse_expression()
         else:
             if is_const:
@@ -686,10 +738,10 @@ class Parser:
     def parse_while(self):
         token = self.peek()
         self.advance()  # jistain
-        self.skip_newlines()
+        self._skip_newlines()
 
         condition = self.parse_expression()
-        self.skip_newlines()
+        self._skip_newlines()
 
         if self.peek().type != TokenType.LBRACE:
             raise LikhaiJeGhalti(
@@ -707,7 +759,7 @@ class Parser:
     def parse_for(self):
         token = self.peek()
         self.advance()  # har
-        self.skip_newlines()
+        self._skip_newlines()
 
         if self.peek().type != TokenType.IDENTIFIER:
             raise LikhaiJeGhalti(
@@ -718,7 +770,7 @@ class Parser:
             )
 
         iterator_name = self.advance().value
-        self.skip_newlines()
+        self._skip_newlines()
 
         # 'mein' is now mandatory: har i mein range(5)
         if self.peek().type != TokenType.MEIN:
@@ -729,10 +781,10 @@ class Parser:
                 self.code,
             )
         self.advance()  # mein
-        self.skip_newlines()
+        self._skip_newlines()
 
         iterable = self.parse_expression()
-        self.skip_newlines()
+        self._skip_newlines()
 
         if self.peek().type != TokenType.LBRACE:
             raise LikhaiJeGhalti(
@@ -752,7 +804,7 @@ class Parser:
 
         while self.peek().type == TokenType.OR:
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             right = self.parse_and()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
@@ -763,17 +815,17 @@ class Parser:
 
         while self.peek().type == TokenType.AND:
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             right = self.parse_not()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
         return left
 
     def parse_not(self):
-        self.skip_newlines()
+        self._skip_newlines()
         if self.peek().type == TokenType.NOT:
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             value = self.parse_not()
             return UnaryOpNode(op, value).set_pos(op.line, op.column)
         return self.parse_comparison()
@@ -792,7 +844,7 @@ class Parser:
 
         if self.peek().type in self._COMPARISON_OPS:
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             right = self.parse_term()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
@@ -812,7 +864,7 @@ class Parser:
 
         while self.peek().type in (TokenType.PLUS, TokenType.MINUS):
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             right = self.parse_factor()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
@@ -823,7 +875,7 @@ class Parser:
 
         while self.peek().type in (TokenType.MUL, TokenType.DIV, TokenType.MOD):
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             right = self.parse_power()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
@@ -834,22 +886,22 @@ class Parser:
 
         if self.peek().type == TokenType.POW:
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             right = self.parse_power()
             left = BinaryOpNode(left, op, right).set_pos(op.line, op.column)
 
         return left
 
     def parse_unary(self):
-        self.skip_newlines()
+        self._skip_newlines()
         if self.peek().type == TokenType.MINUS:
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             value = self.parse_unary()
             return UnaryOpNode(op, value).set_pos(op.line, op.column)
         if self.peek().type == TokenType.NOT:
             op = self.advance()
-            self.skip_newlines()
+            self._skip_newlines()
             value = self.parse_unary()
             return UnaryOpNode(op, value).set_pos(op.line, op.column)
 
@@ -912,9 +964,9 @@ class Parser:
                 node = self._parse_method_chain(node)
             elif self.peek().type == TokenType.LBRACKET:
                 self.advance()  # [
-                self.skip_newlines()
+                self._skip_newlines()
                 index = self.parse_expression()
-                self.skip_newlines()
+                self._skip_newlines()
                 if self.peek().type != TokenType.RBRACKET:
                     raise LikhaiJeGhalti(
                         "Index khaan poe ']' lazmi aahe.",
@@ -949,16 +1001,16 @@ class Parser:
         elements = []
 
         if self.peek().type != TokenType.RBRACKET:
-            self.skip_newlines()
+            self._skip_newlines()
             elements.append(self.parse_expression())
-            self.skip_newlines()
+            self._skip_newlines()
             while self.peek().type == TokenType.COMMA:
                 self.advance()  # ,
-                self.skip_newlines()
+                self._skip_newlines()
                 elements.append(self.parse_expression())
-                self.skip_newlines()
+                self._skip_newlines()
 
-        self.skip_newlines()
+        self._skip_newlines()
         if self.peek().type != TokenType.RBRACKET:
             raise LikhaiJeGhalti(
                 "Fehrist je aakhir mein ']' lazmi aahe.",
@@ -978,13 +1030,13 @@ class Parser:
         star_args = None
         kw_args = None
 
-        self.skip_newlines()
+        self._skip_newlines()
         if self.peek().type != TokenType.RPAREN:
             while True:
-                self.skip_newlines()
+                self._skip_newlines()
                 if self.peek().type == TokenType.MUL:
                     self.advance()
-                    self.skip_newlines()
+                    self._skip_newlines()
                     if star_args is not None:
                         raise LikhaiJeGhalti(
                             "Sirf hikro *args istamal kare saghjay tho.",
@@ -995,7 +1047,7 @@ class Parser:
                     star_args = self.parse_expression()
                 elif self.peek().type == TokenType.DBLSTAR:
                     self.advance()
-                    self.skip_newlines()
+                    self._skip_newlines()
                     if kw_args is not None:
                         raise LikhaiJeGhalti(
                             "Sirf hikro **kwargs istamal kare saghjay tho.",
@@ -1011,22 +1063,22 @@ class Parser:
                 ):
                     name = self.advance().value
                     self.advance()  # =
-                    self.skip_newlines()
+                    self._skip_newlines()
                     val = self.parse_expression()
                     keywords.append((name, val))
                 else:
                     args.append(self.parse_expression())
 
-                self.skip_newlines()
+                self._skip_newlines()
                 if self.peek().type == TokenType.COMMA:
                     self.advance()
-                    self.skip_newlines()
+                    self._skip_newlines()
                     if self.peek().type == TokenType.RPAREN:
                         break
                 else:
                     break
 
-        self.skip_newlines()
+        self._skip_newlines()
         if self.peek().type != TokenType.RPAREN:
             raise LikhaiJeGhalti(
                 "Arguments khaan poe ')' lazmi aahe.",
@@ -1041,29 +1093,29 @@ class Parser:
         token = self.peek()
         self.advance()  # {
 
-        self.skip_newlines()
+        self._skip_newlines()
         if self.peek() and self.peek().type == TokenType.RBRACE:
             self.advance()
             if expected_type == TokenType.MAJMUO:
                 return SetNode([]).set_pos(token.line, token.column)
             return DictNode([]).set_pos(token.line, token.column)
 
-        self.skip_newlines()
+        self._skip_newlines()
         first_expr = self.parse_expression()
-        self.skip_newlines()
+        self._skip_newlines()
 
         if self.peek() and self.peek().type == TokenType.COLON:
             self.advance()  # :
-            self.skip_newlines()
+            self._skip_newlines()
             first_val = self.parse_expression()
-            self.skip_newlines()
+            self._skip_newlines()
             pairs = [(first_expr, first_val)]
 
             while self.peek().type == TokenType.COMMA:
                 self.advance()  # ,
-                self.skip_newlines()
+                self._skip_newlines()
                 key = self.parse_expression()
-                self.skip_newlines()
+                self._skip_newlines()
                 if self.peek().type != TokenType.COLON:
                     raise LikhaiJeGhalti(
                         "Lughat ji ghalti: Key khaan poe ':' lazmi aahe.",
@@ -1072,12 +1124,12 @@ class Parser:
                         self.code,
                     )
                 self.advance()
-                self.skip_newlines()
+                self._skip_newlines()
                 val = self.parse_expression()
-                self.skip_newlines()
+                self._skip_newlines()
                 pairs.append((key, val))
 
-            self.skip_newlines()
+            self._skip_newlines()
             if self.peek().type != TokenType.RBRACE:
                 raise LikhaiJeGhalti(
                     "Lughat je aakhir mein '}' lazmi aahe.",
@@ -1089,14 +1141,14 @@ class Parser:
             return DictNode(pairs).set_pos(token.line, token.column)
         else:
             elements = [first_expr]
-            self.skip_newlines()
+            self._skip_newlines()
             while self.peek().type == TokenType.COMMA:
                 self.advance()  # ,
-                self.skip_newlines()
+                self._skip_newlines()
                 elements.append(self.parse_expression())
-                self.skip_newlines()
+                self._skip_newlines()
 
-            self.skip_newlines()
+            self._skip_newlines()
             if self.peek().type != TokenType.RBRACE:
                 raise LikhaiJeGhalti(
                     "Majmuo je aakhir mein '}' lazmi aahe.",
