@@ -37,12 +37,6 @@ from .ast_nodes import (
 from .keywords import DATATYPES
 from .tokens import Token, TokenType
 
-COLLECTION_TYPES: tuple[TokenType, ...] = (
-    TokenType.FEHRIST,
-    TokenType.LUGHAT,
-    TokenType.MAJMUO,
-)
-
 CallArgs = tuple[list[Node], list[tuple[str, Node]], Node | None, Node | None]
 
 
@@ -71,20 +65,6 @@ class Parser:
         if t:
             node.set_pos(t.line, t.column)
         return node
-
-    def _is_typed_declaration(self, token: Token) -> bool:
-        """True if the current token starts a declaration like
-        `pakko x = ...`, `adad y`, or `fehrist<adad> z = ...`."""
-        if token.type == TokenType.PAKKO:
-            return True
-
-        nxt = self.peek_ahead()
-        if token.type not in DATATYPES or nxt is None:
-            return False
-
-        return nxt.type == TokenType.IDENTIFIER or (
-            token.type in COLLECTION_TYPES and nxt.type == TokenType.LBRACKET
-        )
 
     def peek(self) -> Token | None:
         """Return the current token without consuming it, or None at EOF."""
@@ -115,7 +95,6 @@ class Parser:
         Consume nothing.  Returns a sensible default (0, 0.0, "", False, etc.)
         for each built-in datatype.  Returns NullNode for unknown types.
         """
-        # TODO: Use match case statements or a dictionary look up whatever you want.
         if var_type == TokenType.ADAD:
             return self._at_pos(NumberNode(0), token)
         if var_type == TokenType.DAHAI:
@@ -360,7 +339,7 @@ class Parser:
         # Prefix form: "adad x"
         param_type, param_element = self._try_prefix_type()
         if param_element is not None:
-            # TODO: Make them Supported
+            # TODO: Implement this feature
             raise LikhaiJeGhalti(
                 "Parameters laai `[]` element types barwakat supported nah aahin.",
                 self.peek().line,

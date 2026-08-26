@@ -109,7 +109,7 @@ class Lexer:
         Attributes:
             steps: Number of character(s) to peek ahead of the current character.
         """
-        if self.pos + 1 < len(self.code):
+        if self.pos + steps < len(self.code):
             return self.code[self.pos + steps]
         return None
 
@@ -242,25 +242,21 @@ class Lexer:
         Handles:  * **  / /*  > >=  < <=  = ==  ! != !!
         """
         line, col = self.line, self.column
-        next = self._peek_ahead()
+        next_char = self._peek_ahead()
 
-        pair = _COMPOUND_OPS.get((char, next))
+        pair = _COMPOUND_OPS.get((char, next_char))
         if pair is not None:
             self._advance(times=2)
-            return Token(pair, char + next, line, col)
+            return Token(pair, char + next_char, line, col)
 
-        if char == "/" and next == "*":
+        if char == "/" and next_char == "*":
             self._advance(times=2)
             self._skip_block_comment()
             return None
 
         fallback = _COMPOUND_FALLBACK[char]
-        if fallback is not None:
-            self._advance()
-            return Token(fallback, char, line, col)
-
-        # Should never reach here
-        raise LikhaiJeGhalti(f"Illegal akhar {char}.", line, col, self.code)
+        self._advance()
+        return Token(fallback, char, line, col)
 
     # ===== Main tokenization entry point =====
 

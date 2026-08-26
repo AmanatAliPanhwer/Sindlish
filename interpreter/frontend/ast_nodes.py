@@ -85,11 +85,10 @@ class BoolNode(Node):
 class NullNode(Node):
     """Null literal (khali)."""
 
-    __slots__ = ("value",)
+    __slots__ = ()
 
     def __init__(self, line: int = 0, column: int = 0):
         super().__init__(line, column)
-        self.value = None
 
 
 # ===== Variables & Assignment =====
@@ -243,12 +242,16 @@ class ForNode(Node):
 class BreakNode(Node):
     """Break statement (tor)."""
 
+    __slots__ = ()
+
     def __init__(self, line: int = 0, column: int = 0):
         super().__init__(line, column)
 
 
 class ContinueNode(Node):
     """Continue statement (jari)."""
+
+    __slots__ = ()
 
     def __init__(self, line: int = 0, column: int = 0):
         super().__init__(line, column)
@@ -492,34 +495,6 @@ class NonLocalNode(Node):
     def __init__(self, name: str, line: int = 0, column: int = 0):
         super().__init__(line, column)
         self.name = name
-
-
-# ===== Pattern Matching =====
-
-
-class MatchNode(Node):
-    """Match expression."""
-
-    __slots__ = (
-        "cases",
-        "expr",
-    )
-
-    def __init__(self, expr, cases: list, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.expr = expr
-        self.cases = cases
-
-
-class MatchCaseNode(Node):
-    """A single case in a match expression."""
-
-    __slots__ = ("body", "pattern")
-
-    def __init__(self, pattern, body, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.pattern = pattern
-        self.body = body
 
 
 # ===== Result System =====
