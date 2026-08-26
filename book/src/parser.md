@@ -4,7 +4,7 @@
 
 ## 🌱 The hook
 
-The lexer hands you a flat list of tokens — but programs aren't flat. `a + b * c` isn't "five things in a row"; it's a specific *shape* of meaning. The parser (`interpreter/frontend/parser.py`, ~880 lines) turns the token stream into that shape: a tree, the **AST** (Abstract Syntax Tree), built from the 36 node classes in `ast_nodes.py`.
+The lexer hands you a flat list of tokens — but programs aren't flat. `a + b * c` isn't "five things in a row"; it's a specific *shape* of meaning. The parser (`interpreter/frontend/parser.py`, ~1278 lines) turns the token stream into that shape: a tree, the **AST** (Abstract Syntax Tree), built from the 36 node classes in `ast_nodes.py`.
 
 Mental model: **assembling furniture from an instruction sheet.** Each grammar rule is one step; each step produces one node; steps nest inside steps until the whole program stands assembled.
 
@@ -28,14 +28,14 @@ flowchart TD
 
 The further down you go, the *tighter* things bind. That's the entire trick. Two details worth pausing on:
 
-- **`^` is right-associative** (`parser.py:673`): `parse_power` recurses into itself for the right side, so `2 ^ 3 ^ 2` means `2 ^ (3 ^ 2) = 512`, while `+`/`*` loop left-to-right.
+- **`^` is right-associative** (`parser.py:646`): `parse_power` recurses into itself for the right side, so `2 ^ 3 ^ 2` means `2 ^ (3 ^ 2) = 512`, while `+`/`*` loop left-to-right.
 - **Unary minus binds tighter than `^`**: `-2 ^ 2` parses as `(-2) ^ 2 = 4`. This differs from Python and is a *documented language convention* — see `roadmap/TODO.md` before "fixing" it.
 
 ## 🔬 Under the hood
 
 ### Statements first, expressions second
 
-`parse_statement()` (`parser.py:131`) peeks at one token and dispatches:
+`parse_statement()` (`parser.py:149`) peeks at one token and dispatches:
 
 | First token | Produces |
 |---|---|
@@ -55,7 +55,7 @@ Everything else falls through to `parse_expression()` — which is also how `lik
 
 ### Declarations: three spellings, one node
 
-All of these become an `AssignNode` (`parser.py:512`):
+All of these become an `AssignNode` (`parser.py:1032`):
 
 ```sd
 adad x = 5          # type-first
@@ -85,11 +85,11 @@ An unclosed block dies with position info pointing at the **opening** brace — 
 
 ### Calls, kwargs, and markers
 
-Call arguments (`parse_call_arguments`, `parser.py:777`) collect four buckets: positional args, `(name, value)` keyword pairs, one `*expr`, one `**expr`. The compiler later encodes keywords as marker objects in the constant pool so runtime strings can never impersonate parameter names — full story in [compiler.md](compiler.md).
+Call arguments (`parse_call_arguments`, `parser.py:880`) collect four buckets: positional args, `(name, value)` keyword pairs, one `*expr`, one `**expr`. The compiler later encodes keywords as marker objects in the constant pool so runtime strings can never impersonate parameter names — full story in [compiler.md](compiler.md).
 
 ### Method chains: where Results hide
 
-After any primary expression, `parse_postfix` loops over trailing `.name`, `[index]`, `(args)`, `?`, `!!`. Inside `_parse_method_chain` there's a special case with big consequences (`parser.py:705`):
+After any primary expression, `parse_postfix` loops over trailing `.name`, `[index]`, `(args)`, `?`, `!!`. Inside `_parse_method_chain` there's a special case with big consequences (`parser.py:741`):
 
 ```python
 if method_name in ("bachao", "lazmi"):
@@ -100,7 +100,7 @@ if method_name in ("bachao", "lazmi"):
 
 ### Dict or set? One peek decides
 
-Both start with `{`. `parse_dict_set` (`parser.py:825`) parses the first expression; if the next token is `:` → dict, else → set. Empty `{}` is a dict; use `majmuo()` for an empty set. Chained comparisons (`a < b < c`) are rejected outright with a message telling you to write `(a < b) aen (b < c)`.
+Both start with `{`. `parse_dict_set` (`parser.py:1204`) parses the first expression; if the next token is `:` → dict, else → set. Empty `{}` is a dict; use `majmuo()` for an empty set. Chained comparisons (`a < b < c`) are rejected outright with a message telling you to write `(a < b) aen (b < c)`.
 
 ## Seeing the tree yourself
 

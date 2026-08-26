@@ -58,8 +58,6 @@ class NumberNode(Node):
         super().__init__(line, column)
         self.value = value
 
-    def get_type(self) -> TokenType:
-        return TokenType.ADAD if isinstance(self.value, int) else TokenType.DAHAI
 
 
 class StringNode(Node):
@@ -71,8 +69,6 @@ class StringNode(Node):
         super().__init__(line, column)
         self.value = value
 
-    def get_type(self) -> TokenType:
-        return TokenType.LAFZ
 
 
 class BoolNode(Node):
@@ -84,8 +80,6 @@ class BoolNode(Node):
         super().__init__(line, column)
         self.value = value
 
-    def get_type(self) -> TokenType:
-        return TokenType.FAISLO
 
 
 class NullNode(Node):
@@ -293,8 +287,7 @@ class ListNode(Node):
         super().__init__(line, column)
         self.elements = elements
 
-    def get_type(self) -> TokenType:
-        return TokenType.FEHRIST
+
 
 
 class DictNode(Node):
@@ -306,8 +299,6 @@ class DictNode(Node):
         super().__init__(line, column)
         self.pairs = pairs
 
-    def get_type(self) -> TokenType:
-        return TokenType.LUGHAT
 
 
 class SetNode(Node):
@@ -319,8 +310,6 @@ class SetNode(Node):
         super().__init__(line, column)
         self.elements = elements
 
-    def get_type(self) -> TokenType:
-        return TokenType.MAJMUO
 
 
 class IndexNode(Node):

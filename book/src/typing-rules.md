@@ -63,7 +63,7 @@ par lafz milyo.
 
 ## Matrix 3 · casts — the explicit escape hatch
 
-When types don't line up, you convert on purpose. Casts are parsed as datatype-token calls (`parser.py:390`) and become one opcode, `TYPECAST` (`vm.py:737`). Full verified behavior:
+When types don't line up, you convert on purpose. Casts are parsed as datatype-token calls (`parser.py:776`) and become one opcode, `TYPECAST` (`vm.py:951`). Full verified behavior:
 
 | Cast | From → Result | Notes |
 |---|---|---|
