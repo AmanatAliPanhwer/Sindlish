@@ -43,6 +43,22 @@ class TestTypeMismatch:
         with pytest.raises(QisamJeGhalti):
             run("lughat[lafz, adad] x = {1: 100}")
 
+    def test_param_type_mismatch(self):
+        with pytest.raises(QisamJeGhalti, match="Parameter.*khapyo paye"):
+            run('kaam foo(adad x) { wapas x }\nfoo("hello")')
+
+    def test_return_type_mismatch(self):
+        with pytest.raises(QisamJeGhalti, match="Wapas khe.*khapyo paye"):
+            run('kaam foo() -> adad { wapas "hello" }\nfoo()')
+
+    def test_majmuo_element_error_says_majmuo(self):
+        with pytest.raises(QisamJeGhalti, match="Majmuo"):
+            run('majmuo[adad] x = {1, "two", 3}')
+
+    def test_lughat_element_error_says_lughat(self):
+        with pytest.raises(QisamJeGhalti, match="Lughat"):
+            run('lughat[lafz, adad] x = {"a": 1, "b": "x"}')
+
 
 class TestImmutableKeyInSet:
     def test_mutable_value_in_set_raises(self):

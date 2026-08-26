@@ -228,7 +228,7 @@ class VM:
                 )
             if element_type is not None:
                 for elem in value.elements:
-                    self._check_element_type(elem, element_type)
+                    self._check_element_type(elem, element_type, container_name="Majmuo")
         elif expected_type == TokenType.LUGHAT:
             if not isinstance(value, SdDict):
                 raise QisamJeGhalti(
@@ -240,17 +240,17 @@ class VM:
             if element_type is not None and isinstance(element_type, list):
                 key_type, val_type = element_type
                 for k, v in value.pairs.items():
-                    self._check_element_type(k, key_type, line, column)
-                    self._check_element_type(v, val_type, line, column)
+                    self._check_element_type(k, key_type, line, column, container_name="Lughat")
+                    self._check_element_type(v, val_type, line, column, container_name="Lughat")
         return True
 
-    def _check_element_type(self, value, element_type, line=0, column=0):
+    def _check_element_type(self, value, element_type, line=0, column=0, container_name="Fehrist"):
         if isinstance(value, SdResult) and value.is_ok():
             value = value.value
         if element_type == TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):
                 raise QisamJeGhalti(
-                    f"Fehrist je elements jo qisam 'adad' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                    f"{container_name} je elements jo qisam 'adad' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -258,7 +258,7 @@ class VM:
         elif element_type == TokenType.DAHAI:
             if not isinstance(value, SdNumber) or not isinstance(value.value, float):
                 raise QisamJeGhalti(
-                    f"Fehrist je element jo qisam 'dahai' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                    f"{container_name} je element jo qisam 'dahai' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -266,7 +266,7 @@ class VM:
         elif element_type == TokenType.LAFZ:
             if not isinstance(value, SdString):
                 raise QisamJeGhalti(
-                    f"Fehrist je element jo qisam 'lafz' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                    f"{container_name} je element jo qisam 'lafz' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -274,7 +274,7 @@ class VM:
         elif element_type == TokenType.FAISLO:
             if not isinstance(value, SdBool):
                 raise QisamJeGhalti(
-                    f"Fehrist je element jo qisam 'faislo' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                    f"{container_name} je element jo qisam 'faislo' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -949,7 +949,7 @@ class VM:
         raise HalndeVaktGhalti(msg_val, line, column, self.code_string)
 
     def _op_typecast(self, frame, arg, line, column):
-        target_type_name = frame.constants[arg].value
+        target_type = arg
         value = self.pop()
 
         # Auto-unwrap successful Results for typecasting
@@ -968,7 +968,7 @@ class VM:
                 )
 
         try:
-            if target_type_name == "ADAD":
+            if target_type == TokenType.ADAD:
                 if isinstance(value, SdNumber):
                     self.push(SdNumber(int(value.value)))
                 elif isinstance(value, SdString):
@@ -984,7 +984,7 @@ class VM:
                         self.code_string,
                     )
 
-            elif target_type_name == "DAHAI":
+            elif target_type == TokenType.DAHAI:
                 if isinstance(value, (SdNumber, SdString)):
                     self.push(SdNumber(float(value.value)))
                 elif isinstance(value, SdBool):
@@ -997,16 +997,16 @@ class VM:
                         self.code_string,
                     )
 
-            elif target_type_name == "LAFZ":
+            elif target_type == TokenType.LAFZ:
                 self.push(SdString(str(value)))
 
-            elif target_type_name == "FAISLO":
+            elif target_type == TokenType.FAISLO:
                 # Booleans are already truthy/falsy in Python
                 self.push(
                     SdBool(bool(value.value if hasattr(value, "value") else value))
                 )
 
-            elif target_type_name == "FEHRIST":
+            elif target_type == TokenType.FEHRIST:
                 if isinstance(value, (SdList, SdSet)):
                     self.push(SdList(list(value.elements)))
                 elif isinstance(value, SdString):
@@ -1019,7 +1019,7 @@ class VM:
                         self.code_string,
                     )
 
-            elif target_type_name == "MAJMUO":
+            elif target_type == TokenType.MAJMUO:
                 if isinstance(value, (SdList, SdSet)):
                     self.push(SdSet(set(value.elements)))
                 elif isinstance(value, SdString):
@@ -1034,7 +1034,7 @@ class VM:
 
             else:
                 raise HalndeVaktGhalti(
-                    f"Na-maloom typecast target: {target_type_name}.",
+                    f"Na-maloom typecast target: {target_type}.",
                     line,
                     column,
                     self.code_string,
@@ -1042,7 +1042,7 @@ class VM:
 
         except ValueError:
             raise HalndeVaktGhalti(
-                f"Value '{value!s}' khe {target_type_name.lower()} mein badli natho kare saghjay.",
+                f"Value '{value!s}' khe {_type_label(target_type)} mein badli natho kare saghjay.",
                 line,
                 column,
                 self.code_string,

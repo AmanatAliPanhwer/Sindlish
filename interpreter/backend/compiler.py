@@ -220,8 +220,7 @@ class Compiler:
 
     def compile_TypeCastNode(self, node):
         self.compile(node.expr)
-        const_idx = self.add_const(SdString(node.target_type.name))
-        self.emit(OpCode.TYPECAST, const_idx, node=node)
+        self.emit(OpCode.TYPECAST, node.target_type, node=node)
 
     def compile_BlockNode(self, node, is_function_body=False):
         num_stmts = len(node.statements)
