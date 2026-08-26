@@ -218,7 +218,7 @@ class TestCollectionsAndBuiltins:
         assert extract_value(interp.variables["x"]["value"]) == 2
 
     def test_majmuo_extra_args_rejected(self):
-        with pytest.raises(LikhaiJeGhalti, match="1 argument"):
+        with pytest.raises(LikhaiJeGhalti, match="sirf hikro argument"):
             run("majmuo(1, 2)")
 
     def test_range_zero_step_raises(self):
