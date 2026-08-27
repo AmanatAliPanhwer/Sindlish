@@ -228,7 +228,9 @@ class VM:
                 )
             if element_type is not None:
                 for elem in value.elements:
-                    self._check_element_type(elem, element_type, container_name="Majmuo")
+                    self._check_element_type(
+                        elem, element_type, container_name="Majmuo"
+                    )
         elif expected_type == TokenType.LUGHAT:
             if not isinstance(value, SdDict):
                 raise QisamJeGhalti(
@@ -240,11 +242,17 @@ class VM:
             if element_type is not None and isinstance(element_type, list):
                 key_type, val_type = element_type
                 for k, v in value.pairs.items():
-                    self._check_element_type(k, key_type, line, column, container_name="Lughat")
-                    self._check_element_type(v, val_type, line, column, container_name="Lughat")
+                    self._check_element_type(
+                        k, key_type, line, column, container_name="Lughat"
+                    )
+                    self._check_element_type(
+                        v, val_type, line, column, container_name="Lughat"
+                    )
         return True
 
-    def _check_element_type(self, value, element_type, line=0, column=0, container_name="Fehrist"):
+    def _check_element_type(
+        self, value, element_type, line=0, column=0, container_name="Fehrist"
+    ):
         if isinstance(value, SdResult) and value.is_ok():
             value = value.value
         if element_type == TokenType.ADAD:
@@ -726,9 +734,7 @@ class VM:
             # (which already passed above, so it is idempotent here) and then
             # walks the elements via _check_element_type.
             if param.type and param.element_type is not None:
-                self._check_type(
-                    val, param.type, param.element_type, line, column
-                )
+                self._check_type(val, param.type, param.element_type, line, column)
             bound[param.name] = val
 
         extra_positional = positional[pos_idx:]

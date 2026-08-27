@@ -26,6 +26,7 @@ _TYPE_NAME_MAP = {
     "kaam": TokenType.KAAM,
 }
 
+
 class _FnRec:
     """Per-function resolution state for closure analysis."""
 
@@ -171,7 +172,10 @@ class Resolver:
                 self.code,
             )
         raise QisamJeGhalti(
-            f"Qisam '{ann}' natho mile.", line, column, self.code,
+            f"Qisam '{ann}' natho mile.",
+            line,
+            column,
+            self.code,
         )
 
     def _normalize_element(self, elem, line, column):

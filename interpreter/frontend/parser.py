@@ -89,7 +89,9 @@ class Parser:
         while self.peek() and self.peek().type == TokenType.NEWLINE:
             self.advance()
 
-    def get_default_value_node(self, var_type: TokenType | str | None, token: Token | None = None) -> Node:
+    def get_default_value_node(
+        self, var_type: TokenType | str | None, token: Token | None = None
+    ) -> Node:
         """Return a zero-value AST node for the given *var_type*.
 
         Consume nothing.  Returns a sensible default (0, 0.0, "", False, etc.)

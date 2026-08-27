@@ -53,7 +53,7 @@ class Node:
 
             cls.__init__ = init
 
-    def set_pos(self, line: int, column: int) -> "Node":
+    def set_pos(self, line: int, column: int) -> Node:
         """Set source position and return self (for chaining)."""
         self.line = line
         self.column = column
