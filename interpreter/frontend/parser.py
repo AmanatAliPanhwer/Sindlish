@@ -89,7 +89,7 @@ class Parser:
         while self.peek() and self.peek().type == TokenType.NEWLINE:
             self.advance()
 
-    def get_default_value_node(self, var_type: TokenType | None, token: Token | None = None) -> Node:
+    def get_default_value_node(self, var_type: TokenType | str | None, token: Token | None = None) -> Node:
         """Return a zero-value AST node for the given *var_type*.
 
         Consume nothing.  Returns a sensible default (0, 0.0, "", False, etc.)
@@ -324,7 +324,8 @@ class Parser:
     def _parse_param(self) -> ParamNode:
         """Consume one parameter and return a ParamNode.
 
-        Handles optional `*`/`**` prefix, type prefix form (`[Type] name`),
+        Handles optional `*`/`**` prefix, type prefix form (`[Type] name`
+        including the bracketed element type form like `fehrist[adad] name`),
         colon form (`name : Type`), and default value (`name = expr`).
         Raises LikhaiJeGhalti on missing name or malformed annotation.
         """
@@ -336,16 +337,8 @@ class Parser:
             self.advance()  # **
             is_kw = True
 
-        # Prefix form: "adad x"
+        # Prefix form: "adad x" (with optional `[]` element type: "fehrist[adad] x")
         param_type, param_element = self._try_prefix_type()
-        if param_element is not None:
-            # TODO: Implement this feature
-            raise LikhaiJeGhalti(
-                "Parameters laai `[]` element types barwakat supported nah aahin.",
-                self.peek().line,
-                self.peek().column,
-                self.code,
-            )
         if self.peek().type != TokenType.IDENTIFIER:
             raise LikhaiJeGhalti(
                 "Parameter jo naalo lazmi aahe.",
@@ -371,12 +364,14 @@ class Parser:
             self.advance()  # =
             default = self.parse_expression()
 
-        return ParamNode(name, param_type, default, is_star, is_kw)
+        return ParamNode(
+            name, param_type, default, is_star, is_kw, element_type=param_element
+        )
 
     def _parse_function_params(self) -> list[ParamNode]:
         """Consume `( ... )` and return a list of ParamNodes.
 
-        Grammar per param: `[*|**] [datatype] name [: type] [= default]`
+        Grammar per param: `[*|**] [datatype[element]] name [: type] [= default]`
         Trailing commas allowed. Consumes the closing `)`.
         Raises LikhaiJeGhalti on missing `)`.
         """
@@ -685,11 +680,7 @@ class Parser:
                             node.name, args, keywords, star_args, kw_args
                         ).set_pos(node.line, node.column)
                     else:
-                        # Support calling results of expressions if compiler allows
-                        # For now, we'll keep the CallNode(name, ...) structure
-                        # but we might need to wrap the node if it's not a VariableNode.
-                        # Since CallNode expects a name: str, we have a problem here for f()().
-                        # But a[0][1] will work fine because IndexNode takes a node.
+                        # Call a computed value: CallNode.name holds the expr node.
                         node = CallNode(
                             node, args, keywords, star_args, kw_args
                         ).set_pos(node.line, node.column)
@@ -1180,12 +1171,12 @@ class Parser:
 
         return ListNode(elements).set_pos(token.line, token.column)
 
-    def parse_dict_set(self, expected_type: TokenType | None = None) -> DictNode | SetNode:
+    def parse_dict_set(self) -> DictNode | SetNode:
         """Consume `{ ... }` and return a DictNode or SetNode.
 
-        If *expected_type* is MAJMUO, empty `{}` is treated as a set.
-        Otherwise the first element determines dict (if followed by `:`) vs set.
-        Raises LikhaiJeGhalti on missing `}` or malformed dict entries.
+        The first element determines dict (if followed by `:`) vs set.
+        Empty `{}` is a dict. Raises LikhaiJeGhalti on missing `}` or
+        malformed dict entries.
         """
         token = self.peek()
         self.advance()  # {
@@ -1193,8 +1184,6 @@ class Parser:
         self._skip_newlines()
         if self.peek() and self.peek().type == TokenType.RBRACE:
             self.advance()
-            if expected_type == TokenType.MAJMUO:
-                return SetNode([]).set_pos(token.line, token.column)
             return DictNode([]).set_pos(token.line, token.column)
 
         self._skip_newlines()

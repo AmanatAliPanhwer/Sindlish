@@ -235,11 +235,12 @@ class Lexer:
             self.code,
         )
 
-    def _scan_compound_operator(self, char: str) -> Token:
+    def _scan_compound_operator(self, char: str) -> Token | None:
         """
         Scan operators that may be 1 or 2 characters.
 
         Handles:  * **  / /*  > >=  < <=  = ==  ! != !!
+        Returns None when the `/ *` pair starts a block comment.
         """
         line, col = self.line, self.column
         next_char = self._peek_ahead()

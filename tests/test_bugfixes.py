@@ -93,6 +93,31 @@ class TestParams:
         _, out = run("kaam f(adad a = 5) { wapas a * 2 }\nlikh(f())")
         assert "10" in out
 
+    def test_elem_typed_param_accepts(self):
+        """Element-typed params (fehrist[adad] etc.) accept well-typed args."""
+        _, out = run("kaam s(fehrist[adad] xs) { wapas xs[0] }\nlikh(s([1, 2, 3]))")
+        assert "1" in out
+
+    def test_elem_typed_param_rejects_wrong_element(self):
+        with pytest.raises(QisamJeGhalti, match="Fehrist"):
+            run('kaam f(fehrist[adad] xs) { wapas 0 }\nf(["a"])')
+
+    def test_elem_typed_majmuo_param_rejects(self):
+        with pytest.raises(QisamJeGhalti, match="Majmuo"):
+            run('kaam f(majmuo[adad] s) { wapas 0 }\nf({1, "x"})')
+
+    def test_elem_typed_lughat_param_rejects_value(self):
+        with pytest.raises(QisamJeGhalti, match="Lughat"):
+            run('kaam f(lughat[lafz, adad] d) { wapas 0 }\nf({"a": "x"})')
+
+    def test_elem_typed_param_default_validated(self):
+        _, out = run("kaam f(fehrist[adad] xs = [10]) { wapas xs[0] }\nlikh(f())")
+        assert "10" in out
+
+    def test_elem_typed_param_default_rejects_wrong_element(self):
+        with pytest.raises(QisamJeGhalti, match="Fehrist"):
+            run('kaam f(fehrist[adad] xs = ["bad"]) { wapas 0 }\nlikh(f())')
+
     def test_call_site_overrides_default(self):
         _, out = run(
             'kaam greet(naam = "Dost") { wapas "Salam " + naam }\nlikh(greet("Ali"))'

@@ -721,6 +721,14 @@ class VM:
                     column,
                     self.code_string,
                 )
+            # Element-typed params (fehrist[adad], lughat[k,v], ...) validate the
+            # container's members too. _check_type re-verifies the top-level type
+            # (which already passed above, so it is idempotent here) and then
+            # walks the elements via _check_element_type.
+            if param.type and param.element_type is not None:
+                self._check_type(
+                    val, param.type, param.element_type, line, column
+                )
             bound[param.name] = val
 
         extra_positional = positional[pos_idx:]

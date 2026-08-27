@@ -419,9 +419,6 @@ class Resolver:
         self.resolve(node.left)
         self.resolve(node.right)
 
-    def resolve_PrintNode(self, node):
-        self.resolve(node.value)
-
     def resolve_ListNode(self, node):
         for el in node.elements:
             self.resolve(el)
@@ -460,6 +457,10 @@ class Resolver:
         self.push_scope()
         for param in node.params:
             param.type = self._normalize_annotation(param.type, node.line, node.column)
+            if param.element_type is not None:
+                param.element_type = self._normalize_element(
+                    param.element_type, node.line, node.column
+                )
             param_slot = self.define(param.name, param)
             param.slot_index = param_slot
         self.resolve(node.body)

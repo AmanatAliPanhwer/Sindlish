@@ -6,7 +6,7 @@ Nodes carry source-position information (line, column) for error reporting.
 
 Grammar summary (simplified):
     program     -> statement* EOF
-    statement   -> print | if | while | assignment | function | return | expr
+    statement   -> if | while | assignment | function | return | expr
     expression  -> or
     or          -> and ("ya" and)*
     and         -> not ("aen" not)*
@@ -20,9 +20,11 @@ Grammar summary (simplified):
     primary     -> NUMBER | STRING | BOOL | NULL | IDENT | "(" expr ")" | list | dict | set
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 
-from .tokens import TokenType
+from .tokens import Token, TokenType
 
 
 class Node:
@@ -72,7 +74,7 @@ class Node:
 class NumberNode(Node):
     """Integer or float literal."""
 
-    value: object
+    value: int | float
 
 
 @dataclass(slots=True, repr=False)
@@ -102,10 +104,10 @@ class VariableNode(Node):
     """Variable reference by name."""
 
     name: str
-    slot_index: object = None
-    scope_level: object = None
-    deref_depth: object = None
-    deref_name: object = None
+    slot_index: int | None = None
+    scope_level: int | None = None
+    deref_depth: int | None = None
+    deref_name: str | None = None
 
 
 @dataclass(slots=True, repr=False)
@@ -113,15 +115,15 @@ class AssignNode(Node):
     """Variable declaration/assignment with optional type annotation."""
 
     name: str
-    value: object
-    type: object = None
+    value: Node
+    type: TokenType | str | None = None
     is_const: bool = False
     element_type: object = None
     has_explicit_type: bool = False
-    slot_index: object = None
-    scope_level: object = None
-    deref_depth: object = None
-    deref_name: object = None
+    slot_index: int | None = None
+    scope_level: int | None = None
+    deref_depth: int | None = None
+    deref_name: str | None = None
 
 
 # ===== Operators =====
@@ -131,25 +133,25 @@ class AssignNode(Node):
 class BinaryOpNode(Node):
     """Binary operation (e.g. a + b, x == y)."""
 
-    left: object
-    op: object
-    right: object
+    left: Node
+    op: Token
+    right: Node
 
 
 @dataclass(slots=True, repr=False)
 class UnaryOpNode(Node):
     """Unary operation (e.g. -x, nah x)."""
 
-    op: object
-    right: object
+    op: Token
+    right: Node
 
 
 @dataclass(slots=True, repr=False)
 class PostfixOpNode(Node):
     """Postfix operation (? or !!)."""
 
-    expr: object
-    op: object
+    expr: Node
+    op: Token
 
 
 # ===== Statements =====
@@ -159,9 +161,9 @@ class PostfixOpNode(Node):
 class IfNode(Node):
     """If/else-if/else statement (agar/yawari/warna)."""
 
-    condition: object
-    body: object
-    else_body: object
+    condition: Node
+    body: BlockNode
+    else_body: BlockNode | None
     else_if_bodies: list = field(default_factory=list)
 
     def __post_init__(self):
@@ -172,8 +174,8 @@ class IfNode(Node):
 class WhileNode(Node):
     """While loop (jistain)."""
 
-    condition: object
-    body: object
+    condition: Node
+    body: BlockNode
 
 
 @dataclass(slots=True, repr=False)
@@ -181,9 +183,9 @@ class ForNode(Node):
     """For loop (har)."""
 
     iterator: str
-    iterable: object
-    body: object
-    iterator_slot: object = None
+    iterable: Node
+    body: BlockNode
+    iterator_slot: int | None = None
 
 
 @dataclass(slots=True, repr=False)
@@ -239,9 +241,9 @@ class SetNode(Node):
 class IndexNode(Node):
     """Index access or assignment (obj[index] or obj[index] = value)."""
 
-    left: object
-    index: object
-    value: object = None
+    left: Node
+    index: Node
+    value: Node | None = None
 
 
 # ===== Functions =====
@@ -252,11 +254,12 @@ class ParamNode(Node):
     """Function parameter definition."""
 
     name: str
-    type: object = None
-    default: object = None
+    type: TokenType | str | None = None
+    default: Node | None = None
     is_star: bool = False
     is_kw: bool = False
-    slot_index: object = None
+    element_type: object = None
+    slot_index: int | None = None
 
 
 @dataclass(slots=True, repr=False)
@@ -265,23 +268,27 @@ class FunctionNode(Node):
 
     name: str
     params: list
-    body: object
-    return_type: object = None
+    body: BlockNode
+    return_type: TokenType | str | None = None
     slot_count: int = 0
-    cell_slots: object = ()
-    free_slots: object = ()
+    cell_slots: tuple = ()
+    free_slots: tuple = ()
     slot_metadata: dict = field(default_factory=dict)
 
 
 @dataclass(slots=True, repr=False)
 class CallNode(Node):
-    """Function call."""
+    """Function call.
 
-    name: str
+    ``name`` is the callee: a variable name (``str``) for ``foo(...)``, or an
+    expression ``Node`` for calling a computed value (``expr(...)``).
+    """
+
+    name: str | Node
     args: list
     keywords: list = field(default_factory=list)
-    star_args: object = None
-    kw_args: object = None
+    star_args: Node | None = None
+    kw_args: Node | None = None
 
     def __post_init__(self):
         self.keywords = self.keywords or []
@@ -291,19 +298,19 @@ class CallNode(Node):
 class ReturnNode(Node):
     """Return statement (wapas)."""
 
-    value: object = None
+    value: Node | None = None
 
 
 @dataclass(slots=True, repr=False)
 class MethodCallNode(Node):
     """Method call on an object (obj.method(args))."""
 
-    instance: object
+    instance: Node
     method_name: str
     args: list
     keywords: list = field(default_factory=list)
-    star_args: object = None
-    kw_args: object = None
+    star_args: Node | None = None
+    kw_args: Node | None = None
 
     def __post_init__(self):
         self.keywords = self.keywords or []
@@ -313,7 +320,7 @@ class MethodCallNode(Node):
 class GetAttrNode(Node):
     """Attribute access (obj.attr)."""
 
-    instance: object
+    instance: Node
     attr_name: str
 
 
@@ -342,23 +349,23 @@ class ResultConstructorNode(Node):
     """ok(value) or ghalti(value) constructor."""
 
     variant: str  # "OK" or "GHALTI"
-    value: object
+    value: Node
 
 
 @dataclass(slots=True, repr=False)
 class ResultMethodCallNode(Node):
     """Result method: .bachao(fallback) or .lazmi(message)."""
 
-    receiver: object
+    receiver: Node
     method_name: str
-    arg: object
+    arg: Node
 
 
 @dataclass(slots=True, repr=False)
 class GhaltiNode(Node):
     """Ghalti expression: ghalti(message)."""
 
-    message: object
+    message: Node
 
 
 @dataclass(slots=True, repr=False)
@@ -366,4 +373,4 @@ class TypeCastNode(Node):
     """Type conversion (e.g. adad(x), lafz(y))."""
 
     target_type: TokenType
-    expr: object
+    expr: Node
