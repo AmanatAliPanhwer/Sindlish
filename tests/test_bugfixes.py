@@ -118,6 +118,14 @@ class TestParams:
         with pytest.raises(QisamJeGhalti, match="Fehrist"):
             run('kaam f(fehrist[adad] xs = ["bad"]) { wapas 0 }\nlikh(f())')
 
+    def test_colon_form_param_with_element_type(self):
+        # `x : fehrist[adad]` (colon form) must fully consume the bracketed
+        # element type and enforce it, not leave `[adad]` unconsumed.
+        _, out = run("kaam g(x : fehrist[adad]) { wapas x[0] }\nlikh(g([7]))")
+        assert "7" in out
+        with pytest.raises(QisamJeGhalti, match="Fehrist"):
+            run('kaam g(x : fehrist[adad]) { wapas x[0] }\nlikh(g(["a"]))')
+
     def test_call_site_overrides_default(self):
         _, out = run(
             'kaam greet(naam = "Dost") { wapas "Salam " + naam }\nlikh(greet("Ali"))'

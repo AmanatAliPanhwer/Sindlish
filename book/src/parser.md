@@ -28,14 +28,14 @@ flowchart TD
 
 The further down you go, the *tighter* things bind. That's the entire trick. Two details worth pausing on:
 
-- **`^` is right-associative** (`parser.py:646`): `parse_power` recurses into itself for the right side, so `2 ^ 3 ^ 2` means `2 ^ (3 ^ 2) = 512`, while `+`/`*` loop left-to-right.
+- **`^` is right-associative** (`parser.py:622`): `parse_power` recurses into itself for the right side, so `2 ^ 3 ^ 2` means `2 ^ (3 ^ 2) = 512`, while `+`/`*` loop left-to-right.
 - **Unary minus binds tighter than `^`**: `-2 ^ 2` parses as `(-2) ^ 2 = 4`. This differs from Python and is a *documented language convention* — see `roadmap/TODO.md` before "fixing" it.
 
 ## 🔬 Under the hood
 
 ### Statements first, expressions second
 
-`parse_statement()` (`parser.py:149`) peeks at one token and dispatches:
+`parse_statement()` (`parser.py:130`) peeks at one token and dispatches:
 
 | First token | Produces |
 |---|---|
@@ -122,7 +122,7 @@ ProgramNode(statements=[
 
 Read the shape, not the words: `3 + 4` is *inside* the AssignNode's value slot; `x * 2` is *inside* the call's argument. Precedence became geography.
 
-> ⚠️ Known wart (logged in `roadmap/TODO.md`): `main.py ast` currently crashes on files containing `kaam` definitions, because `FunctionNode.__repr__` reads a slot the resolver hasn't filled yet. Function-free snippets print fine.
+`main.py ast` prints pre-resolution ASTs and handles `kaam` definitions fine — `FunctionNode.slot_metadata` is initialized at construction, so a function's AST print is indistinguishable from any other node.
 
 ## Where errors come from
 

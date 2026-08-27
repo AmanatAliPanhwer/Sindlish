@@ -217,7 +217,7 @@ class VM:
                 )
             if element_type is not None:
                 for elem in value.elements:
-                    self._check_element_type(elem, element_type)
+                    self._check_element_type(elem, element_type, line, column)
         elif expected_type == TokenType.MAJMUO:
             if not isinstance(value, SdSet):
                 raise QisamJeGhalti(
@@ -229,7 +229,7 @@ class VM:
             if element_type is not None:
                 for elem in value.elements:
                     self._check_element_type(
-                        elem, element_type, container_name="Majmuo"
+                        elem, element_type, line, column, container_name="Majmuo"
                     )
         elif expected_type == TokenType.LUGHAT:
             if not isinstance(value, SdDict):

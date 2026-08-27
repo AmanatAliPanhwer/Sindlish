@@ -4,7 +4,7 @@
 
 ## 🌱 The hook
 
-Before anyone can *understand* your program, something must simply *read* it. That's the lexer (`interpreter/frontend/lexer.py`, ~272 lines): it turns a string of characters into a list of labeled pieces called **tokens**. It doesn't know what a program *means* — only what its *words* are.
+Before anyone can *understand* your program, something must simply *read* it. That's the lexer (`Lexer.generate_tokens()` in `interpreter/frontend/lexer.py`): it turns a string of characters into a list of labeled pieces called **tokens**. It doesn't know what a program *means* — only what its *words* are.
 
 Think of it as **sorting mail**: letters arrive one character at a time; the sorter groups them into envelopes (numbers, words, symbols), stamps each envelope with where it came from (line & column), and passes the tray onward. No opinions about grammar yet.
 

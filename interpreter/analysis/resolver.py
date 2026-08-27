@@ -133,7 +133,9 @@ class Resolver:
             if isinstance(node.value, ListNode):
                 for elem in node.value.elements:
                     elem_type = self.infer_type(elem)
-                    if elem_type != node.element_type:
+                    # Defer when the element's type can't be inferred yet (None);
+                    # only flag a mismatch we can actually prove.
+                    if elem_type is not None and elem_type != node.element_type:
                         line = getattr(elem, "line", 0)
                         column = getattr(elem, "column", 0)
                         raise QisamJeGhalti(
@@ -145,7 +147,7 @@ class Resolver:
             elif isinstance(node.value, SetNode):
                 for elem in node.value.elements:
                     elem_type = self.infer_type(elem)
-                    if elem_type != node.element_type:
+                    if elem_type is not None and elem_type != node.element_type:
                         line = getattr(elem, "line", 0)
                         column = getattr(elem, "column", 0)
                         raise QisamJeGhalti(
@@ -408,6 +410,10 @@ class Resolver:
         pass
 
     def resolve_CallNode(self, node):
+        # For computed callees (f()(), factory results) CallNode.name is a
+        # Node; resolve it just like MethodCallNode resolves its instance.
+        if isinstance(node.name, Node):
+            self.resolve(node.name)
         for arg in node.args:
             self.resolve(arg)
 

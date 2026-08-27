@@ -352,14 +352,17 @@ class Parser:
 
         if param_type is None and self.peek().type == TokenType.COLON:
             self.advance()  # :
-            param_type = self._parse_type_name()
-            if param_type is None:
+            # The annotation must name a datatype or a custom type. Using
+            # _parse_type_annotation (instead of a bare name) fully consumes
+            # bracketed forms like `x : fehrist[adad]` and yields the element type.
+            if self.peek().type not in DATATYPES and self.peek().type != TokenType.IDENTIFIER:
                 raise LikhaiJeGhalti(
                     "Colon `:` khaan poe type annotation lazmi aahe.",
                     self.peek().line,
                     self.peek().column,
                     self.code,
                 )
+            param_type, param_element = self._parse_type_annotation()
 
         default = None
         if self.peek().type == TokenType.EQ:
@@ -418,7 +421,15 @@ class Parser:
         ):
             self.advance()  # -
             self.advance()  # >
-            return self._parse_type_name()
+            result = self._parse_type_name()
+            if result is None:
+                raise LikhaiJeGhalti(
+                    "'->' khaan poe type annotation lazmi aahe.",
+                    self.peek().line,
+                    self.peek().column,
+                    self.code,
+                )
+            return result
         return None
 
     def parse_function_def(self) -> FunctionNode:
@@ -984,12 +995,10 @@ class Parser:
                         self.code,
                     )
                 self.advance()  # , or :
-                if self.peek() and (
-                    self.peek().type in DATATYPES
-                    or self.peek().type == TokenType.IDENTIFIER
-                ):
-                    val_type = self._parse_element_type()
-                    element_type = [key_type, val_type]
+                # A comma or colon separator mandates a value type; raise here
+                # (via _parse_element_type) if it is missing, e.g. lughat[lafz,].
+                val_type = self._parse_element_type()
+                element_type = [key_type, val_type]
                 if self.peek() and self.peek().type != TokenType.RBRACKET:
                     raise LikhaiJeGhalti(
                         "Lughat je element types khaan poe ']' lazmi aahe.",

@@ -94,3 +94,28 @@ class TestPanicStatement:
         identifier now, so it dies as an unknown name at runtime."""
         with pytest.raises(NaleJeGhalti, match="kharabi"):
             run('kharabi("old spellings die")')
+
+
+class TestCollectionTypeValidation:
+    """Regression tests for #29 review findings on element/type validation."""
+
+    def test_lughat_missing_value_type_raises(self):
+        with pytest.raises(LikhaiJeGhalti):
+            run("lughat[lafz,] d = {}")
+
+    def test_lughat_missing_value_type_colon_raises(self):
+        with pytest.raises(LikhaiJeGhalti):
+            run("lughat[lafz : ] d = {}")
+
+    def test_return_arrow_missing_type_raises(self):
+        with pytest.raises(LikhaiJeGhalti, match="->.*type annotation"):
+            run("kaam f() -> { wapas 1 }")
+
+    def test_typed_fehrist_unknown_element_does_not_crash_resolver(self):
+        # Prior to the fix, an element whose type can't be inferred at resolve
+        # time crashed the resolver with `'NoneType' object has no attribute
+        # 'name'`; deferring lets the runtime report the real (undefined name)
+        # error cleanly instead of an internal AttributeError.
+        with pytest.raises(NaleJeGhalti, match="na milyo"):
+            run("fehrist[adad] xs = [y]")
+

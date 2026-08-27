@@ -58,12 +58,12 @@ par lafz milyo.
 ```
 
 > ⚠️ Two honest footnotes:
-> 1. The *runtime* twin of this check (`vm.py:_check_element_type`) hardcodes "Fehrist…" in its message even for dict/set violations — a known cosmetic bug, logged in `roadmap/TODO.md`.
+> 1. The *runtime* twin of this check (`vm.py:_check_element_type`) names the container in its message — `Fehrist` / `Majmuo` / `Lughat` — via a `container_name` argument, so dict/set violations report the right container.
 > 2. Runtime element checks fire when an annotated collection is stored, so `fehrist[adad] l = fehrist("abc")` correctly dies at runtime with `…'LAFZ' milyo` (verified).
 
 ## Matrix 3 · casts — the explicit escape hatch
 
-When types don't line up, you convert on purpose. Casts are parsed as datatype-token calls (`parser.py:776`) and become one opcode, `TYPECAST` (`vm.py:951`). Full verified behavior:
+When types don't line up, you convert on purpose. Casts are parsed as datatype-token calls (`parser.py:776`) and become one opcode, `TYPECAST` (compiled at `vm.py:965`, `_op_typecast`). Full verified behavior:
 
 | Cast | From → Result | Notes |
 |---|---|---|
@@ -81,7 +81,7 @@ Casts auto-unwrap successful Results first; casting a *Ghalti* re-raises it (you
 
 ## Function edges in detail
 
-Parameter annotations ride along inside `ParamNode.type`; binding checks happen in `VM._call_sd_function` (`vm.py:562`), return annotations in `_op_return_value` (`vm.py:857`). Three rules make these checks Result-friendly:
+Parameter annotations ride along inside `ParamNode.type`; binding checks happen in `VM._call_sd_function` (`vm.py:675`), return annotations in `_op_return_value` (`vm.py:1119`). Three rules make these checks Result-friendly:
 
 1. Success Results are unwrapped before comparing (so returning `ok(5)` from a `-> adad` function is fine).
 2. Ghalti Results pass through untouched — errors are always allowed to travel.
