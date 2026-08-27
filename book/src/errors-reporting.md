@@ -4,7 +4,7 @@
 
 ## 🌱 The hook
 
-Results handle *expected* failures gracefully. But some situations are genuinely unrecoverable — the parser met gibberish, a `pakko` was violated, someone called `kharabi("no.")`. For those, Sindlish keeps a classic exception hierarchy, and wraps it in one of the nicest touches of the whole codebase: a renderer that prints errors like a craftsman's signature.
+Results handle *expected* failures gracefully. But some situations are genuinely unrecoverable — the parser met gibberish, a `pakko` was violated, a bare `ghalti("no.")` statement fired. For those, Sindlish keeps a classic exception hierarchy, and wraps it in one of the nicest touches of the whole codebase: a renderer that prints errors like a craftsman's signature.
 
 ## 🧠 Mental model: two doors for two kinds of trouble
 

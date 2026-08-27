@@ -48,8 +48,9 @@ class SdResult(SdShey):
 |---|---|---|
 | `ok(expr)` | Ok parcel | usually implicit via arithmetic |
 | `ghalti("msg")` as expression | Ghalti parcel | |
-| `ghalti("msg")` alone as a **statement** | panic! | parser converts it to `kharabi` — a bare ghalti means "abort now" (verified) |
-| `kharabi("msg")` anywhere | immediate `HalndeVaktGhalti` | verified: previous lines still print first |
+| `ghalti("msg")` alone as a **statement** | panic! | the one true panic form — aborts immediately with `HalndeVaktGhalti` (verified; previous lines still print first) |
+
+> 🗑️ The old `kharabi(msg)` keyword was removed in the v0.2 refactor. A bare `ghalti(msg)` statement is now the only spelling — and since `kharabi` lexes as a plain identifier, using it dies with `Nalo 'kharabi' na milyo`.
 
 You rarely write these by hand: `/`, `%`, and friends already return Results internally (`objects/numbers.py:43`). Function `wapas` auto-wraps in Ok at the boundary.
 

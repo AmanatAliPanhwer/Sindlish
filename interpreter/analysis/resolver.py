@@ -13,6 +13,19 @@ from ..frontend.ast_nodes import (
 )
 from ..frontend.tokens import TokenType
 
+_TYPE_NAME_MAP = {
+    "adad": TokenType.ADAD,
+    "dahai": TokenType.DAHAI,
+    "lafz": TokenType.LAFZ,
+    "faislo": TokenType.FAISLO,
+    "fehrist": TokenType.FEHRIST,
+    "silsilo": TokenType.FEHRIST,
+    "lughat": TokenType.LUGHAT,
+    "majmuo": TokenType.MAJMUO,
+    "khali": TokenType.KHALI,
+    "kaam": TokenType.KAAM,
+}
+
 
 class _FnRec:
     """Per-function resolution state for closure analysis."""
@@ -120,7 +133,9 @@ class Resolver:
             if isinstance(node.value, ListNode):
                 for elem in node.value.elements:
                     elem_type = self.infer_type(elem)
-                    if elem_type != node.element_type:
+                    # Defer when the element's type can't be inferred yet (None);
+                    # only flag a mismatch we can actually prove.
+                    if elem_type is not None and elem_type != node.element_type:
                         line = getattr(elem, "line", 0)
                         column = getattr(elem, "column", 0)
                         raise QisamJeGhalti(
@@ -132,7 +147,7 @@ class Resolver:
             elif isinstance(node.value, SetNode):
                 for elem in node.value.elements:
                     elem_type = self.infer_type(elem)
-                    if elem_type != node.element_type:
+                    if elem_type is not None and elem_type != node.element_type:
                         line = getattr(elem, "line", 0)
                         column = getattr(elem, "column", 0)
                         raise QisamJeGhalti(
@@ -142,8 +157,44 @@ class Resolver:
                             self.code,
                         )
 
+    def _normalize_annotation(self, ann, line, column):
+        """STRICT policy: every string annotation must name a known type.
+        Builtin spellings upgrade to TokenType; a declared variable/function
+        name gets a targeted error; anything else is unknown."""
+        if not isinstance(ann, str):
+            return ann
+        tok = _TYPE_NAME_MAP.get(ann.lower())
+        if tok is not None:
+            return tok
+        if ann in self.global_var_names:
+            raise QisamJeGhalti(
+                f"'{ann}' ek variable ya kaam jo naalo aahe; qisam natho thiyen saghjay.",
+                line,
+                column,
+                self.code,
+            )
+        raise QisamJeGhalti(
+            f"Qisam '{ann}' natho mile.",
+            line,
+            column,
+            self.code,
+        )
+
+    def _normalize_element(self, elem, line, column):
+        """Normalize `[key, val]` pairs or single element annotations."""
+        if isinstance(elem, list):
+            return [self._normalize_annotation(e, line, column) for e in elem]
+        return self._normalize_annotation(elem, line, column)
+
     def resolve_AssignNode(self, node):
         self.resolve(node.value)
+
+        if node.type is not None:
+            node.type = self._normalize_annotation(node.type, node.line, node.column)
+        if node.element_type is not None:
+            node.element_type = self._normalize_element(
+                node.element_type, node.line, node.column
+            )
 
         if node.has_explicit_type and node.type is not None:
             self._verify_assignment_types(node)
@@ -359,6 +410,10 @@ class Resolver:
         pass
 
     def resolve_CallNode(self, node):
+        # For computed callees (f()(), factory results) CallNode.name is a
+        # Node; resolve it just like MethodCallNode resolves its instance.
+        if isinstance(node.name, Node):
+            self.resolve(node.name)
         for arg in node.args:
             self.resolve(arg)
 
@@ -373,9 +428,6 @@ class Resolver:
     def resolve_BinaryOpNode(self, node):
         self.resolve(node.left)
         self.resolve(node.right)
-
-    def resolve_PrintNode(self, node):
-        self.resolve(node.value)
 
     def resolve_ListNode(self, node):
         for el in node.elements:
@@ -400,6 +452,10 @@ class Resolver:
         # Function names live in the globals environment, not in frame slots
         self.define_function(node.name, node)
 
+        node.return_type = self._normalize_annotation(
+            node.return_type, node.line, node.column
+        )
+
         # Then we push a new scope for params and body
         old_next_slot = self.next_slot
         old_slot_metadata = self.slot_metadata
@@ -410,6 +466,11 @@ class Resolver:
         self.fn_records.append(rec)
         self.push_scope()
         for param in node.params:
+            param.type = self._normalize_annotation(param.type, node.line, node.column)
+            if param.element_type is not None:
+                param.element_type = self._normalize_element(
+                    param.element_type, node.line, node.column
+                )
             param_slot = self.define(param.name, param)
             param.slot_index = param_slot
         self.resolve(node.body)
@@ -468,7 +529,7 @@ class Resolver:
     def resolve_PostfixOpNode(self, node):
         self.resolve(node.expr)
 
-    def resolve_KharabiNode(self, node):
+    def resolve_GhaltiNode(self, node):
         self.resolve(node.message)
 
     def resolve_ResultConstructorNode(self, node):

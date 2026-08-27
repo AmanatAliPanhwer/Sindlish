@@ -17,7 +17,7 @@ class TokenType(Enum):
     Organized into: data types, keywords, operators, and symbols.
     """
 
-    # ── Data Types ──────────────────────────────────────────────
+    # ===== Data Types =====
     ADAD = auto()  # INT
     LAFZ = auto()  # STRING
     DAHAI = auto()  # FLOAT
@@ -32,11 +32,10 @@ class TokenType(Enum):
     KAAM = auto()  # FUNCTION
     IDENTIFIER = auto()
 
-    # ── Keywords ────────────────────────────────────────────────
+    # ===== Keywords =====
     AGAR = auto()  # IF
     YAWARI = auto()  # ELSE IF
     WARNA = auto()  # ELSE
-    LIKH = auto()  # PRINT
     JISTAIN = auto()  # WHILE
     BAHARI = auto()  # NONLOCAL
     AALMI = auto()  # GLOBAL
@@ -44,13 +43,12 @@ class TokenType(Enum):
     MATCH = auto()  # MATCH
     OK = auto()  # OK (Result)
     GHALTI = auto()  # PANIC or ERROR (Result)
-    KHARABI = auto()  # Deprecated PANIC
     HAR = auto()  # FOR
     TOR = auto()  # BREAK
     JARI = auto()  # CONTINUE
     MEIN = auto()  # IN
 
-    # ── Operators ───────────────────────────────────────────────
+    # ===== Operators =====
     PLUS = auto()  # +
     MINUS = auto()  # -
     MUL = auto()  # *
@@ -71,7 +69,7 @@ class TokenType(Enum):
     BANGBANG = auto()  # !!
     DBLSTAR = auto()  # ** (kwargs)
 
-    # ── Symbols ─────────────────────────────────────────────────
+    # ===== Symbols =====
     LPAREN = auto()  # (
     RPAREN = auto()  # )
     LBRACE = auto()  # {

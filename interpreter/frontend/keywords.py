@@ -7,7 +7,7 @@ and defines which TokenTypes are considered data-type annotations.
 
 from .tokens import TokenType
 
-# ── Keyword → TokenType lookup ──────────────────────────────────
+# ===== Keyword -> TokenType lookup =====
 KEYWORDS: dict[str, TokenType] = {
     "agar": TokenType.AGAR,
     "yawari": TokenType.YAWARI,
@@ -34,14 +34,13 @@ KEYWORDS: dict[str, TokenType] = {
     "match": TokenType.MATCH,
     "ok": TokenType.OK,
     "ghalti": TokenType.GHALTI,
-    "kharabi": TokenType.KHARABI,
     "har": TokenType.HAR,
     "tor": TokenType.TOR,
     "jari": TokenType.JARI,
     "mein": TokenType.MEIN,
 }
 
-# ── Data-type TokenTypes (used in type annotations) ─────────────
+# ===== Data-type TokenTypes (used in type annotations) =====
 DATATYPES: tuple[TokenType, ...] = (
     TokenType.ADAD,
     TokenType.LAFZ,

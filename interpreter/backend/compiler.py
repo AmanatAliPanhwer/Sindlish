@@ -197,10 +197,6 @@ class Compiler:
         elif node.op.type == TokenType.PLUS:
             self.compile(node.right)
 
-    def compile_PrintNode(self, node):
-        self.compile(node.value)
-        self.emit(OpCode.PRINT_ITEM, node=node)
-
     EXPRESSION_NODES = (
         NumberNode,
         StringNode,
@@ -224,8 +220,7 @@ class Compiler:
 
     def compile_TypeCastNode(self, node):
         self.compile(node.expr)
-        const_idx = self.add_const(SdString(node.target_type.name))
-        self.emit(OpCode.TYPECAST, const_idx, node=node)
+        self.emit(OpCode.TYPECAST, node.target_type, node=node)
 
     def compile_BlockNode(self, node, is_function_body=False):
         num_stmts = len(node.statements)
@@ -459,7 +454,7 @@ class Compiler:
         elif node.op.type == TokenType.BANGBANG:
             self.emit(OpCode.POSTFIX_BANGBANG, node=node)
 
-    def compile_KharabiNode(self, node):
+    def compile_GhaltiNode(self, node):
         self.compile(node.message)
         self.emit(OpCode.PANIC, node=node)
 

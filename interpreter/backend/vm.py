@@ -33,14 +33,14 @@ from .markers import KwargMarker, KwargsDictMarker, StarArgsMarker
 from .opcodes import OpCode
 
 TYPE_MAP = {
-    "adad": ADAD_TYPE,
-    "dahai": DAHAI_TYPE,
-    "lafz": LAFZ_TYPE,
-    "faislo": FAISLO_TYPE,
-    "fehrist": FEHRIST_TYPE,
-    "lughat": LUGHAT_TYPE,
-    "majmuo": MAJMUO_TYPE,
-    "khali": KHALI_TYPE,
+    TokenType.ADAD: ADAD_TYPE,
+    TokenType.DAHAI: DAHAI_TYPE,
+    TokenType.LAFZ: LAFZ_TYPE,
+    TokenType.FAISLO: FAISLO_TYPE,
+    TokenType.FEHRIST: FEHRIST_TYPE,
+    TokenType.LUGHAT: LUGHAT_TYPE,
+    TokenType.MAJMUO: MAJMUO_TYPE,
+    TokenType.KHALI: KHALI_TYPE,
 }
 
 
@@ -50,10 +50,15 @@ class LocationProxy:
         self.column = column
 
 
-def _get_expected_type(type_name):
-    if type_name is None:
+def _get_expected_type(type_hint):
+    if type_hint is None:
         return None
-    return TYPE_MAP.get(type_name.lower())
+    return TYPE_MAP.get(type_hint)
+
+
+def _type_label(type_hint):
+    """Human-readable name matching pre-refactor messages ('adad', 'MyClass')."""
+    return type_hint.name.lower() if isinstance(type_hint, TokenType) else type_hint
 
 
 class VM:
@@ -117,7 +122,6 @@ class VM:
             OpCode.JUMP_IF_TRUE_OR_POP: self._op_jump_if_true_or_pop,
             OpCode.GET_ITER: self._op_get_iter,
             OpCode.FOR_ITER: self._op_for_iter,
-            OpCode.PRINT_ITEM: self._op_print_item,
             OpCode.CALL_FUNCTION: self._op_call_function,
             OpCode.CALL_VALUE: self._op_call_value,
             OpCode.CALL_METHOD: self._op_call_method,
@@ -213,7 +217,7 @@ class VM:
                 )
             if element_type is not None:
                 for elem in value.elements:
-                    self._check_element_type(elem, element_type)
+                    self._check_element_type(elem, element_type, line, column)
         elif expected_type == TokenType.MAJMUO:
             if not isinstance(value, SdSet):
                 raise QisamJeGhalti(
@@ -224,7 +228,9 @@ class VM:
                 )
             if element_type is not None:
                 for elem in value.elements:
-                    self._check_element_type(elem, element_type)
+                    self._check_element_type(
+                        elem, element_type, line, column, container_name="Majmuo"
+                    )
         elif expected_type == TokenType.LUGHAT:
             if not isinstance(value, SdDict):
                 raise QisamJeGhalti(
@@ -236,17 +242,23 @@ class VM:
             if element_type is not None and isinstance(element_type, list):
                 key_type, val_type = element_type
                 for k, v in value.pairs.items():
-                    self._check_element_type(k, key_type, line, column)
-                    self._check_element_type(v, val_type, line, column)
+                    self._check_element_type(
+                        k, key_type, line, column, container_name="Lughat"
+                    )
+                    self._check_element_type(
+                        v, val_type, line, column, container_name="Lughat"
+                    )
         return True
 
-    def _check_element_type(self, value, element_type, line=0, column=0):
+    def _check_element_type(
+        self, value, element_type, line=0, column=0, container_name="Fehrist"
+    ):
         if isinstance(value, SdResult) and value.is_ok():
             value = value.value
         if element_type == TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):
                 raise QisamJeGhalti(
-                    f"Fehrist je elements jo qisam 'adad' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                    f"{container_name} je elements jo qisam 'adad' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -254,7 +266,7 @@ class VM:
         elif element_type == TokenType.DAHAI:
             if not isinstance(value, SdNumber) or not isinstance(value.value, float):
                 raise QisamJeGhalti(
-                    f"Fehrist je element jo qisam 'dahai' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                    f"{container_name} je element jo qisam 'dahai' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -262,7 +274,7 @@ class VM:
         elif element_type == TokenType.LAFZ:
             if not isinstance(value, SdString):
                 raise QisamJeGhalti(
-                    f"Fehrist je element jo qisam 'lafz' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                    f"{container_name} je element jo qisam 'lafz' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -270,7 +282,7 @@ class VM:
         elif element_type == TokenType.FAISLO:
             if not isinstance(value, SdBool):
                 raise QisamJeGhalti(
-                    f"Fehrist je element jo qisam 'faislo' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                    f"{container_name} je element jo qisam 'faislo' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
                     line,
                     column,
                     self.code_string,
@@ -552,9 +564,6 @@ class VM:
             self.pop()  # Pop the iterator
             frame.ip = arg  # Jump to end
 
-    def _op_print_item(self, frame, arg, line, column):
-        print(self.pop())
-
     def _op_call_function(self, frame, arg, line, column):
         const_idx, num_args = arg
         name = frame.constants[const_idx].value
@@ -715,11 +724,17 @@ class VM:
 
             if param.type and not self._is_type_match(val, param.type):
                 raise QisamJeGhalti(
-                    f"Parameter '{param.name}' khe '{param.type}' khapyo paye par '{val.type.name.lower()}' milyo.",
+                    f"Parameter '{param.name}' khe '{_type_label(param.type)}' khapyo paye par '{val.type.name.lower()}' milyo.",
                     line,
                     column,
                     self.code_string,
                 )
+            # Element-typed params (fehrist[adad], lughat[k,v], ...) validate the
+            # container's members too. _check_type re-verifies the top-level type
+            # (which already passed above, so it is idempotent here) and then
+            # walks the elements via _check_element_type.
+            if param.type and param.element_type is not None:
+                self._check_type(val, param.type, param.element_type, line, column)
             bound[param.name] = val
 
         extra_positional = positional[pos_idx:]
@@ -948,7 +963,7 @@ class VM:
         raise HalndeVaktGhalti(msg_val, line, column, self.code_string)
 
     def _op_typecast(self, frame, arg, line, column):
-        target_type_name = frame.constants[arg].value
+        target_type = arg
         value = self.pop()
 
         # Auto-unwrap successful Results for typecasting
@@ -967,7 +982,7 @@ class VM:
                 )
 
         try:
-            if target_type_name == "ADAD":
+            if target_type == TokenType.ADAD:
                 if isinstance(value, SdNumber):
                     self.push(SdNumber(int(value.value)))
                 elif isinstance(value, SdString):
@@ -983,7 +998,7 @@ class VM:
                         self.code_string,
                     )
 
-            elif target_type_name == "DAHAI":
+            elif target_type == TokenType.DAHAI:
                 if isinstance(value, (SdNumber, SdString)):
                     self.push(SdNumber(float(value.value)))
                 elif isinstance(value, SdBool):
@@ -996,16 +1011,16 @@ class VM:
                         self.code_string,
                     )
 
-            elif target_type_name == "LAFZ":
+            elif target_type == TokenType.LAFZ:
                 self.push(SdString(str(value)))
 
-            elif target_type_name == "FAISLO":
+            elif target_type == TokenType.FAISLO:
                 # Booleans are already truthy/falsy in Python
                 self.push(
                     SdBool(bool(value.value if hasattr(value, "value") else value))
                 )
 
-            elif target_type_name == "FEHRIST":
+            elif target_type == TokenType.FEHRIST:
                 if isinstance(value, (SdList, SdSet)):
                     self.push(SdList(list(value.elements)))
                 elif isinstance(value, SdString):
@@ -1018,7 +1033,7 @@ class VM:
                         self.code_string,
                     )
 
-            elif target_type_name == "MAJMUO":
+            elif target_type == TokenType.MAJMUO:
                 if isinstance(value, (SdList, SdSet)):
                     self.push(SdSet(set(value.elements)))
                 elif isinstance(value, SdString):
@@ -1033,7 +1048,7 @@ class VM:
 
             else:
                 raise HalndeVaktGhalti(
-                    f"Na-maloom typecast target: {target_type_name}.",
+                    f"Na-maloom typecast target: {target_type}.",
                     line,
                     column,
                     self.code_string,
@@ -1041,7 +1056,7 @@ class VM:
 
         except ValueError:
             raise HalndeVaktGhalti(
-                f"Value '{value!s}' khe {target_type_name.lower()} mein badli natho kare saghjay.",
+                f"Value '{value!s}' khe {_type_label(target_type)} mein badli natho kare saghjay.",
                 line,
                 column,
                 self.code_string,
@@ -1128,7 +1143,7 @@ class VM:
                         "function_name", "unknown"
                     )
                     raise QisamJeGhalti(
-                        f"Wapas khe '{return_type}' khapyo paye, par {func_name} mein '{check_val.type.name.lower()}' milyo.",
+                        f"Wapas khe '{_type_label(return_type)}' khapyo paye, par {func_name} mein '{check_val.type.name.lower()}' milyo.",
                         line,
                         column,
                         self.code_string,

@@ -5,26 +5,36 @@ Every syntactic construct in Sindlish is represented by a Node subclass.
 Nodes carry source-position information (line, column) for error reporting.
 
 Grammar summary (simplified):
-    program     → statement* EOF
-    statement   → print | if | while | assignment | function | return | expr
-    expression  → or
-    or          → and ("ya" and)*
-    and         → not ("aen" not)*
-    not         → "nah" not | comparison
-    comparison  → term (("==" | "!=" | ">" | "<" | ">=" | "<=") term)*
-    term        → factor (("+" | "-") factor)*
-    factor      → power (("*" | "/" | "%") power)*
-    power       → unary ("^" power)?
-    unary       → "-" unary | postfix
-    postfix     → primary ("?" | "!!" | "." method)*
-    primary     → NUMBER | STRING | BOOL | NULL | IDENT | "(" expr ")" | list | dict | set
+    program     -> statement* EOF
+    statement   -> if | while | assignment | function | return | expr
+    expression  -> or
+    or          -> and ("ya" and)*
+    and         -> not ("aen" not)*
+    not         -> "nah" not | comparison
+    comparison  -> term (("==" | "!=" | ">" | "<" | ">=" | "<=") term)*
+    term        -> factor (("+" | "-") factor)*
+    factor      -> power (("*" | "/" | "%") power)*
+    power       -> unary ("^" power)?
+    unary       -> "-" unary | postfix
+    postfix     -> primary ("?" | "!!" | "." method)*
+    primary     -> NUMBER | STRING | BOOL | NULL | IDENT | "(" expr ")" | list | dict | set
 """
 
-from .tokens import TokenType
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from .tokens import Token, TokenType
 
 
 class Node:
-    """Base class for all AST nodes. Carries source position."""
+    """Base class for all AST nodes. Carries source position.
+
+    Subclasses are ``@dataclass(slots=True, repr=False)``; their generated
+    ``__init__`` is wrapped by :meth:`__init_subclass__` so ``line``/``column``
+    (owned by this base) are initialized with defaults on every construction.
+    Source position is normally set afterward via :meth:`set_pos`.
+    """
 
     __slots__ = ("column", "line")
 
@@ -32,7 +42,18 @@ class Node:
         self.line = line
         self.column = column
 
-    def set_pos(self, line: int, column: int) -> "Node":
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if hasattr(cls, "__dataclass_fields__"):
+            dataclass_init = cls.__init__
+
+            def init(self, *args, **kw):
+                Node.__init__(self)
+                dataclass_init(self, *args, **kw)
+
+            cls.__init__ = init
+
+    def set_pos(self, line: int, column: int) -> Node:
         """Set source position and return self (for chaining)."""
         self.line = line
         self.column = column
@@ -46,546 +67,310 @@ class Node:
         return f"{type(self).__name__}({field_str})"
 
 
-# ── Literals ────────────────────────────────────────────────────
+# ===== Literals =====
 
 
+@dataclass(slots=True, repr=False)
 class NumberNode(Node):
     """Integer or float literal."""
 
-    __slots__ = ("column", "line", "value")
-
-    def __init__(self, value, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.value = value
-
-    def get_type(self) -> TokenType:
-        return TokenType.ADAD if isinstance(self.value, int) else TokenType.DAHAI
+    value: int | float
 
 
+@dataclass(slots=True, repr=False)
 class StringNode(Node):
     """String literal."""
 
-    __slots__ = ("column", "line", "value")
-
-    def __init__(self, value: str, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.value = value
-
-    def get_type(self) -> TokenType:
-        return TokenType.LAFZ
+    value: str
 
 
+@dataclass(slots=True, repr=False)
 class BoolNode(Node):
     """Boolean literal (sach / koorh)."""
 
-    __slots__ = ("column", "line", "value")
-
-    def __init__(self, value: bool, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.value = value
-
-    def get_type(self) -> TokenType:
-        return TokenType.FAISLO
+    value: bool
 
 
+@dataclass(slots=True, repr=False)
 class NullNode(Node):
     """Null literal (khali)."""
 
-    __slots__ = ("column", "line", "value")
 
-    def __init__(self, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.value = None
+# ===== Variables & Assignment =====
 
 
-# ── Variables & Assignment ──────────────────────────────────────
-
-
+@dataclass(slots=True, repr=False)
 class VariableNode(Node):
     """Variable reference by name."""
 
-    __slots__ = (
-        "column",
-        "deref_depth",
-        "deref_name",
-        "line",
-        "name",
-        "scope_level",
-        "slot_index",
-    )
-
-    def __init__(self, name: str, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.name = name
-        self.slot_index = None
-        self.scope_level = None
-        self.deref_depth = None
-        self.deref_name = None
+    name: str
+    slot_index: int | None = None
+    scope_level: int | None = None
+    deref_depth: int | None = None
+    deref_name: str | None = None
 
 
+@dataclass(slots=True, repr=False)
 class AssignNode(Node):
     """Variable declaration/assignment with optional type annotation."""
 
-    __slots__ = (
-        "column",
-        "deref_depth",
-        "deref_name",
-        "element_type",
-        "has_explicit_type",
-        "is_const",
-        "line",
-        "name",
-        "scope_level",
-        "slot_index",
-        "type",
-        "value",
-    )
-
-    def __init__(
-        self,
-        name: str,
-        value,
-        type=None,
-        is_const: bool = False,
-        element_type=None,
-        has_explicit_type: bool = False,
-        line: int = 0,
-        column: int = 0,
-    ):
-        super().__init__(line, column)
-        self.name = name
-        self.value = value
-        self.type = type
-        self.is_const = is_const
-        self.element_type = element_type
-        self.has_explicit_type = has_explicit_type
-        self.slot_index = None
-        self.scope_level = None
-        self.deref_depth = None
-        self.deref_name = None
+    name: str
+    value: Node
+    type: TokenType | str | None = None
+    is_const: bool = False
+    element_type: object = None
+    has_explicit_type: bool = False
+    slot_index: int | None = None
+    scope_level: int | None = None
+    deref_depth: int | None = None
+    deref_name: str | None = None
 
 
-# ── Operators ───────────────────────────────────────────────────
+# ===== Operators =====
 
 
+@dataclass(slots=True, repr=False)
 class BinaryOpNode(Node):
     """Binary operation (e.g. a + b, x == y)."""
 
-    __slots__ = ("column", "left", "line", "op", "right")
-
-    def __init__(self, left, op, right, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.left = left
-        self.op = op
-        self.right = right
+    left: Node
+    op: Token
+    right: Node
 
 
+@dataclass(slots=True, repr=False)
 class UnaryOpNode(Node):
     """Unary operation (e.g. -x, nah x)."""
 
-    __slots__ = ("column", "line", "op", "right")
-
-    def __init__(self, op, right, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.op = op
-        self.right = right
+    op: Token
+    right: Node
 
 
+@dataclass(slots=True, repr=False)
 class PostfixOpNode(Node):
     """Postfix operation (? or !!)."""
 
-    __slots__ = ("column", "expr", "line", "op")
-
-    def __init__(self, expr, op, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.expr = expr
-        self.op = op
+    expr: Node
+    op: Token
 
 
-# ── Statements ──────────────────────────────────────────────────
+# ===== Statements =====
 
 
-class PrintNode(Node):
-    """Print statement (likh)."""
-
-    __slots__ = ("column", "line", "value")
-
-    def __init__(self, value, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.value = value
-
-
+@dataclass(slots=True, repr=False)
 class IfNode(Node):
     """If/else-if/else statement (agar/yawari/warna)."""
 
-    __slots__ = ("body", "column", "condition", "else_body", "else_if_bodies", "line")
+    condition: Node
+    body: BlockNode
+    else_body: BlockNode | None
+    else_if_bodies: list = field(default_factory=list)
 
-    def __init__(
-        self,
-        condition,
-        body,
-        else_body,
-        else_if_bodies=None,
-        line: int = 0,
-        column: int = 0,
-    ):
-        super().__init__(line, column)
-        self.condition = condition
-        self.body = body
-        self.else_body = else_body
-        self.else_if_bodies = else_if_bodies or []
+    def __post_init__(self):
+        self.else_if_bodies = self.else_if_bodies or []
 
 
+@dataclass(slots=True, repr=False)
 class WhileNode(Node):
     """While loop (jistain)."""
 
-    __slots__ = ("body", "column", "condition", "line")
-
-    def __init__(self, condition, body, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.condition = condition
-        self.body = body
+    condition: Node
+    body: BlockNode
 
 
+@dataclass(slots=True, repr=False)
 class ForNode(Node):
     """For loop (har)."""
 
-    __slots__ = ("body", "column", "iterable", "iterator", "iterator_slot", "line")
-
-    def __init__(self, iterator: str, iterable, body, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.iterator = iterator
-        self.iterable = iterable
-        self.body = body
-        self.iterator_slot = None
+    iterator: str
+    iterable: Node
+    body: BlockNode
+    iterator_slot: int | None = None
 
 
+@dataclass(slots=True, repr=False)
 class BreakNode(Node):
     """Break statement (tor)."""
 
-    __slots__ = ("column", "line")
 
-    def __init__(self, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-
-
+@dataclass(slots=True, repr=False)
 class ContinueNode(Node):
     """Continue statement (jari)."""
 
-    __slots__ = ("column", "line")
 
-    def __init__(self, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-
-
+@dataclass(slots=True, repr=False)
 class BlockNode(Node):
     """A block of statements enclosed in { }."""
 
-    __slots__ = ("column", "line", "statements")
-
-    def __init__(self, statements: list, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.statements = statements
+    statements: list
 
 
+@dataclass(slots=True, repr=False)
 class ProgramNode(Node):
     """Top-level program: a sequence of statements."""
 
-    __slots__ = ("column", "line", "slot_count", "statements")
-
-    def __init__(self, statements: list, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.statements = statements
-        self.slot_count = 0
+    statements: list
+    slot_count: int = 0
 
 
-# ── Collections ─────────────────────────────────────────────────
+# ===== Collections =====
 
 
+@dataclass(slots=True, repr=False)
 class ListNode(Node):
     """List literal [a, b, c]."""
 
-    __slots__ = ("column", "elements", "line")
-
-    def __init__(self, elements: list, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.elements = elements
-
-    def get_type(self) -> TokenType:
-        return TokenType.FEHRIST
+    elements: list
 
 
+@dataclass(slots=True, repr=False)
 class DictNode(Node):
     """Dictionary literal {k: v, ...}."""
 
-    __slots__ = ("column", "line", "pairs")
-
-    def __init__(self, pairs: list, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.pairs = pairs
+    pairs: list
 
 
+@dataclass(slots=True, repr=False)
 class SetNode(Node):
     """Set literal {a, b, c}."""
 
-    __slots__ = ("column", "elements", "line")
-
-    def __init__(self, elements: list, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.elements = elements
+    elements: list
 
 
+@dataclass(slots=True, repr=False)
 class IndexNode(Node):
     """Index access or assignment (obj[index] or obj[index] = value)."""
 
-    __slots__ = ("column", "index", "left", "line", "value")
-
-    def __init__(self, left, index, value=None, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.left = left
-        self.index = index
-        self.value = value
+    left: Node
+    index: Node
+    value: Node | None = None
 
 
-# ── Functions ───────────────────────────────────────────────────
+# ===== Functions =====
 
 
+@dataclass(slots=True, repr=False)
 class ParamNode(Node):
     """Function parameter definition."""
 
-    __slots__ = (
-        "column",
-        "default",
-        "is_kw",
-        "is_star",
-        "line",
-        "name",
-        "slot_index",
-        "type",
-    )
-
-    def __init__(
-        self,
-        name: str,
-        type=None,
-        default=None,
-        is_star: bool = False,
-        is_kw: bool = False,
-        line: int = 0,
-        column: int = 0,
-    ):
-        super().__init__(line, column)
-        self.name = name
-        self.type = type
-        self.default = default
-        self.is_star = is_star
-        self.is_kw = is_kw
-        self.slot_index = None
+    name: str
+    type: TokenType | str | None = None
+    default: Node | None = None
+    is_star: bool = False
+    is_kw: bool = False
+    element_type: object = None
+    slot_index: int | None = None
 
 
+@dataclass(slots=True, repr=False)
 class FunctionNode(Node):
     """Function definition (kaam)."""
 
-    __slots__ = (
-        "body",
-        "cell_slots",
-        "column",
-        "free_slots",
-        "line",
-        "name",
-        "params",
-        "return_type",
-        "slot_count",
-        "slot_metadata",
-    )
-
-    def __init__(
-        self,
-        name: str,
-        params: list,
-        body,
-        return_type=None,
-        line: int = 0,
-        column: int = 0,
-    ):
-        super().__init__(line, column)
-        self.name = name
-        self.params = params
-        self.body = body
-        self.return_type = return_type
-        self.slot_count = 0
-        self.cell_slots = ()
-        self.free_slots = ()
+    name: str
+    params: list
+    body: BlockNode
+    return_type: TokenType | str | None = None
+    slot_count: int = 0
+    cell_slots: tuple = ()
+    free_slots: tuple = ()
+    slot_metadata: dict = field(default_factory=dict)
 
 
+@dataclass(slots=True, repr=False)
 class CallNode(Node):
-    """Function call."""
+    """Function call.
 
-    __slots__ = ("args", "column", "keywords", "kw_args", "line", "name", "star_args")
+    ``name`` is the callee: a variable name (``str``) for ``foo(...)``, or an
+    expression ``Node`` for calling a computed value (``expr(...)``).
+    """
 
-    def __init__(
-        self,
-        name: str,
-        args: list,
-        keywords=None,
-        star_args=None,
-        kw_args=None,
-        line: int = 0,
-        column: int = 0,
-    ):
-        super().__init__(line, column)
-        self.name = name
-        self.args = args
-        self.keywords = keywords or []
-        self.star_args = star_args
-        self.kw_args = kw_args
+    name: str | Node
+    args: list
+    keywords: list = field(default_factory=list)
+    star_args: Node | None = None
+    kw_args: Node | None = None
+
+    def __post_init__(self):
+        self.keywords = self.keywords or []
 
 
+@dataclass(slots=True, repr=False)
 class ReturnNode(Node):
     """Return statement (wapas)."""
 
-    __slots__ = ("column", "line", "value")
-
-    def __init__(self, value=None, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.value = value
+    value: Node | None = None
 
 
+@dataclass(slots=True, repr=False)
 class MethodCallNode(Node):
     """Method call on an object (obj.method(args))."""
 
-    __slots__ = (
-        "args",
-        "column",
-        "instance",
-        "keywords",
-        "kw_args",
-        "line",
-        "method_name",
-        "star_args",
-    )
+    instance: Node
+    method_name: str
+    args: list
+    keywords: list = field(default_factory=list)
+    star_args: Node | None = None
+    kw_args: Node | None = None
 
-    def __init__(
-        self,
-        instance,
-        method_name: str,
-        args: list,
-        keywords=None,
-        star_args=None,
-        kw_args=None,
-        line: int = 0,
-        column: int = 0,
-    ):
-        super().__init__(line, column)
-        self.instance = instance
-        self.method_name = method_name
-        self.args = args
-        self.keywords = keywords or []
-        self.star_args = star_args
-        self.kw_args = kw_args
+    def __post_init__(self):
+        self.keywords = self.keywords or []
 
 
+@dataclass(slots=True, repr=False)
 class GetAttrNode(Node):
     """Attribute access (obj.attr)."""
 
-    __slots__ = ("attr_name", "column", "instance", "line")
-
-    def __init__(self, instance, attr_name: str, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.instance = instance
-        self.attr_name = attr_name
+    instance: Node
+    attr_name: str
 
 
-# ── Scoping ─────────────────────────────────────────────────────
+# ===== Scoping =====
 
 
+@dataclass(slots=True, repr=False)
 class GlobalNode(Node):
     """Global variable declaration (aalmi)."""
 
-    __slots__ = ("column", "line", "name")
-
-    def __init__(self, name: str, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.name = name
+    name: str
 
 
+@dataclass(slots=True, repr=False)
 class NonLocalNode(Node):
     """Non-local variable declaration (bahari)."""
 
-    __slots__ = ("column", "line", "name")
-
-    def __init__(self, name: str, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.name = name
+    name: str
 
 
-# ── Pattern Matching ────────────────────────────────────────────
+# ===== Result System =====
 
 
-class MatchNode(Node):
-    """Match expression."""
-
-    __slots__ = ("cases", "column", "expr", "line")
-
-    def __init__(self, expr, cases: list, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.expr = expr
-        self.cases = cases
-
-
-class MatchCaseNode(Node):
-    """A single case in a match expression."""
-
-    __slots__ = ("body", "column", "line", "pattern")
-
-    def __init__(self, pattern, body, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.pattern = pattern
-        self.body = body
-
-
-# ── Result System ───────────────────────────────────────────────
-
-
+@dataclass(slots=True, repr=False)
 class ResultConstructorNode(Node):
     """ok(value) or ghalti(value) constructor."""
 
-    __slots__ = ("column", "line", "value", "variant")
-
-    def __init__(self, variant: str, value, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.variant = variant  # "OK" or "GHALTI"
-        self.value = value
+    variant: str  # "OK" or "GHALTI"
+    value: Node
 
 
+@dataclass(slots=True, repr=False)
 class ResultMethodCallNode(Node):
     """Result method: .bachao(fallback) or .lazmi(message)."""
 
-    __slots__ = ("arg", "column", "line", "method_name", "receiver")
-
-    def __init__(self, receiver, method_name: str, arg, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.receiver = receiver
-        self.method_name = method_name
-        self.arg = arg
+    receiver: Node
+    method_name: str
+    arg: Node
 
 
-class KharabiNode(Node):
-    """Kharabi expression: kharabi(message)."""
+@dataclass(slots=True, repr=False)
+class GhaltiNode(Node):
+    """Ghalti expression: ghalti(message)."""
 
-    __slots__ = ("column", "line", "message")
-
-    def __init__(self, message, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.message = message
+    message: Node
 
 
+@dataclass(slots=True, repr=False)
 class TypeCastNode(Node):
     """Type conversion (e.g. adad(x), lafz(y))."""
 
-    __slots__ = ("column", "expr", "line", "target_type")
-
-    def __init__(self, target_type: TokenType, expr, line: int = 0, column: int = 0):
-        super().__init__(line, column)
-        self.target_type = target_type
-        self.expr = expr
+    target_type: TokenType
+    expr: Node

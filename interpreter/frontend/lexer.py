@@ -25,22 +25,25 @@ _ESCAPE_MAP = {
 
 
 def _unescape(raw: str) -> str:
-    out = []
-    i = 0
-    n = len(raw)
-    while i < n:
-        ch = raw[i]
-        if ch == "\\" and i + 1 < n:
-            nxt = raw[i + 1]
-            out.append(_ESCAPE_MAP.get(nxt, "\\" + nxt))
-            i += 2
+    decoded_chars = []
+    index = 0
+    length = len(raw)
+
+    while index < length:
+        current_char = raw[index]
+
+        if current_char == "\\" and index + 1 < length:
+            next_char = raw[index + 1]
+            decoded_chars.append(_ESCAPE_MAP.get(next_char, "\\" + next_char))
+            index += 2
         else:
-            out.append(ch)
-            i += 1
-    return "".join(out)
+            decoded_chars.append(current_char)
+            index += 1
+
+    return "".join(decoded_chars)
 
 
-# ── Single-character token dispatch table ───────────────────────
+# ===== Single-character token dispatch table =====
 _SINGLE_CHAR_TOKENS: dict[str, TokenType] = {
     "+": TokenType.PLUS,
     "-": TokenType.MINUS,
@@ -58,8 +61,23 @@ _SINGLE_CHAR_TOKENS: dict[str, TokenType] = {
     ".": TokenType.DOT,
 }
 
-# Characters that START a potential multi-char operator
-_COMPOUND_STARTERS = frozenset("*/><=!")
+_COMPOUND_OPS = {
+    ("*", "*"): TokenType.DBLSTAR,
+    (">", "="): TokenType.GTEQ,
+    ("<", "="): TokenType.LTEQ,
+    ("=", "="): TokenType.EQEQ,
+    ("!", "="): TokenType.NOTEQ,
+    ("!", "!"): TokenType.BANGBANG,
+}
+
+_COMPOUND_FALLBACK = {
+    "*": TokenType.MUL,
+    "/": TokenType.DIV,
+    ">": TokenType.GT,
+    "<": TokenType.LT,
+    "=": TokenType.EQ,
+    "!": TokenType.NOT,
+}
 
 
 class Lexer:
@@ -78,7 +96,7 @@ class Lexer:
         self.line = 1
         self.column = 1
 
-    # ── Character access ────────────────────────────────────────
+    # ===== Character access =====
 
     def _peek(self) -> str | None:
         """Return current character without consuming it."""
@@ -86,24 +104,34 @@ class Lexer:
             return self.code[self.pos]
         return None
 
-    def _peek_ahead(self) -> str | None:
-        """Return the character after current without consuming."""
-        if self.pos + 1 < len(self.code):
-            return self.code[self.pos + 1]
+    def _peek_ahead(self, steps: int = 1) -> str | None:
+        """Return the character after current without consuming.
+        Attributes:
+            steps: Number of character(s) to peek ahead of the current character.
+        """
+        if self.pos + steps < len(self.code):
+            return self.code[self.pos + steps]
         return None
 
-    def _advance(self) -> str:
-        """Consume and return current character, updating position."""
-        char = self._peek()
-        self.pos += 1
-        if char == "\n":
-            self.line += 1
-            self.column = 1
-        else:
-            self.column += 1
-        return char
+    def _advance(self, times: int = 1) -> str:
+        """Consume and return current character, updating position.
+        Attributes:
+            times: Number of times to repeat advance.
+        """
+        chars = ""
+        for _ in range(times):
+            if self._peek() is not None:
+                char = self._peek()
+                chars += char
+                self.pos += 1
+                if char == "\n":
+                    self.line += 1
+                    self.column = 1
+                else:
+                    self.column += 1
+        return chars
 
-    # ── Complex token scanners ──────────────────────────────────
+    # ===== Complex token scanners =====
 
     def _scan_number(self) -> Token:
         """Scan an integer or float literal."""
@@ -132,8 +160,7 @@ class Lexer:
         # Check for triple-quote
         is_multiline = False
         if self._peek() == quote and self._peek_ahead() == quote:
-            self._advance()
-            self._advance()
+            self._advance(times=2)
             is_multiline = True
 
         string_content = ""
@@ -144,12 +171,10 @@ class Lexer:
             if (
                 self._peek() == quote
                 and self.pos + 2 < len(self.code)
-                and self.code[self.pos + 1] == quote
-                and self.code[self.pos + 2] == quote
+                and self._peek_ahead() == quote
+                and self._peek_ahead(2) == quote
             ):
-                self._advance()
-                self._advance()
-                self._advance()
+                self._advance(times=3)
                 terminated = True
                 break
             else:
@@ -161,9 +186,7 @@ class Lexer:
 
             # Escape sequences
             if self._peek() == "\\":
-                string_content += self._advance()
-                if self._peek() is not None:
-                    string_content += self._advance()
+                string_content += self._advance(times=2)
                 continue
 
             string_content += self._advance()
@@ -202,8 +225,7 @@ class Lexer:
         start_line, start_col = self.line, self.column
         while self._peek() is not None:
             if self._peek() == "*" and self._peek_ahead() == "/":
-                self._advance()  # *
-                self._advance()  # /
+                self._advance(times=2)  # */
                 return
             self._advance()
         raise LikhaiJeGhalti(
@@ -213,72 +235,31 @@ class Lexer:
             self.code,
         )
 
-    def _scan_compound_operator(self, char: str) -> Token:
+    def _scan_compound_operator(self, char: str) -> Token | None:
         """
         Scan operators that may be 1 or 2 characters.
 
         Handles:  * **  / /*  > >=  < <=  = ==  ! != !!
+        Returns None when the `/ *` pair starts a block comment.
         """
         line, col = self.line, self.column
         next_char = self._peek_ahead()
 
-        if char == "*":
-            if next_char == "*":
-                self._advance()
-                self._advance()
-                return Token(TokenType.DBLSTAR, "**", line, col)
-            self._advance()
-            return Token(TokenType.MUL, "*", line, col)
+        pair = _COMPOUND_OPS.get((char, next_char))
+        if pair is not None:
+            self._advance(times=2)
+            return Token(pair, char + next_char, line, col)
 
-        if char == "/":
-            if next_char == "*":
-                self._advance()
-                self._advance()
-                self._skip_block_comment()
-                return None  # Signal: no token produced
-            self._advance()
-            return Token(TokenType.DIV, "/", line, col)
+        if char == "/" and next_char == "*":
+            self._advance(times=2)
+            self._skip_block_comment()
+            return None
 
-        if char == ">":
-            if next_char == "=":
-                self._advance()
-                self._advance()
-                return Token(TokenType.GTEQ, ">=", line, col)
-            self._advance()
-            return Token(TokenType.GT, ">", line, col)
+        fallback = _COMPOUND_FALLBACK[char]
+        self._advance()
+        return Token(fallback, char, line, col)
 
-        if char == "<":
-            if next_char == "=":
-                self._advance()
-                self._advance()
-                return Token(TokenType.LTEQ, "<=", line, col)
-            self._advance()
-            return Token(TokenType.LT, "<", line, col)
-
-        if char == "=":
-            if next_char == "=":
-                self._advance()
-                self._advance()
-                return Token(TokenType.EQEQ, "==", line, col)
-            self._advance()
-            return Token(TokenType.EQ, "=", line, col)
-
-        if char == "!":
-            if next_char == "=":
-                self._advance()
-                self._advance()
-                return Token(TokenType.NOTEQ, "!=", line, col)
-            if next_char == "!":
-                self._advance()
-                self._advance()
-                return Token(TokenType.BANGBANG, "!!", line, col)
-            self._advance()
-            return Token(TokenType.NOT, "!", line, col)
-
-        # Should never reach here
-        raise LikhaiJeGhalti(f"Illegal akhar {char}.", line, col, self.code)
-
-    # ── Main tokenization entry point ───────────────────────────
+    # ===== Main tokenization entry point =====
 
     def generate_tokens(self) -> list[Token]:
         """
@@ -291,54 +272,54 @@ class Lexer:
         while self.pos < len(self.code):
             char = self._peek()
 
-            # ── Whitespace ──
+            # ===== Whitespace =====
             if char in " \t":
                 self._advance()
                 continue
 
-            # ── Newline ──
+            # ===== Newline =====
             if char == "\n":
                 tokens.append(Token(TokenType.NEWLINE, "\\n", self.line, self.column))
                 self._advance()
                 continue
 
-            # ── Numbers ──
+            # ===== Numbers =====
             if char.isdigit() or (
                 char == "." and self._peek_ahead() and self._peek_ahead().isdigit()
             ):
                 tokens.append(self._scan_number())
                 continue
 
-            # ── Line comments ──
+            # ===== Line comments =====
             if char == "#":
                 self._skip_line_comment()
                 continue
 
-            # ── Strings ──
+            # ===== Strings =====
             if char in ('"', "'"):
                 tokens.append(self._scan_string())
                 continue
 
-            # ── Identifiers / Keywords ──
+            # ===== Identifiers / Keywords =====
             if char.isalpha() or char == "_":
                 tokens.append(self._scan_identifier())
                 continue
 
-            # ── Compound operators (multi-char) ──
-            if char in _COMPOUND_STARTERS:
+            # ===== Compound operators (multi-char) =====
+            if char in _COMPOUND_FALLBACK:
                 token = self._scan_compound_operator(char)
                 if token is not None:
                     tokens.append(token)
                 continue
 
-            # ── Single-character tokens (dispatch table) ──
+            # ===== Single-character tokens (dispatch table) =====
             token_type = _SINGLE_CHAR_TOKENS.get(char)
             if token_type is not None:
                 tokens.append(Token(token_type, char, self.line, self.column))
                 self._advance()
                 continue
 
-            # ── Unknown character ──
+            # ===== Unknown character =====
             raise LikhaiJeGhalti(
                 f"Illegal akhar {char}.", self.line, self.column, self.code
             )

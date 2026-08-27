@@ -93,6 +93,39 @@ class TestParams:
         _, out = run("kaam f(adad a = 5) { wapas a * 2 }\nlikh(f())")
         assert "10" in out
 
+    def test_elem_typed_param_accepts(self):
+        """Element-typed params (fehrist[adad] etc.) accept well-typed args."""
+        _, out = run("kaam s(fehrist[adad] xs) { wapas xs[0] }\nlikh(s([1, 2, 3]))")
+        assert "1" in out
+
+    def test_elem_typed_param_rejects_wrong_element(self):
+        with pytest.raises(QisamJeGhalti, match="Fehrist"):
+            run('kaam f(fehrist[adad] xs) { wapas 0 }\nf(["a"])')
+
+    def test_elem_typed_majmuo_param_rejects(self):
+        with pytest.raises(QisamJeGhalti, match="Majmuo"):
+            run('kaam f(majmuo[adad] s) { wapas 0 }\nf({1, "x"})')
+
+    def test_elem_typed_lughat_param_rejects_value(self):
+        with pytest.raises(QisamJeGhalti, match="Lughat"):
+            run('kaam f(lughat[lafz, adad] d) { wapas 0 }\nf({"a": "x"})')
+
+    def test_elem_typed_param_default_validated(self):
+        _, out = run("kaam f(fehrist[adad] xs = [10]) { wapas xs[0] }\nlikh(f())")
+        assert "10" in out
+
+    def test_elem_typed_param_default_rejects_wrong_element(self):
+        with pytest.raises(QisamJeGhalti, match="Fehrist"):
+            run('kaam f(fehrist[adad] xs = ["bad"]) { wapas 0 }\nlikh(f())')
+
+    def test_colon_form_param_with_element_type(self):
+        # `x : fehrist[adad]` (colon form) must fully consume the bracketed
+        # element type and enforce it, not leave `[adad]` unconsumed.
+        _, out = run("kaam g(x : fehrist[adad]) { wapas x[0] }\nlikh(g([7]))")
+        assert "7" in out
+        with pytest.raises(QisamJeGhalti, match="Fehrist"):
+            run('kaam g(x : fehrist[adad]) { wapas x[0] }\nlikh(g(["a"]))')
+
     def test_call_site_overrides_default(self):
         _, out = run(
             'kaam greet(naam = "Dost") { wapas "Salam " + naam }\nlikh(greet("Ali"))'
@@ -218,7 +251,7 @@ class TestCollectionsAndBuiltins:
         assert extract_value(interp.variables["x"]["value"]) == 2
 
     def test_majmuo_extra_args_rejected(self):
-        with pytest.raises(LikhaiJeGhalti, match="1 argument"):
+        with pytest.raises(LikhaiJeGhalti, match="sirf hikro argument"):
             run("majmuo(1, 2)")
 
     def test_range_zero_step_raises(self):

@@ -29,7 +29,9 @@ All 52 opcodes from `backend/opcodes.py`, grouped by duty. Stack effect notation
 
 ## Iteration & output
 
-`GET_ITER` (wraps iterable; non-iterable → clean QisamJeGhalti) · `FOR_ITER` (peeks iterator; pushes next item or pops+jumps on exhaustion) · `PRINT_ITEM` (pop & print).
+`GET_ITER` (wraps iterable; non-iterable → clean QisamJeGhalti) · `FOR_ITER` (peeks iterator; pushes next item or pops+jumps on exhaustion).
+
+> Output is not a dedicated opcode: `likh(...)` is a builtin call (`CallNode` → `CALL_FUNCTION` → `SimpleBuiltins.likh`). The retired statement-style print path (`PRINT_ITEM`) was removed in the frontend refactor (issue #29).
 
 ## Collections
 
@@ -49,7 +51,7 @@ Argument markers: kwargs travel as constant-pool `KwargMarker(name)` pairs, `*ar
 
 ## Results & panics
 
-`MAKE_OK` / `MAKE_ERROR` (idempotent wrap) · `POSTFIX_QMARK` / `POSTFIX_BANGBANG` (the `?`/`!!` pair) · `CALL_BACHAO` / `CALL_LAZMI` · `PANIC` (kharabi) · `TYPECAST` (target name via const; unwraps Ok, re-raises Ghalti). Full semantics: [results.md](results.md).
+`MAKE_OK` / `MAKE_ERROR` (idempotent wrap) · `POSTFIX_QMARK` / `POSTFIX_BANGBANG` (the `?`/`!!` pair) · `CALL_BACHAO` / `CALL_LAZMI` · `PANIC` (bare `ghalti(msg)` statement) · `TYPECAST` (target name via const; unwraps Ok, re-raises Ghalti). Full semantics: [results.md](results.md).
 
 ## Completion
 

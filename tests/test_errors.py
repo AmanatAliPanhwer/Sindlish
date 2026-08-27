@@ -43,6 +43,22 @@ class TestTypeMismatch:
         with pytest.raises(QisamJeGhalti):
             run("lughat[lafz, adad] x = {1: 100}")
 
+    def test_param_type_mismatch(self):
+        with pytest.raises(QisamJeGhalti, match="Parameter.*khapyo paye"):
+            run('kaam foo(adad x) { wapas x }\nfoo("hello")')
+
+    def test_return_type_mismatch(self):
+        with pytest.raises(QisamJeGhalti, match="Wapas khe.*khapyo paye"):
+            run('kaam foo() -> adad { wapas "hello" }\nfoo()')
+
+    def test_majmuo_element_error_says_majmuo(self):
+        with pytest.raises(QisamJeGhalti, match="Majmuo"):
+            run('majmuo[adad] x = {1, "two", 3}')
+
+    def test_lughat_element_error_says_lughat(self):
+        with pytest.raises(QisamJeGhalti, match="Lughat"):
+            run('lughat[lafz, adad] x = {"a": 1, "b": "x"}')
+
 
 class TestImmutableKeyInSet:
     def test_mutable_value_in_set_raises(self):
@@ -65,3 +81,41 @@ class TestConstMustBeInitialized:
     def test_pakko_without_value(self):
         with pytest.raises(LikhaiJeGhalti):
             run("pakko adad x")
+
+
+class TestPanicStatement:
+    def test_bare_ghalti_statement_panics(self):
+        """A standalone ghalti(msg) statement is THE panic form (v0.2)."""
+        with pytest.raises(HalndeVaktGhalti, match="boom"):
+            run('x = 1\nghalti("boom")')
+
+    def test_kharabi_keyword_is_retired(self):
+        """kharabi was removed in the v0.2 refactor — it lexes as a plain
+        identifier now, so it dies as an unknown name at runtime."""
+        with pytest.raises(NaleJeGhalti, match="kharabi"):
+            run('kharabi("old spellings die")')
+
+
+class TestCollectionTypeValidation:
+    """Regression tests for #29 review findings on element/type validation."""
+
+    def test_lughat_missing_value_type_raises(self):
+        with pytest.raises(LikhaiJeGhalti):
+            run("lughat[lafz,] d = {}")
+
+    def test_lughat_missing_value_type_colon_raises(self):
+        with pytest.raises(LikhaiJeGhalti):
+            run("lughat[lafz : ] d = {}")
+
+    def test_return_arrow_missing_type_raises(self):
+        with pytest.raises(LikhaiJeGhalti, match="->.*type annotation"):
+            run("kaam f() -> { wapas 1 }")
+
+    def test_typed_fehrist_unknown_element_does_not_crash_resolver(self):
+        # Prior to the fix, an element whose type can't be inferred at resolve
+        # time crashed the resolver with `'NoneType' object has no attribute
+        # 'name'`; deferring lets the runtime report the real (undefined name)
+        # error cleanly instead of an internal AttributeError.
+        with pytest.raises(NaleJeGhalti, match="na milyo"):
+            run("fehrist[adad] xs = [y]")
+

@@ -4,14 +4,14 @@
 
 ## 🌱 The hook
 
-Before anyone can *understand* your program, something must simply *read* it. That's the lexer (`interpreter/frontend/lexer.py`, ~350 lines): it turns a string of characters into a list of labeled pieces called **tokens**. It doesn't know what a program *means* — only what its *words* are.
+Before anyone can *understand* your program, something must simply *read* it. That's the lexer (`Lexer.generate_tokens()` in `interpreter/frontend/lexer.py`): it turns a string of characters into a list of labeled pieces called **tokens**. It doesn't know what a program *means* — only what its *words* are.
 
 Think of it as **sorting mail**: letters arrive one character at a time; the sorter groups them into envelopes (numbers, words, symbols), stamps each envelope with where it came from (line & column), and passes the tray onward. No opinions about grammar yet.
 
 ## 🧠 Mental model: every token knows its home address
 
 ```python
-# interpreter/frontend/tokens.py:88
+# interpreter/frontend/tokens.py:87
 @dataclass(frozen=True, slots=True)
 class Token:
     type: TokenType  # which category (ADAD, PLUS, IDENTIFIER…)
@@ -34,13 +34,11 @@ KEYWORDS: dict[str, TokenType] = {
 }
 ```
 
-> 🔍 **Sharp-eyed moment:** there *is* a `TokenType.LIKH` for print — but `likh` is absent from `KEYWORDS`, so the lexer can never produce it. In practice `likh(...)` arrives as a plain `IDENTIFIER` and works as a **builtin function call** (it's registered in `runtime/builtins.py`). The whole dedicated print-statement path (`parse_print` → `PrintNode` → the `PRINT_ITEM` opcode) is currently unreachable dead code — logged in `roadmap/TODO.md`. When reading old docs that describe "the likh statement", know that today it's really "the likh function."
-
 ## 🔬 Under the hood
 
 ### The main loop: a decision tree
 
-`generate_tokens()` (`lexer.py:284`) is one loop with a cascade of character tests:
+`generate_tokens()` (`lexer.py:267`) is one loop with a cascade of character tests:
 
 ```mermaid
 flowchart TD
@@ -67,7 +65,7 @@ Three design details deserve a slow look.
 
 ### 1 · Numbers: counting dots so `3.14` works but `3.1.4` doesn't
 
-`_scan_number()` (`lexer.py:109`) consumes digits while allowing **at most one** dot:
+`_scan_number()` (`lexer.py:136`) consumes digits while allowing **at most one** dot:
 
 ```python
 if self._peek() == ".":
@@ -76,11 +74,11 @@ if self._peek() == ".":
     dot_count += 1
 ```
 
-The dot count then decides the payload type — `int(num)` for zero dots (`ADAD`), `float(num)` otherwise (`DAHAI`). A leading `.5` also works, because the dispatch test accepts `.` when *followed by* a digit (`lexer.py:307`).
+The dot count then decides the payload type — `int(num)` for zero dots (`ADAD`), `float(num)` otherwise (`DAHAI`). A leading `.5` also works, because the dispatch test accepts `.` when *followed by* a digit (`lexer.py:290`).
 
 ### 2 · Strings: escapes done by hand (and why)
 
-Strings support both `"…"`/`'…'` and triple quotes for multiline text. Escapes are decoded by a small hand-written table (`lexer.py:14`):
+Strings support both `"…"`/`'…'` and triple quotes for multiline text. Escapes are decoded by a small hand-written table (`lexer.py:13`):
 
 ```python
 _ESCAPE_MAP = {"n": "\n", "t": "\t", '"': '"', "\\": "\\", …}
@@ -101,18 +99,18 @@ raise LikhaiJeGhalti(
 
 ### 3 · Compound operators: one function, seven decisions
 
-Characters like `*`, `/`, `=`, `!` can start either a one- *or* two-character operator, so they get a dedicated method (`lexer.py:217`). Its decision table, including two lovely traps:
+Characters like `*`, `/`, `=`, `!` can start either a one- *or* two-character operator, so they get a dedicated method (`lexer.py:238`). Its decision table, including two lovely traps:
 
 | Sees | Next | Emits | Note |
 |---|---|---|---|
 | `*` | `*` | `DBLSTAR` | kwargs marker |
 | `/` | `*` | *(nothing)* | starts block comment `/* … */` |
 | `=` | `=` | `EQEQ` | equality, not assignment |
-| `!` | `!!` | `BANGBANG` | Result panic-unwrap |
+| `!` | `!` | `BANGBANG` | Result panic-unwrap |
 | `!` | `=` | `NOTEQ` | |
 | `!` | other | `NOT` | logical not |
 
-Everything else single-char comes from the plain dict `_SINGLE_CHAR_TOKENS` (`lexer.py:45`) — that's why `+ - % ^ ? ( ) { } [ ] : , .` need no special code path.
+Everything else single-char comes from the plain dict `_SINGLE_CHAR_TOKENS` (`lexer.py:47`) — that's why `+ - % ^ ? ( ) { } [ ] : , .` need no special code path.
 
 ## Watching it work
 
