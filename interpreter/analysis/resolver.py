@@ -587,10 +587,31 @@ class Resolver:
 
         For computed callees (``f()()``, factory results) ``CallNode.name`` is
         a Node and is resolved just like MethodCallNode resolves its instance;
-        for named calls it is a str and needs no resolution.
+        for named calls it is a str and needs no resolution. Named calls to a
+        function-local or captured variable get a ``callee_variable`` stamp so
+        the compiler routes them through CALL_VALUE instead of a globals-only
+        name lookup (issue #30 2.6).
         """
         if isinstance(node.name, Node):
             self.resolve(node.name)
+        elif isinstance(node.name, str):
+            found = self._find(node.name)
+            if (
+                found is not None
+                and found[0] == "slot"
+                and found[2] > 0
+                and node.name not in self.declared_globals
+            ):
+                owner = found[3]
+                callee = VariableNode(node.name)
+                if owner is not None and owner is not self.fn_records[-1]:
+                    callee.scope_level = 2
+                    callee.deref_depth = self._register_capture(node.name, owner)
+                    callee.deref_name = node.name
+                else:
+                    callee.scope_level = 0
+                    callee.slot_index = found[1]
+                node.callee_variable = callee
         for arg in node.args:
             self.resolve(arg)
 

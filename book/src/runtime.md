@@ -20,7 +20,7 @@ Builtins are seeded into this environment at startup (`tests/conftest.py` shows 
 
 The REPL reuses the whole pipeline per line with two twists:
 
-1. **Persistence**: resolver runs with `is_repl = True`, forcing top-level definitions into globals so they survive across lines.
+1. **Persistence**: every line shares one globals `Environment` (`interpreter/__init__.py:31`), and top-level assignments always compile through the checked `STORE_GLOBAL` path — so names naturally survive across lines, with const/type enforcement intact.
 2. **Prompt tooling**: syntax highlighting via a regex pass, plus completion fed by the resolver's `symbols` list — the same data the VS Code extension uses. One producer, two consumers.
 
 Errors in REPL mode don't kill the session: the interpreter reports and keeps the loop alive (file mode exits non-zero instead).
@@ -28,5 +28,5 @@ Errors in REPL mode don't kill the session: the interpreter reports and keeps th
 <div class="recap">
 <p>Globals = records with enforcement metadata attached.</p>
 <p>Builtins seed as const KAAM records; <code>range</code> is lazy.</p>
-<p>REPL = pipeline + is_repl flag + symbols-driven completion.</p>
+<p>REPL = pipeline + shared globals environment + symbols-driven completion.</p>
 </div>

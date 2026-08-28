@@ -290,6 +290,7 @@ class CallNode(Node):
     keywords: list = field(default_factory=list)
     star_args: Node | None = None
     kw_args: Node | None = None
+    callee_variable: Node | None = None
 
     def __post_init__(self):
         self.keywords = self.keywords or []

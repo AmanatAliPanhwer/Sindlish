@@ -99,7 +99,7 @@ One nuance from the source (`vm.py:_op_store_global`): a const record whose valu
 ## Edge cases worth knowing by heart
 
 1. **Rebinding an annotated variable keeps its belt forever.** Metadata lives on the slot/global record, not the assignment site.
-2. **The nested-block redeclaration bug** — typed shadowing across blocks corrupts metadata and can make *earlier* lines fail. See [resolver.md](resolver.md) Walkthrough 2 and `roadmap/TODO.md` before relying on it.
+2. **The first type sticks (type-sticks).** Once a name is declared with a type, redeclaring it with a *different* explicit type raises `QisamJeGhalti` right at that line — even from an inner block. A same-type or untyped write is fine. See [resolver.md](resolver.md) Walkthrough 2.
 3. **REPL parity:** global consts/types are enforced identically in REPL sessions because top-level assignments always compile through `STORE_GLOBAL`'s checked path.
 4. **`khali` as annotation** is accepted syntactically but there's no cast target named `khali` — casting to it raises `Na-maloom typecast target`.
 5. **Truthiness ignores belts:** conditions use `sd_truthy()` on whatever value shows up; typing never changes control flow semantics.

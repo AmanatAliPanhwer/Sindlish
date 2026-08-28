@@ -316,3 +316,70 @@ n = kharab()
 agar n.ghalti() { likh("pakdo") } warna { likh("natho") }
 """)
         assert "pakdo" in out
+
+
+class TestLocalCalleeCalls:
+    """Calling a function stored in a function-local variable (issue #30 2.6).
+
+    Named calls must route locals through CALL_VALUE instead of a globals-only
+    name lookup, or `h = banao(); h()` fails with 'Nalo h na milyo.'
+    """
+
+    def test_call_function_local_by_name(self):
+        _, out = run("""
+kaam banao() {
+    kaam f() { wapas 7 }
+    wapas f
+}
+kaam g() {
+    h = banao()
+    wapas h()
+}
+likh(g())
+""")
+        assert "7" in out
+
+    def test_call_local_callee_with_arguments(self):
+        _, out = run("""
+kaam wadho(a, b) {
+    wapas a + b
+}
+kaam g() {
+    fn = wadho
+    wapas fn(2, 3)
+}
+likh(g())
+""")
+        assert "5" in out
+
+    def test_call_captured_callee_from_inner_function(self):
+        _, out = run("""
+kaam banao() {
+    kaam f() { wapas 9 }
+    wapas f
+}
+kaam p() {
+    h = banao()
+    kaam q() {
+        wapas h()
+    }
+    wapas q
+}
+likh(p()())
+""")
+        assert "9" in out
+
+    def test_chained_call_of_local_factory(self):
+        _, out = run("""
+kaam banao() {
+    kaam f() { wapas 11 }
+    wapas f
+}
+kaam g() {
+    mk = banao
+    h = mk()
+    wapas h()
+}
+likh(g())
+""")
+        assert "11" in out

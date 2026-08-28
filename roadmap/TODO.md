@@ -110,6 +110,7 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 - [x] REPL with highlighting + completion
 - [x] VS Code extension (grammar, snippets, LSP diagnostics + completion)
 - [x] Installers for Windows/macOS/Linux (--onedir packaging)
+- [ ] Prity print in ast                                                    {P1}
 - [ ] Execution trace / debug mode
 - [ ] AST pretty-printer (current `ast` command dumps repr)
 - [ ] LSP: hover info using resolver's symbol table
