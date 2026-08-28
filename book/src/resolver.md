@@ -88,7 +88,7 @@ Two decisions deserve attention:
 
 ### Walkthrough 2 — blocks don't create scopes
 
-`resolve_BlockNode` (`resolver.py:199`) resolves a block body **inside the current scope** — flat, Python-style scoping. A name bound inside a block belongs to the enclosing function, or to the program globals at top level, so it stays visible after the block closes. No `agar`, `jab tak`, nested `kaam`-body, or loop body ever pushes a scope.
+`resolve_BlockNode` (`resolver.py:199`) resolves a block body **inside the current scope** — flat, Python-style scoping. A name bound inside a block belongs to the enclosing function, or to the program globals at top level, so it stays visible after the block closes. Control-flow blocks — `agar`, `jab tak`, loop bodies — never push a scope; only a nested `kaam` body does, and that is a genuine **function** scope with its own slot numbering (see Walkthrough 1).
 
 ```sd
 kaam test() {

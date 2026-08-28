@@ -85,6 +85,7 @@ class _FnRec:
     free: list[tuple[int, str]] = field(default_factory=list)
     free_keys: set[tuple[int, str]] = field(default_factory=set)
     nonlocal_names: set[str] = field(default_factory=set)
+    slot_metadata: dict = field(default_factory=dict)
 
 
 def _infer_type(
@@ -117,7 +118,16 @@ def _infer_type(
         case VariableNode():
             found = find(node.name)
             if found and found[0] == "slot" and found[2] > 0:
-                return slot_metadata.get(found[1], {}).get("type")
+                # Slot indices are per-function, so a captured name must use
+                # the OWNER function's metadata (found[3]), not the current
+                # function's same-index slot.
+                owner = found[3]
+                meta = (
+                    getattr(owner, "slot_metadata", slot_metadata)
+                    if owner
+                    else slot_metadata
+                )
+                return meta.get(found[1], {}).get("type")
             return None
         case _:
             return None
@@ -216,13 +226,29 @@ class Resolver:
         """
         inferred_type = self.infer_type(node.value)
 
-        # Typed collection literals: verify every statically knowable element
-        # before the whole-literal match short-circuits.
+        # Typed collection literals: the whole-literal container type must match
+        # the annotation before per-element validation. A mismatched container
+        # (e.g. a fehrist declaration fed a lughat literal) is a clean type
+        # error; only compatible ListNode/SetNode/DictNode literals get element
+        # checks.
         if (
             node.type in (TokenType.FEHRIST, TokenType.MAJMUO, TokenType.LUGHAT)
             and node.element_type is not None
             and isinstance(node.value, (ListNode, SetNode, DictNode))
         ):
+            if (
+                inferred_type
+                in (TokenType.FEHRIST, TokenType.MAJMUO, TokenType.LUGHAT)
+                and inferred_type != node.type
+            ):
+                line = getattr(node, "line", 0)
+                column = getattr(node, "column", 0)
+                raise QisamJeGhalti(
+                    f"Qisam natho mile: {node.type.name.lower()} khapyo paye, par {inferred_type.name.lower()} milyo.",
+                    line,
+                    column,
+                    self.code,
+                )
             self._verify_collection_elements(node)
             return
 
@@ -614,6 +640,12 @@ class Resolver:
                 node.callee_variable = callee
         for arg in node.args:
             self.resolve(arg)
+        for _, value in node.keywords:
+            self.resolve(value)
+        if node.star_args is not None:
+            self.resolve(node.star_args)
+        if node.kw_args is not None:
+            self.resolve(node.kw_args)
 
     def resolve_MethodCallNode(self, node: MethodCallNode) -> None:
         """Resolve a method call's instance and arguments."""
@@ -675,6 +707,7 @@ class Resolver:
         self.slot_metadata = {}
 
         rec = _FnRec()
+        rec.slot_metadata = self.slot_metadata
         self.fn_records.append(rec)
         self.push_scope()
         for param in node.params:

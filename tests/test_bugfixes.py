@@ -367,8 +367,9 @@ class TestStaticDictTypes:
             resolve_only('lughat[lafz, adad] ages = {"ali": 30, "ayo": "x"}')
 
     def test_untyped_value_defers_to_runtime_check(self):
-        # Dynamic values are not provable at resolve time; no static error.
-        resolve_only('lughat[lafz, adad] ages = {}\nx = 1\ny = x')
+        # Dynamic (non-literal) values are not provable at resolve time, so the
+        # element check on the age entry must defer to runtime, not raise.
+        resolve_only('x = 1\ny = x\nlughat[lafz, adad] ages = {"age": y}')
 
     def test_typed_fehrist_still_checks_elements(self):
         # The element check must fire even when the whole-literal type matches.
@@ -382,6 +383,81 @@ class TestStaticDictTypes:
     def test_untyped_literal_collection_defers(self):
         # An untyped (element_type is None) fehrist never element-checks.
         resolve_only("fehrist x = [1, 'a']")
+
+    def test_fehrist_decl_wrong_container_literal_clean_error(self):
+        # A lughat literal under a fehrist annotation is a container mismatch,
+        # not an element problem — and must not crash on DictNode element access.
+        with pytest.raises(QisamJeGhalti, match="Qisam natho mile"):
+            resolve_only('fehrist[adad] x = {1: "a"}')
+
+    def test_lughat_decl_wrong_container_literal_clean_error(self):
+        with pytest.raises(QisamJeGhalti, match="Qisam natho mile"):
+            resolve_only("lughat[lafz, adad] d = [1, 2]")
+
+
+class TestCapturedTypeInference:
+    """Captured slot type inference uses the OWNER function's metadata.
+
+    Slot indices restart per function, so resolving a captured outer name
+    through the current function's same-index slot metadata would infer the
+    wrong type and raise a false QisamJeGhalti.
+    """
+
+    def test_captured_outer_slot_uses_owner_metadata(self):
+        src = (
+            "kaam outer() {\n"
+            "    adad n = 10\n"
+            "    kaam inner() {\n"
+            '        lafz z = "hi"\n'
+            "        adad x = n\n"
+            "        wapas x\n"
+            "    }\n"
+            "    wapas inner\n"
+            "}\n"
+            "likh(outer()())\n"
+        )
+        _, out = run(src)
+        assert "10" in out
+
+
+class TestCallArgResolution:
+    """Keyword, star, and kw-args values resolve like positional arguments."""
+
+    def test_keyword_value_local_reference_resolves(self):
+        src = (
+            "kaam f(x) { wapas x }\n"
+            "kaam g() {\n"
+            "    adad v = 42\n"
+            "    wapas f(x = v)\n"
+            "}\n"
+            "likh(g())\n"
+        )
+        _, out = run(src)
+        assert "42" in out
+
+    def test_star_unpack_local_reference_resolves(self):
+        src = (
+            "kaam f(x) { wapas x }\n"
+            "kaam g() {\n"
+            "    a = [5]\n"
+            "    wapas f(*a)\n"
+            "}\n"
+            "likh(g())\n"
+        )
+        _, out = run(src)
+        assert "5" in out
+
+    def test_kw_unpack_local_reference_resolves(self):
+        src = (
+            "kaam f(x) { wapas x }\n"
+            "kaam g() {\n"
+            '    d = {"x": 7}\n'
+            "    wapas f(**d)\n"
+            "}\n"
+            "likh(g())\n"
+        )
+        _, out = run(src)
+        assert "7" in out
 
 
 class TestTypeSticks:
