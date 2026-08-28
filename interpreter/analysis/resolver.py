@@ -197,11 +197,14 @@ class Resolver:
         node.slot_count = self.next_slot
 
     def resolve_BlockNode(self, node: BlockNode) -> None:
-        """Open a fresh scope for a block, resolve it, then close it."""
-        self.push_scope()
+        """Resolve a block inside the current scope.
+
+        Blocks never create a scope (Python semantics): a name bound inside a
+        block belongs to the enclosing function, or to the program globals at
+        top level, so it stays visible after the block closes.
+        """
         for stmt in node.statements:
             self.resolve(stmt)
-        self.pop_scope()
 
     def _verify_assignment_types(self, node: AssignNode) -> None:
         """Statically reject typed declarations that clearly mismatch.
@@ -212,46 +215,37 @@ class Resolver:
         literals.
         """
         inferred_type = self.infer_type(node.value)
-        if inferred_type is not None and inferred_type != node.type:
-            line = getattr(node, "line", 0)
-            column = getattr(node, "column", 0)
-            raise QisamJeGhalti(
-                f"Qisam natho mile: {node.type.name.lower()} khapyo paye, par {inferred_type.name.lower()} milyo.",
-                line,
-                column,
-                self.code,
-            )
-
+        if inferred_type is None:
+            return
+        if inferred_type is not None and inferred_type == node.type:
+            return
         if (
             node.type in (TokenType.FEHRIST, TokenType.MAJMUO)
             and node.element_type is not None
         ):
-            if isinstance(node.value, ListNode):
-                for elem in node.value.elements:
-                    elem_type = self.infer_type(elem)
-                    # Defer when the element's type can't be inferred yet (None);
-                    # only flag a mismatch we can actually prove.
-                    if elem_type is not None and elem_type != node.element_type:
-                        line = getattr(elem, "line", 0)
-                        column = getattr(elem, "column", 0)
-                        raise QisamJeGhalti(
-                            f"Fehrist je elements jo qisam {node.element_type.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
-                            line,
-                            column,
-                            self.code,
-                        )
-            elif isinstance(node.value, SetNode):
-                for elem in node.value.elements:
-                    elem_type = self.infer_type(elem)
-                    if elem_type is not None and elem_type != node.element_type:
-                        line = getattr(elem, "line", 0)
-                        column = getattr(elem, "column", 0)
-                        raise QisamJeGhalti(
-                            f"Majmuo je elements jo qisam {node.element_type.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
-                            line,
-                            column,
-                            self.code,
-                        )
+            for elem in node.value.elements:
+                elem_type = self.infer_type(elem)
+                if elem_type is None:
+                    return
+                if elem_type is not None and elem_type == node.element_type:
+                    return
+                line = getattr(elem, "line", 0)
+                column = getattr(elem, "column", 0)
+                raise QisamJeGhalti(
+                    f"{"Fehrist" if isinstance(node.value, ListNode) else "Majmuo"} je elements jo qisam {node.element_type.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
+                    line,
+                    column,
+                    self.code,
+                )
+        line = getattr(node, "line", 0)
+        column = getattr(node, "column", 0)
+        raise QisamJeGhalti(
+            f"Qisam natho mile: {node.type.name.lower()} khapyo paye, par {inferred_type.name.lower()} milyo.",
+            line,
+            column,
+            self.code,
+        )
+
 
     def _normalize_annotation(
         self, ann: str | TokenType | None, line: int, column: int
@@ -353,7 +347,28 @@ class Resolver:
         node.slot_index = slot
         node.scope_level = 0
 
+        existing = self.slot_metadata.get(slot)
         if node.has_explicit_type and node.type is not None:
+            if existing is not None and existing["has_explicit_type"]:
+                old_type = existing["type"]
+                old_elem = existing["element_type"]
+                if (
+                    old_type != node.type
+                    or old_elem != node.element_type
+                    or bool(existing["is_const"]) != bool(node.is_const)
+                ):
+                    # The first explicit type on a slot sticks: a conflicting
+                    # redeclaration raises here instead of corrupting the slot
+                    # metadata that earlier code already relies on (TODO:54).
+                    line = getattr(node, "line", 0)
+                    column = getattr(node, "column", 0)
+                    old_name = old_type.name.lower() if old_type else "undefined"
+                    raise QisamJeGhalti(
+                        f"Qisam natho badlo sendho: '{node.name}' pehryoan '{old_name}' khapyo paye, par '{node.type.name.lower()}' milyo.",
+                        line,
+                        column,
+                        self.code,
+                    )
             self.slot_metadata[slot] = {
                 "is_const": node.is_const,
                 "type": node.type,
@@ -498,7 +513,7 @@ class Resolver:
             node.scope_level = 1
 
     def resolve_IfNode(self, node: IfNode) -> None:
-        """Resolve an if/else-if/else chain (bodies are scoped Blocks)."""
+        """Resolve an if/else-if/else chain (bodies resolve in the current scope)."""
         self.resolve(node.condition)
         self.resolve(node.body)
         if node.else_if_bodies:
@@ -514,17 +529,21 @@ class Resolver:
         self.resolve(node.body)
 
     def resolve_ForNode(self, node: ForNode) -> None:
-        """Scoped iterator + body: the iterator owns a slot inside a fresh scope."""
+        """Bind the iterator in the current scope (flat, Python-style).
+
+        Inside a function the iterator is an ordinary local slot; at program
+        level it is a global (``iterator_slot`` -1), so it leaks its last
+        value after the loop like a module-level Python loop variable.
+        """
         self.resolve(node.iterable)
 
-        # Iterator variable is defined in a new scope inside the loop
-        self.push_scope()
-        slot = self.define(node.iterator, node)
-        # We need to store this slot info in the ForNode for the compiler
-        node.iterator_slot = slot
+        if len(self.scopes) == 1:
+            self.global_var_names.add(node.iterator)
+            node.iterator_slot = -1
+        else:
+            node.iterator_slot = self.define(node.iterator, node)
 
         self.resolve(node.body)
-        self.pop_scope()
 
     def resolve_BreakNode(self, node: BreakNode) -> None:
         """Break is a control-flow marker; nothing to resolve."""

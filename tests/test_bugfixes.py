@@ -13,6 +13,46 @@ from interpreter.objects import SdResult
 from tests.conftest import extract_value, run
 
 
+class TestPythonScoping:
+    """Full Python block scoping: blocks never create a scope.
+
+    A name bound inside a block belongs to the enclosing function (or the
+    program globals at top level), so it is visible after the block closes.
+    """
+
+    def test_block_bound_name_survives_block_in_function(self):
+        _, out = run(
+            "kaam demo() { agar sach { z = 10 }\nwapas z }\nlikh(demo())"
+        )
+        assert "10" in out
+
+    def test_block_bound_name_survives_block_at_top_level(self):
+        _, out = run("{ w = 5 }\nlikh(w)")
+        assert "5" in out
+
+    def test_loop_iterator_leaks_after_loop(self):
+        _, out = run(
+            "kaam demo() { har i mein [1, 2, 3] { likh(i) }\nwapas i }\nlikh(demo())"
+        )
+        assert "3" in out
+
+    def test_loop_iterator_is_global_at_top_level(self):
+        _, out = run("har i mein [1, 2, 3, 4, 5] { likh(i) }\nlikh(i)")
+        assert "5" in out
+
+    def test_accumulation_still_works_inside_loop(self):
+        _, out = run(
+            "kaam jama() { m = 0\nhar i mein [1, 2, 3, 4] { m = m + i }\nwapas m }\nlikh(jama())"
+        )
+        assert "10" in out
+
+    def test_agar_warna_branches_share_scope(self):
+        _, out = run(
+            "kaam pick(co) { agar co { y = 1 } warna { y = 2 }\nwapas y }\nlikh(pick(koorh))"
+        )
+        assert "2" in out
+
+
 class TestScoping:
     def test_function_reads_top_level_variable(self):
         _interp, out = run("x = 42\nkaam foo() { wapas x }\nlikh(foo())")
@@ -194,6 +234,15 @@ class TestResultTyping:
         )
         assert "failed" in out
 
+    def test_error_result_propagates_through_typed_slot(self):
+        # An Err flowing through `expr?` into an explicitly-typed slot must
+        # survive as a value (TODO:57), not raise "RESULT milyo" at the store.
+        interp, _ = run(
+            "kaam bhag(adad a, adad b) { dahai r = a / b?\nwapas r }\n"
+            "val = bhag(9, 0)"
+        )
+        assert interp.variables["val"]["value"].is_error()
+
     def test_while_terminates_on_result_condition(self):
         interp, _ = run("n = 2\njistain ok(n > 0) { n = n - 1 }")
         assert extract_value(interp.variables["n"]["value"]) == 0
@@ -283,6 +332,47 @@ class TestDeclarations:
     def test_aalmi_declaration_accepted(self):
         _, out = run("aalmi counter\ncounter = 5\nlikh(counter)")
         assert "5" in out
+
+
+class TestTypeSticks:
+    """The first explicit type on a slot sticks (TODO.md:54).
+
+    A typed redeclaration of an already-typed function-local slot must raise
+    a clean error at the redeclaration site — never corrupt the outer slot's
+    metadata so an earlier line fails at runtime.
+    """
+
+    def test_conflicting_typed_redeclaration_raises_at_redeclaration(self):
+        src = (
+            "kaam test() {\n"
+            "  adad x = 1\n"
+            "  agar sach {\n"
+            '    lafz x = "hi"\n'
+            "  }\n"
+            "}\n"
+            "likh(test())"
+        )
+        with pytest.raises(QisamJeGhalti) as exc:
+            run(src)
+        assert exc.value.line == 4
+
+    def test_same_type_redeclaration_in_block_allowed(self):
+        interp, _ = run(
+            "kaam test() { adad x = 1\nagar sach { adad x = 2 }\nwapas x }\nz = test()"
+        )
+        assert extract_value(interp.variables["z"]["value"]) == 2
+
+    def test_untyped_slot_can_gain_first_explicit_type(self):
+        interp, _ = run(
+            "kaam test() { x = 1\nagar sach { adad x = 2 }\nwapas x }\nz = test()"
+        )
+        assert extract_value(interp.variables["z"]["value"]) == 2
+
+    def test_typed_local_then_different_type_local_line_reported(self):
+        src = "kaam f() {\n  adad a = 1\n  dahai a = 2.5\n  wapas a\n}\nlikh(f())"
+        with pytest.raises(QisamJeGhalti) as exc:
+            run(src)
+        assert exc.value.line == 3
 
 
 class TestFunctionLocalConstraints:

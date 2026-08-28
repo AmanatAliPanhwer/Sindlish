@@ -173,8 +173,13 @@ class VM:
         return val
 
     def _check_type(self, value, expected_type, element_type=None, line=0, column=0):
-        if isinstance(value, SdResult) and value.is_ok():
-            value = value.value
+        if isinstance(value, SdResult):
+            if value.is_ok():
+                value = value.value
+            else:
+                # Error Results stay values: propagate across typed boundaries
+                # instead of raising "RESULT milyo" (TODO:57).
+                return
         if expected_type == TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):
                 raise QisamJeGhalti(

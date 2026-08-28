@@ -322,8 +322,12 @@ class Compiler:
         # FOR_ITER pops a value and pushes it, or jumps if done
         exit_jump_idx = self.emit(OpCode.FOR_ITER, 0, node=node)
 
-        # Store iterator value in the variable
-        self.emit(OpCode.STORE_FAST, node.iterator_slot, node=node)
+        # Store iterator value in the variable (global at program level)
+        if node.iterator_slot == -1:
+            const_idx = self.add_const(SdString(node.iterator))
+            self.emit(OpCode.STORE_GLOBAL, (const_idx, False, None, None), node=node)
+        else:
+            self.emit(OpCode.STORE_FAST, node.iterator_slot, node=node)
 
         # continue in 'for' should go to loop_start (to get next item)
         self.loop_stack.append((loop_start, exit_jump_idx, []))
