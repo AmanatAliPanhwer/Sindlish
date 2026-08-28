@@ -211,32 +211,24 @@ class Resolver:
 
         Only literal values are provable at resolve time; variables and call
         results return ``None`` from ``infer_type`` and defer to runtime
-        checks. Collection element types are verified for fehrist/majmuo
+        checks. Collection element types are verified for fehrist/majmuo/lughat
         literals.
         """
         inferred_type = self.infer_type(node.value)
-        if inferred_type is None:
-            return
-        if inferred_type is not None and inferred_type == node.type:
-            return
+
+        # Typed collection literals: verify every statically knowable element
+        # before the whole-literal match short-circuits.
         if (
-            node.type in (TokenType.FEHRIST, TokenType.MAJMUO)
+            node.type in (TokenType.FEHRIST, TokenType.MAJMUO, TokenType.LUGHAT)
             and node.element_type is not None
+            and isinstance(node.value, (ListNode, SetNode, DictNode))
         ):
-            for elem in node.value.elements:
-                elem_type = self.infer_type(elem)
-                if elem_type is None:
-                    return
-                if elem_type is not None and elem_type == node.element_type:
-                    return
-                line = getattr(elem, "line", 0)
-                column = getattr(elem, "column", 0)
-                raise QisamJeGhalti(
-                    f"{"Fehrist" if isinstance(node.value, ListNode) else "Majmuo"} je elements jo qisam {node.element_type.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
-                    line,
-                    column,
-                    self.code,
-                )
+            self._verify_collection_elements(node)
+            return
+
+        if inferred_type is None or inferred_type == node.type:
+            return
+
         line = getattr(node, "line", 0)
         column = getattr(node, "column", 0)
         raise QisamJeGhalti(
@@ -246,6 +238,46 @@ class Resolver:
             self.code,
         )
 
+    def _verify_collection_elements(self, node: AssignNode) -> None:
+        """Verify statically inferable element types of a typed collection literal.
+
+        Unprovable elements (``infer_type`` returns ``None``) are deferred; the
+        runtime check still enforces them on execution.
+        """
+        if node.type == TokenType.LUGHAT and isinstance(node.value, DictNode):
+            key_type, val_type = node.element_type
+            for key, value in node.value.pairs:
+                self._check_element_types(key, key_type, "Lughat")
+                self._check_element_types(value, val_type, "Lughat")
+            return
+
+        container = "Fehrist" if isinstance(node.value, ListNode) else "Majmuo"
+        for elem in node.value.elements:
+            self._check_element_types(elem, node.element_type, container)
+
+    def _check_element_types(
+        self, elem: Node, expected: TokenType, container: str
+    ) -> None:
+        """Raise when ``elem``'s static type provably differs from ``expected``.
+
+        Nested/compound element types are not provable statically and are
+        deferred to the runtime check.
+        """
+        elem_type = self.infer_type(elem)
+        if not isinstance(elem_type, TokenType) or not isinstance(
+            expected, TokenType
+        ):
+            return
+        if elem_type == expected:
+            return
+        line = getattr(elem, "line", 0)
+        column = getattr(elem, "column", 0)
+        raise QisamJeGhalti(
+            f"{container} je elements jo qisam {expected.name.lower()} hujjhan lazmi aahe, par {elem_type.name.lower()} milyo.",
+            line,
+            column,
+            self.code,
+        )
 
     def _normalize_annotation(
         self, ann: str | TokenType | None, line: int, column: int
@@ -638,6 +670,12 @@ class Resolver:
         node.slot_metadata = self.slot_metadata
         node.cell_slots = tuple(rec.captured)
         node.free_slots = tuple(rec.free)
+        node.cell_metadata = {
+            name: self.slot_metadata[slot]
+            for name in rec.captured
+            if name in self.scopes[-1]
+            and (slot := self.scopes[-1][name]) in self.slot_metadata
+        }
         self.pop_scope()
         self.fn_records.pop()
 

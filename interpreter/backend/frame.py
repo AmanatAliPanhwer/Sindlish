@@ -54,8 +54,11 @@ class BytecodeFrame:
         self.cell_map = {}
         if func is not None:
             idx = 0
+            cell_metadata = getattr(func, "cell_metadata", {})
             for n in getattr(func, "cell_names", ()):
-                self.cells.append(Cell())
+                self.cells.append(
+                    Cell(name=n, metadata=cell_metadata.get(n, {}))
+                )
                 self.cell_map[n] = idx
                 idx += 1
             inherited = tuple(getattr(func, "cells", ()) or ())

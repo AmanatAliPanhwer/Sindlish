@@ -274,6 +274,7 @@ class FunctionNode(Node):
     cell_slots: tuple = ()
     free_slots: tuple = ()
     slot_metadata: dict = field(default_factory=dict)
+    cell_metadata: dict = field(default_factory=dict)
 
 
 @dataclass(slots=True, repr=False)

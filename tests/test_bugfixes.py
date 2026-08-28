@@ -2,6 +2,7 @@
 
 import pytest
 
+from interpreter.analysis.resolver import Resolver
 from interpreter.errors import (
     HalndeVaktGhalti,
     LikhaiJeGhalti,
@@ -9,8 +10,17 @@ from interpreter.errors import (
     QisamJeGhalti,
     SindhiBaseError,
 )
+from interpreter.frontend.lexer import Lexer
+from interpreter.frontend.parser import Parser
 from interpreter.objects import SdResult
 from tests.conftest import extract_value, run
+
+
+def resolve_only(src: str) -> None:
+    """Run only the resolver (static checks, no compilation/execution)."""
+    tokens = Lexer(src).generate_tokens()
+    ast = Parser(tokens, src).parse()
+    Resolver(src).resolve(ast)
 
 
 class TestPythonScoping:
@@ -332,6 +342,46 @@ class TestDeclarations:
     def test_aalmi_declaration_accepted(self):
         _, out = run("aalmi counter\ncounter = 5\nlikh(counter)")
         assert "5" in out
+
+
+class TestStaticDictTypes:
+    """Resolver statically verifies lughat literal key/value types.
+
+    Mirrors the fehrist/majmuo literal checks so `check`/LSP diagnostics catch
+    bad dict literals without executing the program.
+    """
+
+    def test_lughat_literal_bad_value_statically_rejected(self):
+        with pytest.raises(QisamJeGhalti, match="Lughat"):
+            resolve_only('lughat[lafz, adad] ages = {"ali": "x"}')
+
+    def test_lughat_literal_bad_key_statically_rejected(self):
+        with pytest.raises(QisamJeGhalti, match="Lughat"):
+            resolve_only("lughat[lafz, adad] ages = {1: 'ok'}")
+
+    def test_lughat_literal_valid_passes_static_resolve(self):
+        resolve_only('lughat[lafz, adad] ages = {"ali": 30}')
+
+    def test_mixed_lughat_literal_rejects_second_bad_value(self):
+        with pytest.raises(QisamJeGhalti, match="Lughat"):
+            resolve_only('lughat[lafz, adad] ages = {"ali": 30, "ayo": "x"}')
+
+    def test_untyped_value_defers_to_runtime_check(self):
+        # Dynamic values are not provable at resolve time; no static error.
+        resolve_only('lughat[lafz, adad] ages = {}\nx = 1\ny = x')
+
+    def test_typed_fehrist_still_checks_elements(self):
+        # The element check must fire even when the whole-literal type matches.
+        with pytest.raises(QisamJeGhalti, match="Fehrist"):
+            resolve_only("fehrist[adad] x = [1, 'a']")
+
+    def test_typed_lughat_with_string_value_raises_clean_error(self):
+        with pytest.raises(QisamJeGhalti, match="Qisam natho mile"):
+            resolve_only('lughat[lafz, adad] x = "hi"')
+
+    def test_untyped_literal_collection_defers(self):
+        # An untyped (element_type is None) fehrist never element-checks.
+        resolve_only("fehrist x = [1, 'a']")
 
 
 class TestTypeSticks:

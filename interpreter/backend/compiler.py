@@ -508,6 +508,7 @@ class Compiler:
             node.return_type,
             cell_names=getattr(node, "cell_slots", ()) or (),
             free_specs=getattr(node, "free_slots", ()) or (),
+            cell_metadata=getattr(node, "cell_metadata", {}),
         )
 
         const_idx = self.add_const(func_obj)

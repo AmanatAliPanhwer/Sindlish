@@ -7,7 +7,7 @@ Cell, and inner functions read/write through it by reference.
 
 import pytest
 
-from interpreter.errors import SindhiBaseError
+from interpreter.errors import HalndeVaktGhalti, QisamJeGhalti, SindhiBaseError
 from tests.conftest import run
 
 
@@ -195,6 +195,85 @@ wadho()
 likh(shumar)
 """)
         assert "10" in out
+
+
+class TestCellEnforcement:
+    """Cells carry const/type metadata; empty cells cannot be read."""
+
+    def test_typed_cell_write_with_matching_type_ok(self):
+        _, out = run("""
+kaam f() {
+    adad x = 10
+    kaam g() {
+        bahari x
+        x = 20
+    }
+    g()
+    likh(x)
+}
+f()
+""")
+        assert "20" in out
+
+    def test_const_cell_write_in_inner_raises(self):
+        with pytest.raises(HalndeVaktGhalti):
+            run("""
+kaam f() {
+    pakko adad x = 10
+    kaam g() {
+        bahari x
+        x = 20
+    }
+    g()
+}
+f()
+""")
+
+    def test_const_cell_owner_write_after_capture_raises(self):
+        with pytest.raises(HalndeVaktGhalti):
+            run("""
+kaam f() {
+    pakko adad x = 10
+    kaam g() {
+        bahari x
+        wapas x
+    }
+    h = g()
+    x = 20
+}
+f()
+""")
+
+    def test_typed_cell_wrong_type_write_in_inner_raises(self):
+        with pytest.raises(QisamJeGhalti):
+            run("""
+kaam f() {
+    adad x = 10
+    kaam g() {
+        bahari x
+        x = "na"
+    }
+    g()
+}
+f()
+""")
+
+    def test_empty_cell_read_raises(self):
+        with pytest.raises(HalndeVaktGhalti):
+            run("""
+kaam f(fa) {
+    agar fa {
+        x = 42
+    }
+    kaam g() {
+        bahari x
+        wapas x
+    }
+    wapas g
+}
+h = f(koorh)
+likh(h())
+""")
 
 
 class TestResultBoundaries:
