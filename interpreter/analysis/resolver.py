@@ -294,7 +294,7 @@ class Resolver:
             return tok
         if ann in self.global_var_names:
             raise QisamJeGhalti(
-                f"'{ann}' ek variable ya kaam jo naalo aahe; qisam natho thiyen saghjay.",
+                f"'{ann}' hik variable ya kaam jo naalo aahe; qisam natho thiyen saghjay.",
                 line,
                 column,
                 self.code,
@@ -389,9 +389,6 @@ class Resolver:
                     or old_elem != node.element_type
                     or bool(existing["is_const"]) != bool(node.is_const)
                 ):
-                    # The first explicit type on a slot sticks: a conflicting
-                    # redeclaration raises here instead of corrupting the slot
-                    # metadata that earlier code already relies on (TODO:54).
                     line = getattr(node, "line", 0)
                     column = getattr(node, "column", 0)
                     old_name = old_type.name.lower() if old_type else "undefined"
@@ -579,9 +576,11 @@ class Resolver:
 
     def resolve_BreakNode(self, node: BreakNode) -> None:
         """Break is a control-flow marker; nothing to resolve."""
+        return
 
     def resolve_ContinueNode(self, node: ContinueNode) -> None:
         """Continue is a control-flow marker; nothing to resolve."""
+        return
 
     def resolve_CallNode(self, node: CallNode) -> None:
         """Resolve a call's callee (when computed) and its arguments.
