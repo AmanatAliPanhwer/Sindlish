@@ -1,19 +1,63 @@
+"""
+Name resolution: slots, scopes, and closures.
+
+Walks the parsed AST once, before compilation, and answers "where does every
+name live". Local variables are assigned numbered frame slots; references and
+assignments are stamped onto the AST nodes so the Compiler can emit
+FAST/GLOBAL/DEREF access without re-deriving scope information.
+
+Scope levels stamped onto nodes:
+
+    0  local slot in the current frame       -> LOAD_FAST  / STORE_FAST
+    1  program-global environment            -> LOAD_GLOBAL / STORE_GLOBAL
+    2  closure Cell shared with an enclosing -> LOAD_DEREF / STORE_DEREF
+       function
+
+The resolver also enforces static type annotations (typed declarations and
+collection element types) and feeds ``symbols`` to the LSP server.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass, field
+
 from ..errors import QisamJeGhalti
 from ..frontend.ast_nodes import (
     AssignNode,
+    BinaryOpNode,
+    BlockNode,
     BoolNode,
+    BreakNode,
+    CallNode,
+    ContinueNode,
     DictNode,
+    ForNode,
+    FunctionNode,
+    GetAttrNode,
+    GhaltiNode,
+    GlobalNode,
+    IfNode,
+    IndexNode,
     ListNode,
+    MethodCallNode,
     Node,
+    NonLocalNode,
     NullNode,
     NumberNode,
+    PostfixOpNode,
+    ProgramNode,
+    ResultConstructorNode,
+    ResultMethodCallNode,
+    ReturnNode,
     SetNode,
     StringNode,
     VariableNode,
+    WhileNode,
 )
 from ..frontend.tokens import TokenType
 
-_TYPE_NAME_MAP = {
+_TYPE_NAME_MAP: dict[str, TokenType] = {
     "adad": TokenType.ADAD,
     "dahai": TokenType.DAHAI,
     "lafz": TokenType.LAFZ,
@@ -27,65 +71,107 @@ _TYPE_NAME_MAP = {
 }
 
 
+@dataclass(slots=True, eq=False)
 class _FnRec:
-    """Per-function resolution state for closure analysis."""
+    """Per-function resolution state for closure analysis.
 
-    __slots__ = ("captured", "free", "free_keys", "nonlocal_names")
+    ``captured`` lists this function's own locals that inner functions
+    capture (they become Cells). ``free``/``free_keys`` list the upvalues
+    inherited from enclosing functions as ``(depth, name)`` pairs.
+    ``nonlocal_names`` are the names declared via ``bahari``.
+    """
 
-    def __init__(self):
-        self.captured = []  # own locals captured by inner functions
-        self.free = []  # [(depth_up, name)] inherited from enclosing fns
-        self.free_keys = set()
-        self.nonlocal_names = set()  # names declared via 'bahari'
+    captured: list[str] = field(default_factory=list)
+    free: list[tuple[int, str]] = field(default_factory=list)
+    free_keys: set[tuple[int, str]] = field(default_factory=set)
+    nonlocal_names: set[str] = field(default_factory=set)
+
+
+def _infer_type(
+    node: Node,
+    find: Callable[[str], tuple | None],
+    slot_metadata: dict,
+) -> TokenType | None:
+    """Infer a literal's TokenType, or a resolved slot's declared type.
+
+    Returns ``None`` when the type cannot be proven yet; callers treat
+    ``None`` as "unknown", never as a mismatch.
+    """
+    match node:
+        case NumberNode(value=int()):
+            return TokenType.ADAD
+        case NumberNode(value=float()):
+            return TokenType.DAHAI
+        case StringNode():
+            return TokenType.LAFZ
+        case BoolNode():
+            return TokenType.FAISLO
+        case NullNode():
+            return TokenType.KHALI
+        case ListNode():
+            return TokenType.FEHRIST
+        case DictNode():
+            return TokenType.LUGHAT
+        case SetNode():
+            return TokenType.MAJMUO
+        case VariableNode():
+            found = find(node.name)
+            if found and found[0] == "slot" and found[2] > 0:
+                return slot_metadata.get(found[1], {}).get("type")
+            return None
+        case _:
+            return None
 
 
 class Resolver:
-    def __init__(self, code):
+    """Resolve names to storage locations before compilation.
+
+    Assigns slot indices to locals, stamps ``scope_level``/``slot_index``/
+    ``deref_*`` onto AST nodes, tracks closure cells, and verifies explicit
+    type annotations. ``symbols`` feeds the VS Code LSP server.
+    """
+
+    def __init__(self, code: str):
+        """Set up the scope stacks and closure bookkeeping for one walk.
+
+        ``fn_records`` holds one ``_FnRec`` per function (index 0 is the
+        program-level sentinel); ``scope_rec`` maps each scope to the
+        function record that owns it.
+        """
         self.code = code
-        self.scopes = [{}]
-        self.function_scopes = [set()]
-        self.fn_records = [_FnRec()]  # program-level sentinel first
-        self.scope_rec = [self.fn_records[0]]  # parallel to scopes
-        self.declared_globals = set()
-        self.global_var_names = set()
-        self.slot_indices = {}
-        self.next_slot = 0
-        self.slot_metadata = {}  # slot_index -> {"is_const": bool, "type": TokenType, "element_type": any}
-        self.symbols = []  # List of {"name": str, "type": TokenType, "line": int, "col": int, "kind": str}
-        self.is_repl = False
+        self.scopes: list[dict[str, int]] = [{}]
+        self.function_scopes: list[set[str]] = [set()]
+        self.fn_records: list[_FnRec] = [_FnRec()]
+        self.scope_rec: list[_FnRec] = [self.fn_records[0]]
+        self.declared_globals: set[str] = set()
+        self.global_var_names: set[str] = set()
+        self.next_slot: int = 0
+        self.slot_metadata: dict[int, dict] = {}
+        self.symbols: list[dict] = []
 
-    def infer_type(self, node):
-        if isinstance(node, NumberNode):
-            return TokenType.ADAD if isinstance(node.value, int) else TokenType.DAHAI
-        elif isinstance(node, StringNode):
-            return TokenType.LAFZ
-        elif isinstance(node, BoolNode):
-            return TokenType.FAISLO
-        elif isinstance(node, NullNode):
-            return TokenType.KHALI
-        elif isinstance(node, ListNode):
-            return TokenType.FEHRIST
-        elif isinstance(node, DictNode):
-            return TokenType.LUGHAT
-        elif isinstance(node, SetNode):
-            return TokenType.MAJMUO
-        elif isinstance(node, VariableNode):
-            found = self._find(node.name)
-            if found and found[0] == "slot" and found[2] > 0:
-                meta = self.slot_metadata.get(found[1], {})
-                return meta.get("type")
-            return None
-        return None
+    def infer_type(self, node: Node) -> TokenType | None:
+        """Infer the type of a literal or resolved reference (see ``_infer_type``)."""
+        return _infer_type(node, self._find, self.slot_metadata)
 
-    def resolve(self, node):
+    def resolve(self, node: Node | None) -> None:
+        """Dispatch ``node`` to its ``resolve_<TypeName>`` visitor.
+
+        Falls back to the generic recursive visitor (``no_resolve_method``)
+        when no dedicated method exists.
+        """
         if node is None:
             return
         method_name = f"resolve_{type(node).__name__}"
         method = getattr(self, method_name, self.no_resolve_method)
         return method(node)
 
-    def no_resolve_method(self, node):
-        """Default visitor that recursively resolves all Node attributes."""
+    def no_resolve_method(self, node: Node) -> None:
+        """Default visitor: recurse into every Node-typed attribute.
+
+        Skips ``line``/``column``, then resolves all list/tuple/Node values
+        found in the node's slots, so new node types resolve without a
+        dedicated method.
+        """
         if not hasattr(node, "__slots__"):
             return
 
@@ -96,25 +182,35 @@ class Resolver:
             val = getattr(node, attr)
             self._resolve_recursive(val)
 
-    def _resolve_recursive(self, val):
+    def _resolve_recursive(self, val) -> None:
+        """Resolve ``val`` if it is a Node, or each element if list/tuple."""
         if isinstance(val, Node):
             self.resolve(val)
         elif isinstance(val, (list, tuple)):
             for item in val:
                 self._resolve_recursive(item)
 
-    def resolve_ProgramNode(self, node):
+    def resolve_ProgramNode(self, node: ProgramNode) -> None:
+        """Resolve every top-level statement; size the main frame."""
         for stmt in node.statements:
             self.resolve(stmt)
         node.slot_count = self.next_slot
 
-    def resolve_BlockNode(self, node):
+    def resolve_BlockNode(self, node: BlockNode) -> None:
+        """Open a fresh scope for a block, resolve it, then close it."""
         self.push_scope()
         for stmt in node.statements:
             self.resolve(stmt)
         self.pop_scope()
 
-    def _verify_assignment_types(self, node):
+    def _verify_assignment_types(self, node: AssignNode) -> None:
+        """Statically reject typed declarations that clearly mismatch.
+
+        Only literal values are provable at resolve time; variables and call
+        results return ``None`` from ``infer_type`` and defer to runtime
+        checks. Collection element types are verified for fehrist/majmuo
+        literals.
+        """
         inferred_type = self.infer_type(node.value)
         if inferred_type is not None and inferred_type != node.type:
             line = getattr(node, "line", 0)
@@ -157,10 +253,14 @@ class Resolver:
                             self.code,
                         )
 
-    def _normalize_annotation(self, ann, line, column):
-        """STRICT policy: every string annotation must name a known type.
+    def _normalize_annotation(
+        self, ann: str | TokenType | None, line: int, column: int
+    ) -> TokenType | None:
+        """STRICT policy: string annotations must name a known type.
+
         Builtin spellings upgrade to TokenType; a declared variable/function
-        name gets a targeted error; anything else is unknown."""
+        name gets a targeted error; anything else is unknown.
+        """
         if not isinstance(ann, str):
             return ann
         tok = _TYPE_NAME_MAP.get(ann.lower())
@@ -180,13 +280,23 @@ class Resolver:
             self.code,
         )
 
-    def _normalize_element(self, elem, line, column):
-        """Normalize `[key, val]` pairs or single element annotations."""
+    def _normalize_element(
+        self, elem: list | str | TokenType | None, line: int, column: int
+    ) -> list | TokenType | None:
+        """Normalize ``[key, val]`` pairs or single element annotations."""
         if isinstance(elem, list):
             return [self._normalize_annotation(e, line, column) for e in elem]
         return self._normalize_annotation(elem, line, column)
 
-    def resolve_AssignNode(self, node):
+    def resolve_AssignNode(self, node: AssignNode) -> None:
+        """Resolve an assignment/declaration and stamp its storage location.
+
+        The value is resolved first. Nonlocal (``bahari``) writes route to a
+        closure Cell; program-level, ``aalmi``, and unknown names go to the
+        globals environment (``scope_level`` 1). Local writes reuse the nearest
+        slot or allocate a fresh one, recording const/type metadata for
+        runtime enforcement.
+        """
         self.resolve(node.value)
 
         if node.type is not None:
@@ -258,17 +368,25 @@ class Resolver:
                 "has_explicit_type": False,
             }
 
-    def push_scope(self):
+    def push_scope(self) -> None:
+        """Push a scope bucket: name map, function names, and owner record."""
         self.scopes.append({})
         self.function_scopes.append(set())
         self.scope_rec.append(self.fn_records[-1])
 
-    def pop_scope(self):
+    def pop_scope(self) -> None:
+        """Pop the innermost scope bucket."""
         self.scopes.pop()
         self.function_scopes.pop()
         self.scope_rec.pop()
 
-    def define(self, name, node=None):
+    def define(self, name: str, node: Node | None = None) -> int:
+        """Allocate a fresh slot for ``name`` unless already bound here.
+
+        Returns the existing slot when ``name`` is already in the innermost
+        scope; otherwise allocates ``next_slot``, records the name in the
+        current scope, and feeds the LSP symbol table.
+        """
         if name in self.scopes[-1]:
             return self.scopes[-1][name]
 
@@ -291,11 +409,11 @@ class Resolver:
 
         return slot
 
-    def define_function(self, name, node=None):
-        """Register a function name without allocating a frame slot.
+    def define_function(self, name: str, node: Node | None = None) -> None:
+        """Register ``name`` as a function in this scope without a slot.
 
         Function values live in the globals environment, so references
-        compile to LOAD_GLOBAL instead of reading an empty local slot.
+        compile to ``LOAD_GLOBAL`` instead of reading an empty local slot.
         """
         self.function_scopes[-1].add(name)
         if node:
@@ -309,20 +427,15 @@ class Resolver:
                 }
             )
 
-    def lookup(self, name):
-        for scope in reversed(self.scopes):
-            if name in scope:
-                return scope[name]
-        return None
-
-    def _find(self, name):
+    def _find(self, name: str) -> tuple | None:
         """Find a name across scopes.
 
-        Returns ("slot", slot_index, owner_scope_index, owner_record),
-        ("function", None, owner_scope_index, None), ("global", -1, 0, None)
-        for program-level variables, or None when the name is unknown.
-        Scope indices >= 1 hold frame-local slots; scope 0 is the
-        program-global scope whose variables live in the globals environment.
+        Returns ``("slot", slot_index, owner_scope_index, owner_record)``,
+        ``("function", None, owner_scope_index, None)``,
+        ``("global", -1, 0, None)`` for program-level variables, or ``None``
+        when the name is unknown. Scope indices >= 1 hold frame-local slots;
+        scope 0 is the program-global scope whose variables live in the
+        globals environment.
         """
         for i in range(len(self.scopes) - 1, 0, -1):
             if name in self.function_scopes[i]:
@@ -335,8 +448,8 @@ class Resolver:
             return ("global", -1, 0, None)
         return None
 
-    def _register_capture(self, name, owner):
-        """Mark `name` (a local of `owner`) as captured by the current function.
+    def _register_capture(self, name: str, owner: _FnRec) -> int:
+        """Mark ``name`` (a local of ``owner``) as captured by the current function.
 
         Registers a cell on the owning function and pass-through free
         entries on every intermediate function. Returns the upvalue depth
@@ -354,10 +467,17 @@ class Resolver:
                 rec.free.append(entry)
         return top_idx - own_idx
 
-    def get_slot_metadata(self):
+    def get_slot_metadata(self) -> dict[int, dict]:
+        """Return the slot -> metadata ledger for the main (program) frame."""
         return self.slot_metadata
 
-    def resolve_VariableNode(self, node):
+    def resolve_VariableNode(self, node: VariableNode) -> None:
+        """Stamp a variable reference's storage: slot, global, or closure Cell.
+
+        References to an enclosing function's local auto-register a closure
+        capture (``scope_level`` 2); references to globals, functions, and
+        unknown names fall back to ``scope_level`` 1.
+        """
         found = self._find(node.name)
         if (
             found is not None
@@ -377,7 +497,8 @@ class Resolver:
         else:
             node.scope_level = 1
 
-    def resolve_IfNode(self, node):
+    def resolve_IfNode(self, node: IfNode) -> None:
+        """Resolve an if/else-if/else chain (bodies are scoped Blocks)."""
         self.resolve(node.condition)
         self.resolve(node.body)
         if node.else_if_bodies:
@@ -387,11 +508,13 @@ class Resolver:
         if node.else_body:
             self.resolve(node.else_body)
 
-    def resolve_WhileNode(self, node):
+    def resolve_WhileNode(self, node: WhileNode) -> None:
+        """Resolve a while loop's condition and body."""
         self.resolve(node.condition)
         self.resolve(node.body)
 
-    def resolve_ForNode(self, node):
+    def resolve_ForNode(self, node: ForNode) -> None:
+        """Scoped iterator + body: the iterator owns a slot inside a fresh scope."""
         self.resolve(node.iterable)
 
         # Iterator variable is defined in a new scope inside the loop
@@ -403,52 +526,70 @@ class Resolver:
         self.resolve(node.body)
         self.pop_scope()
 
-    def resolve_BreakNode(self, node):
-        pass
+    def resolve_BreakNode(self, node: BreakNode) -> None:
+        """Break is a control-flow marker; nothing to resolve."""
 
-    def resolve_ContinueNode(self, node):
-        pass
+    def resolve_ContinueNode(self, node: ContinueNode) -> None:
+        """Continue is a control-flow marker; nothing to resolve."""
 
-    def resolve_CallNode(self, node):
-        # For computed callees (f()(), factory results) CallNode.name is a
-        # Node; resolve it just like MethodCallNode resolves its instance.
+    def resolve_CallNode(self, node: CallNode) -> None:
+        """Resolve a call's callee (when computed) and its arguments.
+
+        For computed callees (``f()()``, factory results) ``CallNode.name`` is
+        a Node and is resolved just like MethodCallNode resolves its instance;
+        for named calls it is a str and needs no resolution.
+        """
         if isinstance(node.name, Node):
             self.resolve(node.name)
         for arg in node.args:
             self.resolve(arg)
 
-    def resolve_MethodCallNode(self, node):
+    def resolve_MethodCallNode(self, node: MethodCallNode) -> None:
+        """Resolve a method call's instance and arguments."""
         self.resolve(node.instance)
         for arg in node.args:
             self.resolve(arg)
 
-    def resolve_GetAttrNode(self, node):
+    def resolve_GetAttrNode(self, node: GetAttrNode) -> None:
+        """Resolve the instance an attribute is read from."""
         self.resolve(node.instance)
 
-    def resolve_BinaryOpNode(self, node):
+    def resolve_BinaryOpNode(self, node: BinaryOpNode) -> None:
+        """Resolve both operands of a binary expression."""
         self.resolve(node.left)
         self.resolve(node.right)
 
-    def resolve_ListNode(self, node):
+    def resolve_ListNode(self, node: ListNode) -> None:
+        """Resolve every element of a list literal."""
         for el in node.elements:
             self.resolve(el)
 
-    def resolve_DictNode(self, node):
+    def resolve_DictNode(self, node: DictNode) -> None:
+        """Resolve every key/value pair of a dict literal."""
         for k, v in node.pairs:
             self.resolve(k)
             self.resolve(v)
 
-    def resolve_SetNode(self, node):
+    def resolve_SetNode(self, node: SetNode) -> None:
+        """Resolve every element of a set literal."""
         for el in node.elements:
             self.resolve(el)
 
-    def resolve_IndexNode(self, node):
+    def resolve_IndexNode(self, node: IndexNode) -> None:
+        """Resolve a subscript read/write (target, index, optional value)."""
         self.resolve(node.left)
         self.resolve(node.index)
         if node.value:
             self.resolve(node.value)
 
-    def resolve_FunctionNode(self, node):
+    def resolve_FunctionNode(self, node: FunctionNode) -> None:
+        """Resolve params and body, snapshoting per-function closure state.
+
+        Slot numbering restarts per function; ``slot_count``, ``slot_metadata``,
+        ``cell_slots`` (own locals captured by inner functions) and
+        ``free_slots`` (inherited upvalues) are recorded for the compiler to
+        build the ``SdFunction`` and its frame.
+        """
         # Function names live in the globals environment, not in frame slots
         self.define_function(node.name, node)
 
@@ -484,11 +625,19 @@ class Resolver:
         self.next_slot = old_next_slot
         self.slot_metadata = old_slot_metadata
 
-    def resolve_GlobalNode(self, node):
+    def resolve_GlobalNode(self, node: GlobalNode) -> None:
+        """Record an ``aalmi`` declaration: the name now routes to globals."""
         self.declared_globals.add(node.name)
         self.global_var_names.add(node.name)
 
-    def resolve_NonLocalNode(self, node):
+    def resolve_NonLocalNode(self, node: NonLocalNode) -> None:
+        """Record a ``bahari`` declaration targeting an enclosing function's local.
+
+        The nearest enclosing scope owned by an enclosing ``_FnRec`` that
+        binds the name becomes its owner; the name is registered as a capture
+        and added to the current function's ``nonlocal_names``. Program-level
+        use and unknown targets raise ``QisamJeGhalti``.
+        """
         name = node.name
         line = getattr(node, "line", 0)
         column = getattr(node, "column", 0)
@@ -518,19 +667,24 @@ class Resolver:
         self._register_capture(name, owner)
         self.fn_records[-1].nonlocal_names.add(name)
 
-    def resolve_ReturnNode(self, node):
+    def resolve_ReturnNode(self, node: ReturnNode) -> None:
+        """Resolve the returned expression, if any."""
         if node.value:
             self.resolve(node.value)
 
-    def resolve_ResultMethodCallNode(self, node):
+    def resolve_ResultMethodCallNode(self, node: ResultMethodCallNode) -> None:
+        """Resolve a Result method call (receiver + single argument)."""
         self.resolve(node.receiver)
         self.resolve(node.arg)
 
-    def resolve_PostfixOpNode(self, node):
+    def resolve_PostfixOpNode(self, node: PostfixOpNode) -> None:
+        """Resolve the expression a postfix operator (``?``/``!!``) applies to."""
         self.resolve(node.expr)
 
-    def resolve_GhaltiNode(self, node):
+    def resolve_GhaltiNode(self, node: GhaltiNode) -> None:
+        """Resolve a statement-level ``ghalti`` panic argument."""
         self.resolve(node.message)
 
-    def resolve_ResultConstructorNode(self, node):
+    def resolve_ResultConstructorNode(self, node: ResultConstructorNode) -> None:
+        """Resolve the value wrapped by ``ok()`` / ``ghalti()``."""
         self.resolve(node.value)
