@@ -1,0 +1,8 @@
+kaam factorial(adad n) {
+    agar n <= 1 {
+        wapas 1
+    } warna {
+        wapas n * factorial(n - 1)
+    }
+}
+likh(factorial(20))

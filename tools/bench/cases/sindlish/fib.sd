@@ -1,0 +1,8 @@
+kaam fib(adad n) {
+    agar n < 2 {
+        wapas n
+    } warna {
+        wapas fib(n - 1) + fib(n - 2)
+    }
+}
+likh(fib(24))
