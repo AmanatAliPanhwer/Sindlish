@@ -75,7 +75,7 @@ class Compiler:
     def _deref_index(self, depth, name):
         """Index of a free variable in the current function's cell table."""
         fn = self.fn_stack[-1]
-        return fn.free_slots.index((depth, name))
+        return fn.hints.free_slots.index((depth, name))
 
     def emit(self, opcode, arg=None, node=None, line=None, column=None):
         if node:
@@ -132,46 +132,48 @@ class Compiler:
         return self.instructions, self.constants, self.line_col_map
 
     def compile_AssignNode(self, node):
+        hints = node.hints
         self.compile(node.value)
-        if node.scope_level == 2:
+        if hints.scope_level == 2:
             self.emit(
                 OpCode.STORE_DEREF,
-                self._deref_index(node.deref_depth, node.deref_name),
+                self._deref_index(hints.deref_depth, hints.deref_name),
                 node=node,
             )
             return
-        if node.scope_level == 0:
+        if hints.scope_level == 0:
             fn = self.fn_stack[-1] if self.fn_stack else None
-            cell_slots = getattr(fn, "cell_slots", ()) if fn is not None else ()
+            cell_slots = getattr(fn.hints, "cell_slots", ()) if fn is not None else ()
             if node.name in cell_slots:
                 self.emit(OpCode.STORE_DEREF, cell_slots.index(node.name), node=node)
             else:
-                self.emit(OpCode.STORE_FAST, node.slot_index, node=node)
+                self.emit(OpCode.STORE_FAST, hints.slot_index, node=node)
         else:
             const_idx = self.add_const(SdString(node.name))
-            has_explicit_type = node.has_explicit_type and node.type is not None
+            has_explicit_type = hints.has_explicit_type and hints.type is not None
             info = (
                 const_idx,
-                bool(node.is_const),
-                node.type if has_explicit_type else None,
-                node.element_type,
+                bool(hints.is_const),
+                hints.type if has_explicit_type else None,
+                hints.element_type,
             )
             self.emit(OpCode.STORE_GLOBAL, info, node=node)
 
     def compile_VariableNode(self, node):
-        if node.scope_level == 2:
+        hints = node.hints
+        if hints.scope_level == 2:
             self.emit(
                 OpCode.LOAD_DEREF,
-                self._deref_index(node.deref_depth, node.deref_name),
+                self._deref_index(hints.deref_depth, hints.deref_name),
                 node=node,
             )
-        elif node.scope_level == 0:
+        elif hints.scope_level == 0:
             fn = self.fn_stack[-1] if self.fn_stack else None
-            cell_slots = getattr(fn, "cell_slots", ()) if fn is not None else ()
+            cell_slots = getattr(fn.hints, "cell_slots", ()) if fn is not None else ()
             if node.name in cell_slots:
                 self.emit(OpCode.LOAD_DEREF, cell_slots.index(node.name), node=node)
             else:
-                self.emit(OpCode.LOAD_FAST, node.slot_index, node=node)
+                self.emit(OpCode.LOAD_FAST, hints.slot_index, node=node)
         else:
             const_idx = self.add_const(SdString(node.name))
             self.emit(OpCode.LOAD_GLOBAL, const_idx, node=node)
@@ -314,11 +316,11 @@ class Compiler:
 
         exit_jump_idx = self.emit(OpCode.FOR_ITER, 0, node=node)
 
-        if node.iterator_slot == -1:
+        if node.hints.iterator_slot == -1:
             const_idx = self.add_const(SdString(node.iterator))
             self.emit(OpCode.STORE_GLOBAL, (const_idx, False, None, None), node=node)
         else:
-            self.emit(OpCode.STORE_FAST, node.iterator_slot, node=node)
+            self.emit(OpCode.STORE_FAST, node.hints.iterator_slot, node=node)
 
         self.loop_stack.append((loop_start, exit_jump_idx, []))
 
@@ -404,7 +406,7 @@ class Compiler:
 
     def compile_CallNode(self, node):
         if isinstance(node.name, str):
-            callee = getattr(node, "callee_variable", None)
+            callee = node.hints.callee_variable
             if callee is not None:
                 # Local/captured callee: load the variable onto the stack,
                 # then args; CALL_VALUE pops args then the callee.
@@ -495,18 +497,19 @@ class Compiler:
 
         func_instructions, func_line_col_map = self._compile_function_body(node)
 
+        hints = node.hints
         func_obj = SdFunction(
             node.name,
             node.params,
             func_instructions,
             self.constants,
             func_line_col_map,
-            getattr(node, "slot_count", 0),
-            getattr(node, "slot_metadata", {}),
+            hints.slot_count,
+            hints.slot_metadata,
             node.return_type,
-            cell_names=getattr(node, "cell_slots", ()) or (),
-            free_specs=getattr(node, "free_slots", ()) or (),
-            cell_metadata=getattr(node, "cell_metadata", {}),
+            cell_names=hints.cell_slots or (),
+            free_specs=hints.free_slots or (),
+            cell_metadata=hints.cell_metadata,
         )
 
         const_idx = self.add_const(func_obj)

@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from ..backend.hints import CompilerHints
 from ..errors import QisamJeGhalti
 from ..frontend.ast_nodes import (
     AssignNode,
@@ -367,9 +368,15 @@ class Resolver:
         top_rec = self.fn_records[-1]
         if node.name in top_rec.nonlocal_names:
             depth, _ = next(e for e in top_rec.free if e[1] == node.name)
-            node.scope_level = 2
-            node.deref_depth = depth
-            node.deref_name = node.name
+            node.hints = CompilerHints(
+                scope_level=2,
+                deref_depth=depth,
+                deref_name=node.name,
+                is_const=node.is_const,
+                type=node.type,
+                element_type=node.element_type,
+                has_explicit_type=node.has_explicit_type,
+            )
             return
 
         goes_global = (
@@ -382,8 +389,14 @@ class Resolver:
             # Program-level variables live in the globals environment;
             # const/type enforcement happens at runtime via STORE_GLOBAL.
             self.global_var_names.add(node.name)
-            node.scope_level = 1
-            node.slot_index = -1
+            node.hints = CompilerHints(
+                scope_level=1,
+                slot_index=-1,
+                is_const=node.is_const,
+                type=node.type,
+                element_type=node.element_type,
+                has_explicit_type=node.has_explicit_type,
+            )
             return
 
         if found is None or found[0] == "function":
@@ -402,8 +415,14 @@ class Resolver:
         else:
             slot = found[1]
 
-        node.slot_index = slot
-        node.scope_level = 0
+        node.hints = CompilerHints(
+            scope_level=0,
+            slot_index=slot,
+            is_const=node.is_const,
+            type=node.type,
+            element_type=node.element_type,
+            has_explicit_type=node.has_explicit_type,
+        )
 
         existing = self.slot_metadata.get(slot)
         if node.has_explicit_type and node.type is not None:
@@ -561,14 +580,17 @@ class Resolver:
             owner = found[3]
             if owner is not None and owner is not self.fn_records[-1]:
                 # Reference to an enclosing function's local: closure capture
-                node.scope_level = 2
-                node.deref_depth = self._register_capture(node.name, owner)
-                node.deref_name = node.name
+                node.hints = CompilerHints(
+                    scope_level=2,
+                    deref_depth=self._register_capture(node.name, owner),
+                    deref_name=node.name,
+                )
             else:
-                node.slot_index = found[1]
-                node.scope_level = 0
+                node.hints = CompilerHints(
+                    scope_level=0, slot_index=found[1]
+                )
         else:
-            node.scope_level = 1
+            node.hints = CompilerHints(scope_level=1)
 
     def resolve_IfNode(self, node: IfNode) -> None:
         """Resolve an if/else-if/else chain (bodies resolve in the current scope)."""
@@ -597,9 +619,11 @@ class Resolver:
 
         if len(self.scopes) == 1:
             self.global_var_names.add(node.iterator)
-            node.iterator_slot = -1
+            node.hints = CompilerHints(iterator_slot=-1)
         else:
-            node.iterator_slot = self.define(node.iterator, node)
+            node.hints = CompilerHints(
+                iterator_slot=self.define(node.iterator, node)
+            )
 
         self.resolve(node.body)
 
@@ -623,6 +647,7 @@ class Resolver:
         """
         if isinstance(node.name, Node):
             self.resolve(node.name)
+            node.hints = CompilerHints()
         elif isinstance(node.name, str):
             found = self._find(node.name)
             if (
@@ -634,13 +659,16 @@ class Resolver:
                 owner = found[3]
                 callee = VariableNode(node.name)
                 if owner is not None and owner is not self.fn_records[-1]:
-                    callee.scope_level = 2
-                    callee.deref_depth = self._register_capture(node.name, owner)
-                    callee.deref_name = node.name
+                    callee.hints = CompilerHints(
+                        scope_level=2,
+                        deref_depth=self._register_capture(node.name, owner),
+                        deref_name=node.name,
+                    )
                 else:
-                    callee.scope_level = 0
-                    callee.slot_index = found[1]
-                node.callee_variable = callee
+                    callee.hints = CompilerHints(scope_level=0, slot_index=found[1])
+                node.hints = CompilerHints(callee_variable=callee)
+            else:
+                node.hints = CompilerHints()
         for arg in node.args:
             self.resolve(arg)
         for _, value in node.keywords:
@@ -722,16 +750,18 @@ class Resolver:
             param_slot = self.define(param.name, param)
             param.slot_index = param_slot
         self.resolve(node.body)
-        node.slot_count = self.next_slot
-        node.slot_metadata = self.slot_metadata
-        node.cell_slots = tuple(rec.captured)
-        node.free_slots = tuple(rec.free)
-        node.cell_metadata = {
-            name: self.slot_metadata[slot]
-            for name in rec.captured
-            if name in self.scopes[-1]
-            and (slot := self.scopes[-1][name]) in self.slot_metadata
-        }
+        node.hints = CompilerHints(
+            slot_count=self.next_slot,
+            slot_metadata=self.slot_metadata,
+            cell_slots=tuple(rec.captured),
+            free_slots=tuple(rec.free),
+            cell_metadata={
+                name: self.slot_metadata[slot]
+                for name in rec.captured
+                if name in self.scopes[-1]
+                and (slot := self.scopes[-1][name]) in self.slot_metadata
+            },
+        )
         self.pop_scope()
         self.fn_records.pop()
 
