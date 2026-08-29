@@ -39,7 +39,7 @@ class BytecodeFrame:
         name: str,
         instructions: list,
         constants: list,
-        line_col_map: dict,
+        line_col_map: list,
         slot_count: int,
         slot_metadata: dict,
         func=None,

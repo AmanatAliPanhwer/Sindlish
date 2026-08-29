@@ -75,7 +75,7 @@ class VM:
         self.code_string = code_string
         self.globals = globals_env
         self.stack = []
-        self.line_col_map = line_col_map or {}
+        self.line_col_map = line_col_map or []
 
         self.simple_handler = SimpleBuiltins()
 
@@ -148,7 +148,9 @@ class VM:
 
     def _get_line_column(self):
         frame = self.frames[-1]
-        return frame.line_col_map.get(frame.ip, (0, 0))
+        line_col_map = frame.line_col_map
+        pc = frame.ip
+        return line_col_map[pc] if 0 <= pc < len(line_col_map) else (0, 0)
 
     def push(self, value):
         self.stack.append(value)
@@ -330,7 +332,11 @@ class VM:
 
         source_lines = self.code_string.split("\n")
         for frame in self.frames:
-            line, col = frame.line_col_map.get(frame.ip - 1, (0, 0))
+            line_col_map = frame.line_col_map
+            pc = frame.ip - 1
+            line, col = (
+                line_col_map[pc] if 0 <= pc < len(line_col_map) else (0, 0)
+            )
             if line == 0:
                 continue
 

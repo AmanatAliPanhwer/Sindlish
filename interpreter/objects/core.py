@@ -39,7 +39,11 @@ class SdResult(SdShey):
 
         source_lines = code_string.split("\n")
         for frame in frames:
-            line, col = frame.line_col_map.get(frame.ip - 1, (0, 0))
+            line_col_map = frame.line_col_map
+            pc = frame.ip - 1
+            line, col = (
+                line_col_map[pc] if 0 <= pc < len(line_col_map) else (0, 0)
+            )
             if line == 0:
                 continue
             source_line = (

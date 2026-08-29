@@ -89,9 +89,7 @@ EXPRESSION_NODES: tuple[type[Node], ...] = (
 )
 
 Instruction = tuple[OpCode, object]
-ProgramArtifacts = tuple[
-    list[Instruction], list[object], dict[int, tuple[int, int]]
-]
+ProgramArtifacts = tuple[list[Instruction], list[object], list[tuple[int, int]]]
 
 
 class Compiler:
@@ -103,7 +101,8 @@ class Compiler:
     - ``instructions`` -- ``list[(OpCode, arg)]``
     - ``constants`` -- a single table shared across the whole program and
       its nested functions (see :meth:`add_const`)
-    - ``line_col_map`` -- ``dict[int, (line, col)]`` keyed by pc
+    - ``line_col_map`` -- ``list[(line, col)]`` indexed by pc (one entry per
+      instruction, appended in emission order)
 
     ``loop_stack`` and ``fn_stack`` track the active loops and the chain of
     enclosing functions (used for closure-cell resolution).
@@ -114,8 +113,8 @@ class Compiler:
         self.code = code
         self.instructions: list[Instruction] = []
         self.constants: list[object] = []
-        # TODO: Work on converting line col map to a list
-        self.line_col_map: dict[int, tuple[int, int]] = {}
+        # Source position for each pc; densely indexed 1:1 with instructions
+        self.line_col_map: list[tuple[int, int]] = []
         self.loop_stack: list[tuple[int, int, list[int]]] = (
             []
         )  # (start_label, exit_jump_idx, break_indices)
@@ -155,7 +154,7 @@ class Compiler:
 
         idx = self._current_pc()
         self.instructions.append((opcode, arg))
-        self.line_col_map[idx] = (line or 0, column or 0)
+        self.line_col_map.append((line or 0, column or 0))
         return idx
 
     def add_const(self, value: object) -> int:
@@ -608,7 +607,7 @@ class Compiler:
 
     def _compile_function_body(
         self, node: FunctionNode
-    ) -> tuple[list[Instruction], dict[int, tuple[int, int]]]:
+    ) -> tuple[list[Instruction], list[tuple[int, int]]]:
         """Compile ``node.body`` into a fresh instruction buffer.
 
         Returns ``(instructions, line_col_map)`` for the body. The buffer is
@@ -619,7 +618,7 @@ class Compiler:
         old_instructions = self.instructions
         old_line_col_map = self.line_col_map
         self.instructions = []
-        self.line_col_map = {}
+        self.line_col_map = []
 
         self.fn_stack.append(node)
         self.compile_BlockNode(node.body, is_function_body=True)
