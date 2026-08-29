@@ -322,8 +322,12 @@ class Compiler:
         # FOR_ITER pops a value and pushes it, or jumps if done
         exit_jump_idx = self.emit(OpCode.FOR_ITER, 0, node=node)
 
-        # Store iterator value in the variable
-        self.emit(OpCode.STORE_FAST, node.iterator_slot, node=node)
+        # Store iterator value in the variable (global at program level)
+        if node.iterator_slot == -1:
+            const_idx = self.add_const(SdString(node.iterator))
+            self.emit(OpCode.STORE_GLOBAL, (const_idx, False, None, None), node=node)
+        else:
+            self.emit(OpCode.STORE_FAST, node.iterator_slot, node=node)
 
         # continue in 'for' should go to loop_start (to get next item)
         self.loop_stack.append((loop_start, exit_jump_idx, []))
@@ -411,9 +415,18 @@ class Compiler:
 
     def compile_CallNode(self, node):
         if isinstance(node.name, str):
-            total_args = self._compile_call_args(node)
-            const_idx = self.add_const(SdString(node.name))
-            self.emit(OpCode.CALL_FUNCTION, (const_idx, total_args), node=node)
+            callee = getattr(node, "callee_variable", None)
+            if callee is not None:
+                # Local/captured callee: load the variable onto the stack,
+                # then args; CALL_VALUE pops args then the callee.
+                # (CALL_FUNCTION only looks up globals, so it can't call locals.)
+                self.compile(callee)
+                total_args = self._compile_call_args(node)
+                self.emit(OpCode.CALL_VALUE, total_args, node=node)
+            else:
+                total_args = self._compile_call_args(node)
+                const_idx = self.add_const(SdString(node.name))
+                self.emit(OpCode.CALL_FUNCTION, (const_idx, total_args), node=node)
         else:
             # Expression callee (f()(), factory results): callee first,
             # then args; CALL_VALUE pops args then the callee.
@@ -504,6 +517,7 @@ class Compiler:
             node.return_type,
             cell_names=getattr(node, "cell_slots", ()) or (),
             free_specs=getattr(node, "free_slots", ()) or (),
+            cell_metadata=getattr(node, "cell_metadata", {}),
         )
 
         const_idx = self.add_const(func_obj)

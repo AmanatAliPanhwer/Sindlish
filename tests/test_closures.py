@@ -7,7 +7,7 @@ Cell, and inner functions read/write through it by reference.
 
 import pytest
 
-from interpreter.errors import SindhiBaseError
+from interpreter.errors import HalndeVaktGhalti, QisamJeGhalti, SindhiBaseError
 from tests.conftest import run
 
 
@@ -197,6 +197,85 @@ likh(shumar)
         assert "10" in out
 
 
+class TestCellEnforcement:
+    """Cells carry const/type metadata; empty cells cannot be read."""
+
+    def test_typed_cell_write_with_matching_type_ok(self):
+        _, out = run("""
+kaam f() {
+    adad x = 10
+    kaam g() {
+        bahari x
+        x = 20
+    }
+    g()
+    likh(x)
+}
+f()
+""")
+        assert "20" in out
+
+    def test_const_cell_write_in_inner_raises(self):
+        with pytest.raises(HalndeVaktGhalti):
+            run("""
+kaam f() {
+    pakko adad x = 10
+    kaam g() {
+        bahari x
+        x = 20
+    }
+    g()
+}
+f()
+""")
+
+    def test_const_cell_owner_write_after_capture_raises(self):
+        with pytest.raises(HalndeVaktGhalti):
+            run("""
+kaam f() {
+    pakko adad x = 10
+    kaam g() {
+        bahari x
+        wapas x
+    }
+    h = g()
+    x = 20
+}
+f()
+""")
+
+    def test_typed_cell_wrong_type_write_in_inner_raises(self):
+        with pytest.raises(QisamJeGhalti):
+            run("""
+kaam f() {
+    adad x = 10
+    kaam g() {
+        bahari x
+        x = "na"
+    }
+    g()
+}
+f()
+""")
+
+    def test_empty_cell_read_raises(self):
+        with pytest.raises(HalndeVaktGhalti):
+            run("""
+kaam f(fa) {
+    agar fa {
+        x = 42
+    }
+    kaam g() {
+        bahari x
+        wapas x
+    }
+    wapas g
+}
+h = f(koorh)
+likh(h())
+""")
+
+
 class TestResultBoundaries:
     """Function returns unwrap Ok; inspection methods treat raw values as success."""
 
@@ -237,3 +316,70 @@ n = kharab()
 agar n.ghalti() { likh("pakdo") } warna { likh("natho") }
 """)
         assert "pakdo" in out
+
+
+class TestLocalCalleeCalls:
+    """Calling a function stored in a function-local variable (issue #30 2.6).
+
+    Named calls must route locals through CALL_VALUE instead of a globals-only
+    name lookup, or `h = banao(); h()` fails with 'Nalo h na milyo.'
+    """
+
+    def test_call_function_local_by_name(self):
+        _, out = run("""
+kaam banao() {
+    kaam f() { wapas 7 }
+    wapas f
+}
+kaam g() {
+    h = banao()
+    wapas h()
+}
+likh(g())
+""")
+        assert "7" in out
+
+    def test_call_local_callee_with_arguments(self):
+        _, out = run("""
+kaam wadho(a, b) {
+    wapas a + b
+}
+kaam g() {
+    fn = wadho
+    wapas fn(2, 3)
+}
+likh(g())
+""")
+        assert "5" in out
+
+    def test_call_captured_callee_from_inner_function(self):
+        _, out = run("""
+kaam banao() {
+    kaam f() { wapas 9 }
+    wapas f
+}
+kaam p() {
+    h = banao()
+    kaam q() {
+        wapas h()
+    }
+    wapas q
+}
+likh(p()())
+""")
+        assert "9" in out
+
+    def test_chained_call_of_local_factory(self):
+        _, out = run("""
+kaam banao() {
+    kaam f() { wapas 11 }
+    wapas f
+}
+kaam g() {
+    mk = banao
+    h = mk()
+    wapas h()
+}
+likh(g())
+""")
+        assert "11" in out

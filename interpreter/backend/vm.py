@@ -173,8 +173,13 @@ class VM:
         return val
 
     def _check_type(self, value, expected_type, element_type=None, line=0, column=0):
-        if isinstance(value, SdResult) and value.is_ok():
-            value = value.value
+        if isinstance(value, SdResult):
+            if value.is_ok():
+                value = value.value
+            else:
+                # Error Results stay values: propagate across typed boundaries
+                # instead of raising "RESULT milyo" (TODO:57).
+                return
         if expected_type == TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):
                 raise QisamJeGhalti(
@@ -438,10 +443,38 @@ class VM:
         self.push(SdBool(False))
 
     def _op_load_deref(self, frame, arg, line, column):
-        self.push(frame.cells[arg].value)
+        cell = frame.cells[arg]
+        if cell.value is None:
+            name = getattr(cell, "name", None) or f"cell[{arg}]"
+            raise HalndeVaktGhalti(
+                f"'{name}' khe value likhwan khaan pehrioan read natho thyo sendho (khali cell).",
+                line,
+                column,
+                self.code_string,
+            )
+        self.push(cell.value)
 
     def _op_store_deref(self, frame, arg, line, column):
-        frame.cells[arg].value = self.pop()
+        value = self.pop()
+        cell = frame.cells[arg]
+        metadata = getattr(cell, "metadata", {})
+        if metadata.get("is_const") and cell.value is not None:
+            raise HalndeVaktGhalti(
+                "pakko (constant) variable badlaye natho saghjay.",
+                line,
+                column,
+                self.code_string,
+            )
+        expected_type = metadata.get("type")
+        if metadata.get("has_explicit_type", False) and expected_type is not None:
+            self._check_type(
+                value,
+                expected_type,
+                metadata.get("element_type"),
+                line=line,
+                column=column,
+            )
+        cell.value = value
 
     def _binary_op_result(self, left, right, dunder, line, column):
         try:

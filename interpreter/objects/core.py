@@ -72,14 +72,17 @@ class SdResult(SdShey):
 class Cell:
     """Mutable box shared between a function frame and its closures."""
 
-    __slots__ = ("value",)
+    __slots__ = ("metadata", "name", "value")
 
-    def __init__(self, value=None):
+    def __init__(self, value=None, name=None, metadata=None):
         self.value = value
+        self.name = name
+        self.metadata = metadata if metadata is not None else {}
 
 
 class SdFunction(SdShey):
     __slots__ = (
+        "cell_metadata",
         "cell_names",
         "cells",
         "constants",
@@ -108,6 +111,7 @@ class SdFunction(SdShey):
         cell_names=(),
         free_specs=(),
         cells=(),
+        cell_metadata=None,
     ):
         super().__init__(KAAM_TYPE)
         self.name = name
@@ -122,6 +126,7 @@ class SdFunction(SdShey):
         self.cell_names = tuple(cell_names)
         self.free_specs = tuple(free_specs)
         self.cells = tuple(cells)
+        self.cell_metadata = dict(cell_metadata) if cell_metadata else {}
 
     def bind_defaults(self, defaults):
         """Return a copy of this function carrying evaluated default values."""
@@ -138,6 +143,7 @@ class SdFunction(SdShey):
             self.cell_names,
             self.free_specs,
             self.cells,
+            self.cell_metadata,
         )
 
     def __str__(self):

@@ -56,8 +56,6 @@ class Interpreter:
 
             # 3. Resolve
             resolver = Resolver(code)
-            if is_repl:
-                resolver.is_repl = True
             resolver.resolve(ast)
 
             # 4. Compile
