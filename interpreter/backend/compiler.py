@@ -41,25 +41,26 @@ op_map = {
 
 
 EXPRESSION_NODES = (
-        NumberNode,
-        StringNode,
-        BoolNode,
-        NullNode,
-        VariableNode,
-        BinaryOpNode,
-        UnaryOpNode,
-        ListNode,
-        DictNode,
-        SetNode,
-        IndexNode,
-        CallNode,
-        MethodCallNode,
-        ResultConstructorNode,
-        ResultMethodCallNode,
-        PostfixOpNode,
-        GetAttrNode,
-        TypeCastNode,
-    )
+    NumberNode,
+    StringNode,
+    BoolNode,
+    NullNode,
+    VariableNode,
+    BinaryOpNode,
+    UnaryOpNode,
+    ListNode,
+    DictNode,
+    SetNode,
+    IndexNode,
+    CallNode,
+    MethodCallNode,
+    ResultConstructorNode,
+    ResultMethodCallNode,
+    PostfixOpNode,
+    GetAttrNode,
+    TypeCastNode,
+)
+
 
 class Compiler:
     def __init__(self, code):
@@ -231,10 +232,15 @@ class Compiler:
             is_last = i == num_stmts - 1
 
             # Special case for implicit return in function body
-            if is_function_body and is_last and isinstance(stmt, EXPRESSION_NODES):
+            if is_function_body and is_last:
                 self.compile(stmt)
-                self.emit(OpCode.MAKE_OK, node=stmt)
-                self.emit(OpCode.RETURN_VALUE, node=stmt)
+                if isinstance(stmt, EXPRESSION_NODES):
+                    self.emit(OpCode.MAKE_OK, node=stmt)
+                    self.emit(OpCode.RETURN_VALUE, node=stmt)
+                else:
+                    self.emit(OpCode.PUSH_NULL, node=stmt)
+                    self.emit(OpCode.MAKE_OK, node=stmt)
+                    self.emit(OpCode.RETURN_VALUE, node=stmt)
                 continue
 
             self.compile(stmt)
@@ -259,7 +265,9 @@ class Compiler:
                 jump_if_false_instr = self.emit(OpCode.JUMP_IF_FALSE, 0, node=node)
                 self.compile(else_if_body)
                 end_jumps.append(self.emit(OpCode.JUMP_ABSOLUTE, 0, node=node))
-                self._patch(jump_if_false_instr, OpCode.JUMP_IF_FALSE, self._current_pc())
+                self._patch(
+                    jump_if_false_instr, OpCode.JUMP_IF_FALSE, self._current_pc()
+                )
 
             if node.else_body:
                 self.compile(node.else_body)
@@ -453,34 +461,34 @@ class Compiler:
         # Declaration only: the resolver registered the capture
         pass
 
-    def compile_FunctionNode(self, node):
-        getattr(node, "line", 0)
-        getattr(node, "column", 0)
+    def _compile_function_body(self, node):
+        """Compile ``node.body`` into a fresh instruction buffer.
 
-        # Save current state
+        Returns ``(instructions, line_col_map)`` for the body. The buffer is
+        swapped out and back so nested functions never corrupt the enclosing
+        function's in-progress output; ``fn_stack`` is pushed so closure
+        resolution (``_deref_index``) sees this function as the innermost.
+        """
         old_instructions = self.instructions
         old_line_col_map = self.line_col_map
         self.instructions = []
         self.line_col_map = {}
 
-        # Compile body - call compile_BlockNode directly to pass is_function_body=True
         self.fn_stack.append(node)
         self.compile_BlockNode(node.body, is_function_body=True)
 
-        # Implicit return at end (if not already returned by compile_BlockNode)
-        self.emit(OpCode.PUSH_NULL, node=node)
-        self.emit(OpCode.MAKE_OK, node=node)
-        self.emit(OpCode.RETURN_VALUE, node=node)
+        body_instructions = self.instructions
+        body_line_col_map = self.line_col_map
 
-        func_instructions = self.instructions
-        func_line_col_map = self.line_col_map
-
-        # Restore state
+        self.fn_stack.pop()
         self.instructions = old_instructions
         self.line_col_map = old_line_col_map
-        self.fn_stack.pop()
+        return body_instructions, body_line_col_map
 
-        # Create function object
+    def compile_FunctionNode(self, node):
+
+        func_instructions, func_line_col_map = self._compile_function_body(node)
+
         func_obj = SdFunction(
             node.name,
             node.params,
@@ -497,8 +505,6 @@ class Compiler:
 
         const_idx = self.add_const(func_obj)
 
-        # Evaluate parameter defaults at definition time (Python semantics),
-        # then let the VM bind them via MAKE_FUNCTION.
         num_defaults = 0
         for param in node.params:
             if param.default is not None:
