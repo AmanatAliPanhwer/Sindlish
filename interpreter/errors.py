@@ -161,6 +161,15 @@ class IndexJeGhalti(SindhiBaseError):
         super().__init__("IndexJeGhalti", details, line, column, code_string, traceback)
 
 
+class TarteebJeGhalti(SindhiBaseError):
+    def __init__(
+        self, details, line=None, column=None, code_string=None, traceback=None
+    ):
+        super().__init__(
+            "TarteebJeGhalti", details, line, column, code_string, traceback
+        )
+
+
 # Registry for dynamic error lookup
 ERROR_MAP = {
     "LikhaiJeGhalti": LikhaiJeGhalti,
@@ -169,4 +178,5 @@ ERROR_MAP = {
     "HalndeVaktGhalti": HalndeVaktGhalti,
     "ZeroVindJeGhalti": ZeroVindJeGhalti,
     "IndexJeGhalti": IndexJeGhalti,
+    "TarteebJeGhalti": TarteebJeGhalti,
 }

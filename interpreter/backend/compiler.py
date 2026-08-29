@@ -1,3 +1,4 @@
+from ..errors import TarteebJeGhalti
 from ..frontend.ast_nodes import (
     BinaryOpNode,
     BoolNode,
@@ -121,8 +122,13 @@ class Compiler:
         return method(node)
 
     def no_compile_method(self, node):
-        raise Exception(
-            f"Compiler node qisam {type(node).__name__} khe handle natho kare saghjay."
+        line = getattr(node, "line", 0)
+        column = getattr(node, "column", 0)
+        raise TarteebJeGhalti(
+            f"Compiler node qisam {type(node).__name__} khe handle natho kare saghjay.",
+            line,
+            column,
+            self.code,
         )
 
     def compile_ProgramNode(self, node):
@@ -216,7 +222,14 @@ class Compiler:
         if opcode:
             self.emit(opcode, node=node)
         else:
-            raise Exception(f"Na-maloom binary operator: {node.op.type}.")
+            line = getattr(node, "line", 0)
+            column = getattr(node, "column", 0)
+            raise TarteebJeGhalti(
+                f"Na-maloom binary operator: {node.op.type}.",
+                line,
+                column,
+                self.code,
+            )
 
     def compile_UnaryOpNode(self, node):
         if node.op.type == TokenType.NOT:
@@ -337,15 +350,27 @@ class Compiler:
 
     def compile_BreakNode(self, node):
         if not self.loop_stack:
-            raise Exception("tor (break) loop khaan baahar istamal natho kare saghjay.")
+            line = getattr(node, "line", 0)
+            column = getattr(node, "column", 0)
+            raise TarteebJeGhalti(
+                "tor (break) loop khaan baahar istamal natho kare saghjay.",
+                line,
+                column,
+                self.code,
+            )
 
         idx = self.emit(OpCode.JUMP_ABSOLUTE, 0, node=node)
         self.loop_stack[-1][2].append(idx)
 
     def compile_ContinueNode(self, node):
         if not self.loop_stack:
-            raise Exception(
-                "jari (continue) loop khaan baahar istamal natho kare saghjay."
+            line = getattr(node, "line", 0)
+            column = getattr(node, "column", 0)
+            raise TarteebJeGhalti(
+                "jari (continue) loop khaan baahar istamal natho kare saghjay.",
+                line,
+                column,
+                self.code,
             )
 
         start_label = self.loop_stack[-1][0]
