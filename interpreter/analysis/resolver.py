@@ -466,16 +466,18 @@ class Resolver:
         self.scopes[-1][name] = slot
 
         # Track symbol for LSP
-        if node:
-            self.symbols.append(
-                {
-                    "name": name,
-                    "type": getattr(node, "type", None),
-                    "line": getattr(node, "line", 0),
-                    "col": getattr(node, "column", 0),
-                    "kind": "variable" if isinstance(node, AssignNode) else "function",
-                }
-            )
+        if not node:
+            return
+
+        self.symbols.append(
+            {
+                "name": name,
+                "type": getattr(node, "type", None),
+                "line": getattr(node, "line", 0),
+                "col": getattr(node, "column", 0),
+                "kind": "variable" if isinstance(node, AssignNode) else "function",
+            }
+        )
 
         return slot
 
@@ -486,16 +488,17 @@ class Resolver:
         compile to ``LOAD_GLOBAL`` instead of reading an empty local slot.
         """
         self.function_scopes[-1].add(name)
-        if node:
-            self.symbols.append(
-                {
-                    "name": name,
-                    "type": getattr(node, "type", None),
-                    "line": getattr(node, "line", 0),
-                    "col": getattr(node, "column", 0),
-                    "kind": "function",
-                }
-            )
+        if not node:
+            return
+        self.symbols.append(
+            {
+                "name": name,
+                "type": getattr(node, "type", None),
+                "line": getattr(node, "line", 0),
+                "col": getattr(node, "column", 0),
+                "kind": "function",
+            }
+        )
 
     def _find(self, name: str) -> tuple | None:
         """Find a name across scopes.
