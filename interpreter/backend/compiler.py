@@ -313,16 +313,17 @@ class Compiler:
 
     def compile_UnaryOpNode(self, node: UnaryOpNode) -> None:
         """Compile a unary operator (``nah``/``-``/``+``)."""
-        if node.op.type == TokenType.NOT:
-            self.compile(node.right)
-            self.emit(OpCode.LOGICAL_NOT, node=node)
-        elif node.op.type == TokenType.MINUS:
-            zero_idx = self.add_const(SdNumber(0))
-            self.emit(OpCode.LOAD_CONST, zero_idx, node=node)
-            self.compile(node.right)
-            self.emit(OpCode.BINARY_SUB, node=node)
-        elif node.op.type == TokenType.PLUS:
-            self.compile(node.right)
+        match node.op.type:
+            case TokenType.NOT:
+                self.compile(node.right)
+                self.emit(OpCode.LOGICAL_NOT, node=node)
+            case TokenType.MINUS:
+                zero_idx = self.add_const(SdNumber(0))
+                self.emit(OpCode.LOAD_CONST, zero_idx, node=node)
+                self.compile(node.right)
+                self.emit(OpCode.BINARY_SUB, node=node)
+            case TokenType.PLUS:  
+                self.compile(node.right)
 
     def compile_TypeCastNode(self, node: TypeCastNode) -> None:
         """Compile a type conversion (e.g. ``adad(x)``)."""
