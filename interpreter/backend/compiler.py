@@ -1,31 +1,57 @@
+"""Bytecode compiler: turn the resolved AST into stack-machine bytecode.
+
+Walks the resolved AST (see :mod:`..analysis.resolver`) and emits a flat
+list of ``(opcode, arg)`` instructions, a shared constant table, and a
+line/column map for each instruction. The output feeds the :class:`.vm.VM`.
+
+Storage decisions (which slot / global / closure cell a name maps to) come
+from each node's :attr:`~.frontend.ast_nodes.Node.hints`
+(:class:`~.backend.hints.CompilerHints`), filled in by the resolver.
+"""
+
+from __future__ import annotations
+
 from ..errors import TarteebJeGhalti
 from ..frontend.ast_nodes import (
+    AssignNode,
     BinaryOpNode,
+    BlockNode,
     BoolNode,
+    BreakNode,
     CallNode,
+    ContinueNode,
     DictNode,
+    ForNode,
+    FunctionNode,
     GetAttrNode,
+    GhaltiNode,
+    GlobalNode,
     IfNode,
     IndexNode,
     ListNode,
     MethodCallNode,
+    Node,
+    NonLocalNode,
     NullNode,
     NumberNode,
     PostfixOpNode,
+    ProgramNode,
     ResultConstructorNode,
     ResultMethodCallNode,
+    ReturnNode,
     SetNode,
     StringNode,
     TypeCastNode,
     UnaryOpNode,
     VariableNode,
+    WhileNode,
 )
 from ..frontend.tokens import TokenType
 from ..objects import SdFunction, SdNumber, SdString
 from .markers import KwargMarker, KwargsDictMarker, StarArgsMarker
 from .opcodes import OpCode
 
-op_map = {
+op_map: dict[TokenType, OpCode] = {
     TokenType.PLUS: OpCode.BINARY_ADD,
     TokenType.MINUS: OpCode.BINARY_SUB,
     TokenType.MUL: OpCode.BINARY_MUL,
@@ -41,7 +67,7 @@ op_map = {
 }
 
 
-EXPRESSION_NODES = (
+EXPRESSION_NODES: tuple[type[Node], ...] = (
     NumberNode,
     StringNode,
     BoolNode,
@@ -62,23 +88,67 @@ EXPRESSION_NODES = (
     TypeCastNode,
 )
 
+Instruction = tuple[OpCode, object]
+ProgramArtifacts = tuple[
+    list[Instruction], list[object], dict[int, tuple[int, int]]
+]
+
 
 class Compiler:
-    def __init__(self, code):
-        self.code = code
-        self.instructions = []
-        self.constants = []
-        # TODO: Work on converting line col map to a list
-        self.line_col_map = {}
-        self.loop_stack = []  # Stack of (start_label, end_label)
-        self.fn_stack = []  # FunctionNode context chain for closure resolution
+    """Compile a resolved AST into bytecode for the VM.
 
-    def _deref_index(self, depth, name):
-        """Index of a free variable in the current function's cell table."""
+    The compiler is a visitor keyed by node type (``compile_<TypeName>``).
+    It emits into three shared structures owned by the instance:
+
+    - ``instructions`` -- ``list[(OpCode, arg)]``
+    - ``constants`` -- a single table shared across the whole program and
+      its nested functions (see :meth:`add_const`)
+    - ``line_col_map`` -- ``dict[int, (line, col)]`` keyed by pc
+
+    ``loop_stack`` and ``fn_stack`` track the active loops and the chain of
+    enclosing functions (used for closure-cell resolution).
+    """
+
+    def __init__(self, code: str) -> None:
+        """Create a compiler over the given source (used for error reports)."""
+        self.code = code
+        self.instructions: list[Instruction] = []
+        self.constants: list[object] = []
+        # TODO: Work on converting line col map to a list
+        self.line_col_map: dict[int, tuple[int, int]] = {}
+        self.loop_stack: list[tuple[int, int, list[int]]] = (
+            []
+        )  # (start_label, exit_jump_idx, break_indices)
+        self.fn_stack: list[FunctionNode] = (
+            []
+        )  # FunctionNode context chain for closure resolution
+
+    def _deref_index(self, depth: int, name: str) -> int:
+        """Return the index of free variable ``(depth, name)`` in the cell table."""
         fn = self.fn_stack[-1]
         return fn.hints.free_slots.index((depth, name))
 
-    def emit(self, opcode, arg=None, node=None, line=None, column=None):
+    def _current_pc(self) -> int:
+        """Return the index of the next instruction to emit."""
+        return len(self.instructions)
+
+    def _patch(self, idx: int, opcode: OpCode, arg: object) -> None:
+        """Overwrite the instruction at ``idx`` (used for back-patching jumps)."""
+        self.instructions[idx] = (opcode, arg)
+
+    def emit(
+        self,
+        opcode: OpCode,
+        arg: object | None = None,
+        node: Node | None = None,
+        line: int | None = None,
+        column: int | None = None,
+    ) -> int:
+        """Append one instruction, record its source position, and return its pc.
+
+        Position comes from ``node`` when given and falls back to the explicit
+        ``line``/``column`` arguments (defaulting to 0).
+        """
         if node:
             line = getattr(node, "line", line or 0)
             column = getattr(node, "column", column or 0)
@@ -88,15 +158,7 @@ class Compiler:
         self.line_col_map[idx] = (line or 0, column or 0)
         return idx
 
-    def _current_pc(self):
-        """Index of the next instruction to emit (the current program counter)."""
-        return len(self.instructions)
-
-    def _patch(self, idx, opcode, arg):
-        """Overwrite the instruction at ``idx`` (used for back-patching jumps)."""
-        self.instructions[idx] = (opcode, arg)
-
-    def add_const(self, value):
+    def add_const(self, value: object) -> int:
         """Intern ``value`` into the shared constant table, returning its index.
 
         One constant table is shared across the whole program: function objects
@@ -114,14 +176,21 @@ class Compiler:
         self.constants.append(value)
         return len(self.constants) - 1
 
-    def compile(self, node):
+    def compile(self, node: Node | None) -> None | ProgramArtifacts:
+        """Dispatch ``node`` to its ``compile_<TypeName>`` visitor.
+
+        Returns ``None`` for a ``None`` node. Unknown node types fall back to
+        :meth:`no_compile_method`. For a :class:`ProgramNode` the result is the
+        ``(instructions, constants, line_col_map)`` triple.
+        """
         if node is None:
-            return
+            return None
         method_name = f"compile_{type(node).__name__}"
         method = getattr(self, method_name, self.no_compile_method)
         return method(node)
 
-    def no_compile_method(self, node):
+    def no_compile_method(self, node: Node) -> None:
+        """Raise when the compiler has no visitor for a node type."""
         line = getattr(node, "line", 0)
         column = getattr(node, "column", 0)
         raise TarteebJeGhalti(
@@ -131,13 +200,15 @@ class Compiler:
             self.code,
         )
 
-    def compile_ProgramNode(self, node):
+    def compile_ProgramNode(self, node: ProgramNode) -> ProgramArtifacts:
+        """Compile every top-level statement and cap the program with ``HALT``."""
         for stmt in node.statements:
             self.compile(stmt)
         self.emit(OpCode.HALT, line=0, column=0)
         return self.instructions, self.constants, self.line_col_map
 
-    def compile_AssignNode(self, node):
+    def compile_AssignNode(self, node: AssignNode) -> None:
+        """Compile an assignment, routing the store to slot/global/cell."""
         hints = node.hints
         self.compile(node.value)
         if hints.scope_level == 2:
@@ -165,7 +236,8 @@ class Compiler:
             )
             self.emit(OpCode.STORE_GLOBAL, info, node=node)
 
-    def compile_VariableNode(self, node):
+    def compile_VariableNode(self, node: VariableNode) -> None:
+        """Compile a variable reference, loading from slot/cell/global."""
         hints = node.hints
         if hints.scope_level == 2:
             self.emit(
@@ -184,24 +256,29 @@ class Compiler:
             const_idx = self.add_const(SdString(node.name))
             self.emit(OpCode.LOAD_GLOBAL, const_idx, node=node)
 
-    def compile_NumberNode(self, node):
+    def compile_NumberNode(self, node: NumberNode) -> None:
+        """Load a numeric literal as a constant."""
         const_idx = self.add_const(SdNumber(node.value))
         self.emit(OpCode.LOAD_CONST, const_idx, node=node)
 
-    def compile_StringNode(self, node):
+    def compile_StringNode(self, node: StringNode) -> None:
+        """Load a string literal as a constant."""
         const_idx = self.add_const(SdString(node.value))
         self.emit(OpCode.LOAD_CONST, const_idx, node=node)
 
-    def compile_BoolNode(self, node):
+    def compile_BoolNode(self, node: BoolNode) -> None:
+        """Push the boolean literal onto the stack."""
         if node.value:
             self.emit(OpCode.PUSH_TRUE, node=node)
         else:
             self.emit(OpCode.PUSH_FALSE, node=node)
 
-    def compile_NullNode(self, node):
+    def compile_NullNode(self, node: NullNode) -> None:
+        """Push ``khali`` (null) onto the stack."""
         self.emit(OpCode.PUSH_NULL, node=node)
 
-    def compile_BinaryOpNode(self, node):
+    def compile_BinaryOpNode(self, node: BinaryOpNode) -> None:
+        """Compile a binary operator, short-circuiting for ``aen``/``ya``."""
         if node.op.type == TokenType.AND:
             self.compile(node.left)
             jump_idx = self.emit(OpCode.JUMP_IF_FALSE_OR_POP, 0, node=node)
@@ -231,7 +308,8 @@ class Compiler:
                 self.code,
             )
 
-    def compile_UnaryOpNode(self, node):
+    def compile_UnaryOpNode(self, node: UnaryOpNode) -> None:
+        """Compile a unary operator (``nah``/``-``/``+``)."""
         if node.op.type == TokenType.NOT:
             self.compile(node.right)
             self.emit(OpCode.LOGICAL_NOT, node=node)
@@ -243,11 +321,20 @@ class Compiler:
         elif node.op.type == TokenType.PLUS:
             self.compile(node.right)
 
-    def compile_TypeCastNode(self, node):
+    def compile_TypeCastNode(self, node: TypeCastNode) -> None:
+        """Compile a type conversion (e.g. ``adad(x)``)."""
         self.compile(node.expr)
         self.emit(OpCode.TYPECAST, node.target_type, node=node)
 
-    def compile_BlockNode(self, node, is_function_body=False):
+    def compile_BlockNode(
+        self, node: BlockNode, is_function_body: bool = False
+    ) -> None:
+        """Compile a block, handling the implicit-return tail for a function body.
+
+        Statement-expression values are popped. When ``is_function_body`` and the
+        statement is the last, a trailing expression is wrapped and returned,
+        otherwise the body ends by returning null.
+        """
         num_stmts = len(node.statements)
         for i, stmt in enumerate(node.statements):
             is_last = i == num_stmts - 1
@@ -269,8 +356,9 @@ class Compiler:
             if isinstance(stmt, EXPRESSION_NODES):
                 self.emit(OpCode.POP_TOP, node=stmt)
 
-    def compile_IfNode(self, node: IfNode):
-        end_jumps = []
+    def compile_IfNode(self, node: IfNode) -> None:
+        """Compile an agar/yawari/warna chain via forward jump back-patching."""
+        end_jumps: list[int] = []
 
         self.compile(node.condition)
         jump_if_false_instr = self.emit(OpCode.JUMP_IF_FALSE, 0, node=node)
@@ -301,7 +389,8 @@ class Compiler:
         else:
             self._patch(jump_if_false_instr, OpCode.JUMP_IF_FALSE, self._current_pc())
 
-    def compile_WhileNode(self, node):
+    def compile_WhileNode(self, node: WhileNode) -> None:
+        """Compile a jistain loop (break/continue targets recorded on loop stack)."""
         loop_start = self._current_pc()
 
         self.compile(node.condition)
@@ -321,7 +410,8 @@ class Compiler:
         for break_idx in breaks:
             self._patch(break_idx, OpCode.JUMP_ABSOLUTE, exit_label)
 
-    def compile_ForNode(self, node):
+    def compile_ForNode(self, node: ForNode) -> None:
+        """Compile a har...mein loop (iterator stored to slot or global)."""
         self.compile(node.iterable)
         self.emit(OpCode.GET_ITER, node=node)
 
@@ -348,7 +438,8 @@ class Compiler:
         for break_idx in breaks:
             self._patch(break_idx, OpCode.JUMP_ABSOLUTE, exit_label)
 
-    def compile_BreakNode(self, node):
+    def compile_BreakNode(self, node: BreakNode) -> None:
+        """Compile ``tor`` (break); raises if used outside a loop."""
         if not self.loop_stack:
             line = getattr(node, "line", 0)
             column = getattr(node, "column", 0)
@@ -362,7 +453,8 @@ class Compiler:
         idx = self.emit(OpCode.JUMP_ABSOLUTE, 0, node=node)
         self.loop_stack[-1][2].append(idx)
 
-    def compile_ContinueNode(self, node):
+    def compile_ContinueNode(self, node: ContinueNode) -> None:
+        """Compile ``jari`` (continue); raises if used outside a loop."""
         if not self.loop_stack:
             line = getattr(node, "line", 0)
             column = getattr(node, "column", 0)
@@ -376,23 +468,27 @@ class Compiler:
         start_label = self.loop_stack[-1][0]
         self.emit(OpCode.JUMP_ABSOLUTE, start_label, node=node)
 
-    def compile_ListNode(self, node):
+    def compile_ListNode(self, node: ListNode) -> None:
+        """Compile a list literal into a single BUILD_LIST."""
         for el in node.elements:
             self.compile(el)
         self.emit(OpCode.BUILD_LIST, len(node.elements), node=node)
 
-    def compile_DictNode(self, node):
+    def compile_DictNode(self, node: DictNode) -> None:
+        """Compile a dict literal into a single BUILD_DICT."""
         for k, v in node.pairs:
             self.compile(k)
             self.compile(v)
         self.emit(OpCode.BUILD_DICT, len(node.pairs), node=node)
 
-    def compile_SetNode(self, node):
+    def compile_SetNode(self, node: SetNode) -> None:
+        """Compile a set literal into a single BUILD_SET."""
         for el in node.elements:
             self.compile(el)
         self.emit(OpCode.BUILD_SET, len(node.elements), node=node)
 
-    def compile_IndexNode(self, node):
+    def compile_IndexNode(self, node: IndexNode) -> None:
+        """Compile a subscript read or (optionally) an index assignment."""
         self.compile(node.left)
         self.compile(node.index)
         if node.value:
@@ -401,7 +497,12 @@ class Compiler:
         else:
             self.emit(OpCode.BINARY_SUBSCRIPT, node=node)
 
-    def _compile_call_args(self, node):
+    def _compile_call_args(self, node: CallNode | MethodCallNode) -> int:
+        """Compile positional, star, kwargs-dict, and keyword call arguments.
+
+        Returns the total number of stack slots consumed (marker values count
+        toward the total so the VM can balance the operand stack).
+        """
         total_args = 0
 
         for arg in node.args:
@@ -429,7 +530,13 @@ class Compiler:
 
         return total_args
 
-    def compile_CallNode(self, node):
+    def compile_CallNode(self, node: CallNode) -> None:
+        """Compile a call, choosing CALL_FUNCTION vs CALL_VALUE by callee kind.
+
+        Named calls to a local/captured callee and expression callees
+        (``f()()``, factory results) use CALL_VALUE; ordinary named calls use
+        the globals-only CALL_FUNCTION.
+        """
         if isinstance(node.name, str):
             callee = node.hints.callee_variable
             if callee is not None:
@@ -450,25 +557,29 @@ class Compiler:
             total_args = self._compile_call_args(node)
             self.emit(OpCode.CALL_VALUE, total_args, node=node)
 
-    def compile_MethodCallNode(self, node):
+    def compile_MethodCallNode(self, node: MethodCallNode) -> None:
+        """Compile a method call (instance then marker-encoded arguments)."""
         self.compile(node.instance)
         total_args = self._compile_call_args(node)
         const_idx = self.add_const(SdString(node.method_name))
         self.emit(OpCode.CALL_METHOD, (const_idx, total_args), node=node)
 
-    def compile_GetAttrNode(self, node):
+    def compile_GetAttrNode(self, node: GetAttrNode) -> None:
+        """Compile attribute read (obj.attr)."""
         self.compile(node.instance)
         const_idx = self.add_const(SdString(node.attr_name))
         self.emit(OpCode.GET_ATTR, const_idx, node=node)
 
-    def compile_ResultConstructorNode(self, node):
+    def compile_ResultConstructorNode(self, node: ResultConstructorNode) -> None:
+        """Compile ``ok(value)`` / ``ghalti(value)`` into MAKE_OK/MAKE_ERROR."""
         self.compile(node.value)
         if node.variant == "OK":
             self.emit(OpCode.MAKE_OK, node=node)
         else:
             self.emit(OpCode.MAKE_ERROR, node=node)
 
-    def compile_ResultMethodCallNode(self, node):
+    def compile_ResultMethodCallNode(self, node: ResultMethodCallNode) -> None:
+        """Compile ``.bachao()`` / ``.lazmi()`` result adapters."""
         self.compile(node.receiver)
         self.compile(node.arg)
         if node.method_name == "bachao":
@@ -476,25 +587,28 @@ class Compiler:
         elif node.method_name == "lazmi":
             self.emit(OpCode.CALL_LAZMI, node=node)
 
-    def compile_PostfixOpNode(self, node):
+    def compile_PostfixOpNode(self, node: PostfixOpNode) -> None:
+        """Compile a postfix ``?`` / ``!!`` Result operator."""
         self.compile(node.expr)
         if node.op.type == TokenType.QMARK:
             self.emit(OpCode.POSTFIX_QMARK, node=node)
         elif node.op.type == TokenType.BANGBANG:
             self.emit(OpCode.POSTFIX_BANGBANG, node=node)
 
-    def compile_GhaltiNode(self, node):
+    def compile_GhaltiNode(self, node: GhaltiNode) -> None:
+        """Compile a statement-level ``ghalti`` panic."""
         self.compile(node.message)
         self.emit(OpCode.PANIC, node=node)
 
-    def compile_GlobalNode(self, node):
-        pass
+    def compile_GlobalNode(self, node: GlobalNode) -> None:
+        """``aalmi`` is a declaration hint only; no bytecode is emitted."""
 
-    def compile_NonLocalNode(self, node):
-        # Declaration only: the resolver registered the capture
-        pass
+    def compile_NonLocalNode(self, node: NonLocalNode) -> None:
+        """``bahari`` is a declaration hint only; the resolver handled capture."""
 
-    def _compile_function_body(self, node):
+    def _compile_function_body(
+        self, node: FunctionNode
+    ) -> tuple[list[Instruction], dict[int, tuple[int, int]]]:
         """Compile ``node.body`` into a fresh instruction buffer.
 
         Returns ``(instructions, line_col_map)`` for the body. The buffer is
@@ -518,8 +632,8 @@ class Compiler:
         self.line_col_map = old_line_col_map
         return body_instructions, body_line_col_map
 
-    def compile_FunctionNode(self, node):
-
+    def compile_FunctionNode(self, node: FunctionNode) -> None:
+        """Compile a function into an SdFunction constant and store it."""
         func_instructions, func_line_col_map = self._compile_function_body(node)
 
         hints = node.hints
@@ -552,7 +666,8 @@ class Compiler:
         name_idx = self.add_const(SdString(node.name))
         self.emit(OpCode.STORE_GLOBAL, name_idx, node=node)
 
-    def compile_ReturnNode(self, node):
+    def compile_ReturnNode(self, node: ReturnNode) -> None:
+        """Compile ``wapas``, auto-wrapping a result and returning."""
         if node.value:
             self.compile(node.value)
         else:
