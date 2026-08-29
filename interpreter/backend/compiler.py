@@ -30,6 +30,7 @@ class Compiler:
         self.code = code
         self.instructions = []
         self.constants = []
+        # TODO: Work on converting line col map to a list
         self.line_col_map = {}
         self.loop_stack = []  # Stack of (start_label, end_label)
         self.fn_stack = []  # FunctionNode context chain for closure resolution
@@ -164,7 +165,7 @@ class Compiler:
 
         self.compile(node.left)
         self.compile(node.right)
-
+        # TODO: Make it a file level import 
         op_map = {
             TokenType.PLUS: OpCode.BINARY_ADD,
             TokenType.MINUS: OpCode.BINARY_SUB,
