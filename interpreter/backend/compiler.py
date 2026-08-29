@@ -113,7 +113,6 @@ class Compiler:
         self.code = code
         self.instructions: list[Instruction] = []
         self.constants: list[object] = []
-        # Source position for each pc; densely indexed 1:1 with instructions
         self.line_col_map: list[tuple[int, int]] = []
         self.loop_stack: list[tuple[int, int, list[int]]] = (
             []
@@ -206,54 +205,59 @@ class Compiler:
         self.emit(OpCode.HALT, line=0, column=0)
         return self.instructions, self.constants, self.line_col_map
 
-    def compile_AssignNode(self, node: AssignNode) -> None:
-        """Compile an assignment, routing the store to slot/global/cell."""
-        hints = node.hints
-        self.compile(node.value)
+    def _reference(self, hints, name: str) -> tuple[str, int]:
+        """Classify a name into its storage target: (kind, operand).
+
+        ``kind`` is one of ``"deref"`` (an outer-function free variable),
+        ``"cell"`` (a local captured into a closure cell), ``"slot"`` (a plain
+        function-local), or ``"global"``. ``operand`` is the index/constant used
+        by the matching load/store opcode.
+        """
         if hints.scope_level == 2:
-            self.emit(
-                OpCode.STORE_DEREF,
-                self._deref_index(hints.deref_depth, hints.deref_name),
-                node=node,
-            )
-            return
+            return "deref", self._deref_index(hints.deref_depth, hints.deref_name)
         if hints.scope_level == 0:
             fn = self.fn_stack[-1] if self.fn_stack else None
             cell_slots = getattr(fn.hints, "cell_slots", ()) if fn is not None else ()
-            if node.name in cell_slots:
-                self.emit(OpCode.STORE_DEREF, cell_slots.index(node.name), node=node)
-            else:
-                self.emit(OpCode.STORE_FAST, hints.slot_index, node=node)
+            if name in cell_slots:
+                return "cell", cell_slots.index(name)
+            return "slot", hints.slot_index
+        return "global", self.add_const(SdString(name))
+
+    def _emit_load(self, node: VariableNode, hints) -> None:
+        """Emit the load opcode that reads ``node`` from its storage location."""
+        kind, operand = self._reference(hints, node.name)
+        if kind in ("deref", "cell"):
+            self.emit(OpCode.LOAD_DEREF, operand, node=node)
+        elif kind == "slot":
+            self.emit(OpCode.LOAD_FAST, operand, node=node)
         else:
-            const_idx = self.add_const(SdString(node.name))
+            self.emit(OpCode.LOAD_GLOBAL, operand, node=node)
+
+    def _emit_store(self, node: AssignNode, hints) -> None:
+        """Emit the store opcode that writes ``node`` to its storage location."""
+        kind, operand = self._reference(hints, node.name)
+        if kind in ("deref", "cell"):
+            self.emit(OpCode.STORE_DEREF, operand, node=node)
+        elif kind == "slot":
+            self.emit(OpCode.STORE_FAST, operand, node=node)
+        else:
             has_explicit_type = hints.has_explicit_type and hints.type is not None
             info = (
-                const_idx,
+                operand,
                 bool(hints.is_const),
                 hints.type if has_explicit_type else None,
                 hints.element_type,
             )
             self.emit(OpCode.STORE_GLOBAL, info, node=node)
 
+    def compile_AssignNode(self, node: AssignNode) -> None:
+        """Compile an assignment, routing the store to slot/global/cell."""
+        self.compile(node.value)
+        self._emit_store(node, node.hints)
+
     def compile_VariableNode(self, node: VariableNode) -> None:
         """Compile a variable reference, loading from slot/cell/global."""
-        hints = node.hints
-        if hints.scope_level == 2:
-            self.emit(
-                OpCode.LOAD_DEREF,
-                self._deref_index(hints.deref_depth, hints.deref_name),
-                node=node,
-            )
-        elif hints.scope_level == 0:
-            fn = self.fn_stack[-1] if self.fn_stack else None
-            cell_slots = getattr(fn.hints, "cell_slots", ()) if fn is not None else ()
-            if node.name in cell_slots:
-                self.emit(OpCode.LOAD_DEREF, cell_slots.index(node.name), node=node)
-            else:
-                self.emit(OpCode.LOAD_FAST, hints.slot_index, node=node)
-        else:
-            const_idx = self.add_const(SdString(node.name))
-            self.emit(OpCode.LOAD_GLOBAL, const_idx, node=node)
+        self._emit_load(node, node.hints)
 
     def compile_NumberNode(self, node: NumberNode) -> None:
         """Load a numeric literal as a constant."""
