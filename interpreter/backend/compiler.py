@@ -96,14 +96,20 @@ class Compiler:
         self.instructions[idx] = (opcode, arg)
 
     def add_const(self, value):
-        # Check content equality for SdSheys
-        for i, c in enumerate(self.constants):
-            if type(c) == type(value):
-                if hasattr(c, "value") and hasattr(value, "value"):
-                    if type(c.value) == type(value.value) and c.value == value.value:
-                        return i
-                elif c == value:
+        """Intern ``value`` into the shared constant table, returning its index.
+
+        One constant table is shared across the whole program: function objects
+        store indices into this same table, so a literal used inside a nested
+        function reuses the program-level slot. Dedup uses type equality plus
+        content equality for ``SdShey`` objects (e.g. two ``SdNumber(5)`` share
+        one slot).
+        """
+        for i, existing in enumerate(self.constants):
+            if type(existing) is type(value):
+                if hasattr(value, "value") and existing.value == value.value:
                     return i
+            elif existing == value:
+                return i
         self.constants.append(value)
         return len(self.constants) - 1
 
