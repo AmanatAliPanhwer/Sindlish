@@ -24,6 +24,42 @@ from ..objects import SdFunction, SdNumber, SdString
 from .markers import KwargMarker, KwargsDictMarker, StarArgsMarker
 from .opcodes import OpCode
 
+op_map = {
+    TokenType.PLUS: OpCode.BINARY_ADD,
+    TokenType.MINUS: OpCode.BINARY_SUB,
+    TokenType.MUL: OpCode.BINARY_MUL,
+    TokenType.DIV: OpCode.BINARY_DIV,
+    TokenType.POW: OpCode.BINARY_POW,
+    TokenType.MOD: OpCode.BINARY_MOD,
+    TokenType.EQEQ: OpCode.COMPARE_EQ,
+    TokenType.NOTEQ: OpCode.COMPARE_NE,
+    TokenType.LT: OpCode.COMPARE_LT,
+    TokenType.LTEQ: OpCode.COMPARE_LE,
+    TokenType.GT: OpCode.COMPARE_GT,
+    TokenType.GTEQ: OpCode.COMPARE_GE,
+}
+
+
+EXPRESSION_NODES = (
+        NumberNode,
+        StringNode,
+        BoolNode,
+        NullNode,
+        VariableNode,
+        BinaryOpNode,
+        UnaryOpNode,
+        ListNode,
+        DictNode,
+        SetNode,
+        IndexNode,
+        CallNode,
+        MethodCallNode,
+        ResultConstructorNode,
+        ResultMethodCallNode,
+        PostfixOpNode,
+        GetAttrNode,
+        TypeCastNode,
+    )
 
 class Compiler:
     def __init__(self, code):
@@ -45,10 +81,18 @@ class Compiler:
             line = getattr(node, "line", line or 0)
             column = getattr(node, "column", column or 0)
 
-        idx = len(self.instructions)
+        idx = self._current_pc()
         self.instructions.append((opcode, arg))
         self.line_col_map[idx] = (line or 0, column or 0)
         return idx
+
+    def _current_pc(self):
+        """Index of the next instruction to emit (the current program counter)."""
+        return len(self.instructions)
+
+    def _patch(self, idx, opcode, arg):
+        """Overwrite the instruction at ``idx`` (used for back-patching jumps)."""
+        self.instructions[idx] = (opcode, arg)
 
     def add_const(self, value):
         # Check content equality for SdSheys
@@ -147,39 +191,18 @@ class Compiler:
             self.compile(node.left)
             jump_idx = self.emit(OpCode.JUMP_IF_FALSE_OR_POP, 0, node=node)
             self.compile(node.right)
-            self.instructions[jump_idx] = (
-                OpCode.JUMP_IF_FALSE_OR_POP,
-                len(self.instructions),
-            )
+            self._patch(jump_idx, OpCode.JUMP_IF_FALSE_OR_POP, self._current_pc())
             return
 
         if node.op.type == TokenType.OR:
             self.compile(node.left)
             jump_idx = self.emit(OpCode.JUMP_IF_TRUE_OR_POP, 0, node=node)
             self.compile(node.right)
-            self.instructions[jump_idx] = (
-                OpCode.JUMP_IF_TRUE_OR_POP,
-                len(self.instructions),
-            )
+            self._patch(jump_idx, OpCode.JUMP_IF_TRUE_OR_POP, self._current_pc())
             return
 
         self.compile(node.left)
         self.compile(node.right)
-        # TODO: Make it a file level import 
-        op_map = {
-            TokenType.PLUS: OpCode.BINARY_ADD,
-            TokenType.MINUS: OpCode.BINARY_SUB,
-            TokenType.MUL: OpCode.BINARY_MUL,
-            TokenType.DIV: OpCode.BINARY_DIV,
-            TokenType.POW: OpCode.BINARY_POW,
-            TokenType.MOD: OpCode.BINARY_MOD,
-            TokenType.EQEQ: OpCode.COMPARE_EQ,
-            TokenType.NOTEQ: OpCode.COMPARE_NE,
-            TokenType.LT: OpCode.COMPARE_LT,
-            TokenType.LTEQ: OpCode.COMPARE_LE,
-            TokenType.GT: OpCode.COMPARE_GT,
-            TokenType.GTEQ: OpCode.COMPARE_GE,
-        }
         opcode = op_map.get(node.op.type)
         if opcode:
             self.emit(opcode, node=node)
@@ -198,27 +221,6 @@ class Compiler:
         elif node.op.type == TokenType.PLUS:
             self.compile(node.right)
 
-    EXPRESSION_NODES = (
-        NumberNode,
-        StringNode,
-        BoolNode,
-        NullNode,
-        VariableNode,
-        BinaryOpNode,
-        UnaryOpNode,
-        ListNode,
-        DictNode,
-        SetNode,
-        IndexNode,
-        CallNode,
-        MethodCallNode,
-        ResultConstructorNode,
-        ResultMethodCallNode,
-        PostfixOpNode,
-        GetAttrNode,
-        TypeCastNode,
-    )
-
     def compile_TypeCastNode(self, node):
         self.compile(node.expr)
         self.emit(OpCode.TYPECAST, node.target_type, node=node)
@@ -229,7 +231,7 @@ class Compiler:
             is_last = i == num_stmts - 1
 
             # Special case for implicit return in function body
-            if is_function_body and is_last and isinstance(stmt, self.EXPRESSION_NODES):
+            if is_function_body and is_last and isinstance(stmt, EXPRESSION_NODES):
                 self.compile(stmt)
                 self.emit(OpCode.MAKE_OK, node=stmt)
                 self.emit(OpCode.RETURN_VALUE, node=stmt)
@@ -237,64 +239,41 @@ class Compiler:
 
             self.compile(stmt)
 
-            if isinstance(stmt, self.EXPRESSION_NODES):
-                # Statement expression - pop its value
+            if isinstance(stmt, EXPRESSION_NODES):
                 self.emit(OpCode.POP_TOP, node=stmt)
 
     def compile_IfNode(self, node: IfNode):
-        getattr(node, "line", 0)
-        getattr(node, "column", 0)
-
         end_jumps = []
 
-        # Initial 'agar'
         self.compile(node.condition)
         jump_if_false_instr = self.emit(OpCode.JUMP_IF_FALSE, 0, node=node)
 
         self.compile(node.body)
 
         if node.else_if_bodies or node.else_body:
-            # Jump to end after successful 'agar' body
             end_jumps.append(self.emit(OpCode.JUMP_ABSOLUTE, 0, node=node))
-
-            # Patch the initial agar's false jump to the first yawari or warna
-            self.instructions[jump_if_false_instr] = (
-                OpCode.JUMP_IF_FALSE,
-                len(self.instructions),
-            )
+            self._patch(jump_if_false_instr, OpCode.JUMP_IF_FALSE, self._current_pc())
 
             for else_if_condition, else_if_body in node.else_if_bodies:
                 self.compile(else_if_condition)
                 jump_if_false_instr = self.emit(OpCode.JUMP_IF_FALSE, 0, node=node)
-
                 self.compile(else_if_body)
-
-                # Jump to end after successful 'yawari' body
                 end_jumps.append(self.emit(OpCode.JUMP_ABSOLUTE, 0, node=node))
-
-                # Patch this yawari's false jump to the next one or warna
-                self.instructions[jump_if_false_instr] = (
-                    OpCode.JUMP_IF_FALSE,
-                    len(self.instructions),
-                )
+                self._patch(jump_if_false_instr, OpCode.JUMP_IF_FALSE, self._current_pc())
 
             if node.else_body:
                 self.compile(node.else_body)
 
             # Patch all jumps to the end
-            end_pos = len(self.instructions)
+            end_pos = self._current_pc()
             for instr_idx in end_jumps:
-                opcode, _ = self.instructions[instr_idx]
-                self.instructions[instr_idx] = (opcode, end_pos)
+                opcode = self.instructions[instr_idx][0]
+                self._patch(instr_idx, opcode, end_pos)
         else:
-            # Just one agar, patch its false jump to here (the end)
-            self.instructions[jump_if_false_instr] = (
-                OpCode.JUMP_IF_FALSE,
-                len(self.instructions),
-            )
+            self._patch(jump_if_false_instr, OpCode.JUMP_IF_FALSE, self._current_pc())
 
     def compile_WhileNode(self, node):
-        loop_start = len(self.instructions)
+        loop_start = self._current_pc()
 
         self.compile(node.condition)
         exit_jump_idx = self.emit(OpCode.JUMP_IF_FALSE, 0, node=node)
@@ -306,44 +285,39 @@ class Compiler:
 
         self.emit(OpCode.JUMP_ABSOLUTE, loop_start, node=node)
 
-        exit_label = len(self.instructions)
-        self.instructions[exit_jump_idx] = (OpCode.JUMP_IF_FALSE, exit_label)
+        exit_label = self._current_pc()
+        self._patch(exit_jump_idx, OpCode.JUMP_IF_FALSE, exit_label)
 
-        # Patch all breaks
-        _, _, breaks = self.loop_stack.pop()
+        breaks = self.loop_stack.pop()[-1]
         for break_idx in breaks:
-            self.instructions[break_idx] = (OpCode.JUMP_ABSOLUTE, exit_label)
+            self._patch(break_idx, OpCode.JUMP_ABSOLUTE, exit_label)
 
     def compile_ForNode(self, node):
         self.compile(node.iterable)
         self.emit(OpCode.GET_ITER, node=node)
 
-        loop_start = len(self.instructions)
+        loop_start = self._current_pc()
 
-        # FOR_ITER pops a value and pushes it, or jumps if done
         exit_jump_idx = self.emit(OpCode.FOR_ITER, 0, node=node)
 
-        # Store iterator value in the variable (global at program level)
         if node.iterator_slot == -1:
             const_idx = self.add_const(SdString(node.iterator))
             self.emit(OpCode.STORE_GLOBAL, (const_idx, False, None, None), node=node)
         else:
             self.emit(OpCode.STORE_FAST, node.iterator_slot, node=node)
 
-        # continue in 'for' should go to loop_start (to get next item)
         self.loop_stack.append((loop_start, exit_jump_idx, []))
 
         self.compile(node.body)
 
         self.emit(OpCode.JUMP_ABSOLUTE, loop_start, node=node)
 
-        exit_label = len(self.instructions)
-        self.instructions[exit_jump_idx] = (OpCode.FOR_ITER, exit_label)
+        exit_label = self._current_pc()
+        self._patch(exit_jump_idx, OpCode.FOR_ITER, exit_label)
 
-        # Patch all breaks
-        _, _, breaks = self.loop_stack.pop()
+        breaks = self.loop_stack.pop()[-1]
         for break_idx in breaks:
-            self.instructions[break_idx] = (OpCode.JUMP_ABSOLUTE, exit_label)
+            self._patch(break_idx, OpCode.JUMP_ABSOLUTE, exit_label)
 
     def compile_BreakNode(self, node):
         if not self.loop_stack:
