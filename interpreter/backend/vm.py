@@ -409,7 +409,7 @@ class VM:
             else:
                 self.globals.define(name, val)
             return
-        
+
         const_idx, is_const, expected_type, element_type = arg
         name = frame.constants[const_idx].value
         val = self.pop()

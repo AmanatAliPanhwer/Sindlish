@@ -295,7 +295,7 @@ class SdShey:
                 raise
             except TypeError as e:
                 raise QisamJeGhalti(str(e), line, column, code)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - any unexpected protocol error -> runtime
                 raise HalndeVaktGhalti(str(e), line, column, code)
 
         # Second: Fallback to type's method lookup via MRO
@@ -322,7 +322,7 @@ class SdShey:
             raise
         except TypeError as e:
             raise QisamJeGhalti(str(e), line, column, code)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - any unexpected method error -> runtime
             raise HalndeVaktGhalti(str(e), line, column, code)
 
     # Reference counting
