@@ -502,62 +502,106 @@ class VM:
     def _op_binary_add(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(self._binary_op_result(left, right, "__add__", line, column))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdNumber(left.value + right.value))
+        else:
+            self.push(self._binary_op_result(left, right, "__add__", line, column))
 
     def _op_binary_sub(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(self._binary_op_result(left, right, "__sub__", line, column))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdNumber(left.value - right.value))
+        else:
+            self.push(self._binary_op_result(left, right, "__sub__", line, column))
 
     def _op_binary_mul(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(self._binary_op_result(left, right, "__mul__", line, column))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdNumber(left.value * right.value))
+        else:
+            self.push(self._binary_op_result(left, right, "__mul__", line, column))
 
     def _op_binary_div(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(self._binary_op_result(left, right, "__truediv__", line, column))
+        if (
+            isinstance(left, SdNumber)
+            and isinstance(right, SdNumber)
+            and right.value != 0
+        ):
+            self.push(SdNumber(left.value / right.value))
+        else:
+            self.push(self._binary_op_result(left, right, "__truediv__", line, column))
 
     def _op_binary_pow(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(self._binary_op_result(left, right, "__pow__", line, column))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdNumber(left.value**right.value))
+        else:
+            self.push(self._binary_op_result(left, right, "__pow__", line, column))
 
     def _op_binary_mod(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(self._binary_op_result(left, right, "__mod__", line, column))
+        if (
+            isinstance(left, SdNumber)
+            and isinstance(right, SdNumber)
+            and right.value != 0
+        ):
+            self.push(SdNumber(left.value % right.value))
+        else:
+            self.push(self._binary_op_result(left, right, "__mod__", line, column))
 
     def _op_compare_eq(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(left.call_method("__eq__", [right], None, self.code_string))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdBool(left.value == right.value))
+        else:
+            self.push(left.call_method("__eq__", [right], None, self.code_string))
 
     def _op_compare_ne(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(left.call_method("__ne__", [right], None, self.code_string))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdBool(left.value != right.value))
+        else:
+            self.push(left.call_method("__ne__", [right], None, self.code_string))
 
     def _op_compare_lt(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(left.call_method("__lt__", [right], None, self.code_string))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdBool(left.value < right.value))
+        else:
+            self.push(left.call_method("__lt__", [right], None, self.code_string))
 
     def _op_compare_le(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(left.call_method("__le__", [right], None, self.code_string))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdBool(left.value <= right.value))
+        else:
+            self.push(left.call_method("__le__", [right], None, self.code_string))
 
     def _op_compare_gt(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(left.call_method("__gt__", [right], None, self.code_string))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdBool(left.value > right.value))
+        else:
+            self.push(left.call_method("__gt__", [right], None, self.code_string))
 
     def _op_compare_ge(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)
         left = self._unwrap_val(self.pop(), line, column)
-        self.push(left.call_method("__ge__", [right], None, self.code_string))
+        if isinstance(left, SdNumber) and isinstance(right, SdNumber):
+            self.push(SdBool(left.value >= right.value))
+        else:
+            self.push(left.call_method("__ge__", [right], None, self.code_string))
 
     def _op_logical_not(self, frame, arg, line, column):
         val = self._unwrap_val(self.pop(), line, column)
