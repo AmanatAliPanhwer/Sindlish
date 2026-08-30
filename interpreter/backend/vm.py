@@ -821,10 +821,8 @@ class VM:
             else:
                 new_frame.slots[frame_idx] = val
 
-        new_frame.call_metadata = {
-            "return_type": func.return_type,
-            "function_name": func.name,
-        }
+        new_frame.return_type = func.return_type
+        new_frame.function_name = func.name
         self.frames.append(new_frame)
 
     def _call_simple_function(
@@ -885,10 +883,8 @@ class VM:
             new_frame.slots[i] = val
 
         if func.return_type is not None:
-            new_frame.call_metadata = {
-                "return_type": func.return_type,
-                "function_name": func.name,
-            }
+            new_frame.return_type = func.return_type
+            new_frame.function_name = func.name
         self.frames.append(new_frame)
 
     def _op_make_function(self, frame, arg, line, column):
@@ -1223,7 +1219,7 @@ class VM:
         if isinstance(val, SdResult) and val.is_ok():
             val = val.value
 
-        return_type = getattr(frame, "call_metadata", {}).get("return_type")
+        return_type = frame.return_type
         if return_type:
             expected = _get_expected_type(return_type)
             if expected:
@@ -1235,9 +1231,7 @@ class VM:
                     check_val = val.value
 
                 if check_val.type != expected:
-                    func_name = getattr(frame, "call_metadata", {}).get(
-                        "function_name", "unknown"
-                    )
+                    func_name = frame.function_name or "unknown"
                     raise QisamJeGhalti(
                         f"Wapas khe '{_type_label(return_type)}' khapyo paye, par {func_name} mein '{check_val.type.name.lower()}' milyo.",
                         line,

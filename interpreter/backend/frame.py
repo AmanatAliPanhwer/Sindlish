@@ -26,10 +26,12 @@ class BytecodeFrame:
         "cell_map",
         "cells",
         "constants",
+        "function_name",
         "instructions",
         "ip",
         "line_col_map",
         "name",
+        "return_type",
         "slot_metadata",
         "slots",
     )
@@ -53,22 +55,29 @@ class BytecodeFrame:
         self.cells = []
         self.cell_map = {}
         if func is not None:
-            idx = 0
-            cell_metadata = getattr(func, "cell_metadata", {})
-            for n in getattr(func, "cell_names", ()):
-                self.cells.append(
-                    Cell(name=n, metadata=cell_metadata.get(n, {}))
-                )
-                self.cell_map[n] = idx
-                idx += 1
-            inherited = tuple(getattr(func, "cells", ()) or ())
-            for j, (_, n) in enumerate(getattr(func, "free_specs", ())):
-                if n not in self.cell_map:
-                    self.cell_map[n] = len(self.cells)
-                    self.cells.append(inherited[j] if j < len(inherited) else None)
-                idx += 1
+            cell_names = getattr(func, "cell_names", ())
+            free_specs = getattr(func, "free_specs", ())
+            if cell_names or free_specs:
+                cell_metadata = getattr(func, "cell_metadata", {})
+                idx = 0
+                for n in cell_names:
+                    self.cells.append(
+                        Cell(name=n, metadata=cell_metadata.get(n, {}))
+                    )
+                    self.cell_map[n] = idx
+                    idx += 1
+                inherited = tuple(getattr(func, "cells", ()) or ())
+                for j, (_, n) in enumerate(free_specs):
+                    if n not in self.cell_map:
+                        self.cell_map[n] = len(self.cells)
+                        self.cells.append(
+                            inherited[j] if j < len(inherited) else None
+                        )
+                    idx += 1
         self.ip = 0
         self.call_metadata = {}
+        self.return_type = None
+        self.function_name = None
 
     def __repr__(self) -> str:
         return f"<BytecodeFrame {self.name} | IP: {self.ip}/{len(self.instructions)}>"
