@@ -59,7 +59,7 @@ The fork in step 8 decides your feature's personality:
 
 - [ ] tests red → green (`uv run pytest`)
 - [ ] error paths produce *pretty* reports (run via CLI once)
-- [x] bytecode snapshot test if compile output changed — the golden harness (`tests/test_golden_bytecode.py`) pins ~10 representative listings; extend it or expect red
+- [ ] bytecode snapshot test if compile output changed — extend `tests/test_golden_bytecode.py` or expect red
 - [ ] book chapter updated (grep `book/src/` for neighbors of your feature)
 - [ ] if you found bugs along the way → `roadmap/TODO.md`
 

@@ -96,8 +96,8 @@ class OpCode(IntEnum):
 #   ``int``        -- a small int (pool / slot / cell / name index, jump
 #                     target, build count, ``MAKE_FUNCTION`` default count)
 #   ``token``      -- a ``TokenType`` cast target (``TYPECAST``)
-#   ``call``       -- ``(name_idx, nargs, has_kwargs)`` for named/method calls
-#   ``callvalue``  -- ``(nargs, has_kwargs)`` for expression-callee calls
+#   ``call``       -- ``(name_idx, nargs, has_markers)`` for named/method calls
+#   ``callvalue``  -- ``(nargs, has_markers)`` for expression-callee calls
 #   ``store``      -- ``STORE_GLOBAL``: either a bare ``name_idx`` (function
 #                     definitions) or ``(idx, is_const, type, element_type)``
 #                     enforcement tuple

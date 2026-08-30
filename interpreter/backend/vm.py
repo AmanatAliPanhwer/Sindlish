@@ -243,7 +243,6 @@ class VM:
                         self._check_element_type(
                             v, val_type, line, column, container_name="Lughat"
                         )
-        return True
 
     def _check_element_type(
         self, value: object, element_type: object, line: int = 0, column: int = 0, container_name: str = "Fehrist"

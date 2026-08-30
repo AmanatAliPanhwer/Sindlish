@@ -18,6 +18,7 @@ from interpreter.backend.compiler import Compiler
 from interpreter.frontend.lexer import Lexer
 from interpreter.frontend.parser import Parser
 from interpreter.frontend.tokens import TokenType
+from interpreter.objects import SdFunction
 
 
 def _norm(arg):
@@ -53,6 +54,21 @@ def compile_listing(code):
     return tuple(
         (op.name, _norm(arg)) for op, arg in compile_instructions(code)
     )
+
+
+def compile_program(code):
+    """Compile ``code`` and return ``(ast, instructions, constants)``."""
+    lexer = Lexer(code)
+    tokens = lexer.generate_tokens()
+    parser = Parser(tokens, code)
+    ast = parser.parse()
+
+    resolver = Resolver(code)
+    resolver.resolve(ast)
+
+    compiler = Compiler(code)
+    instructions, constants, _line_col_map = compiler.compile(ast)
+    return ast, instructions, constants
 
 
 PROGRAMS = [
@@ -293,3 +309,51 @@ PROGRAMS = [
 @pytest.mark.parametrize("name,source,expected", PROGRAMS, ids=[p[0] for p in PROGRAMS])
 def test_golden_bytecode_listing(name, source, expected):
     assert compile_listing(source) == expected
+
+
+def _sdfunction_constants(constants):
+    return [c for c in constants if isinstance(c, SdFunction)]
+
+
+def test_function_constant_emits_return_without_make_ok():
+    # ``fact``'s body: recursive fn with an explicit ``wapas`` (RETURN_VALUE)
+    # and an implicit trailing expression (RETURN_VALUE) -- no MAKE_OK on the
+    # return path; the implicit bare return is PUSH_NULL + RETURN_VALUE.
+    _ast, _instructions, constants = compile_program(
+        "kaam fact(n) {\n    agar n <= 1 {\n        wapas 1\n    }\n"
+        "    wapas n * fact(n - 1)\n}\nx = fact(5)"
+    )
+    fact = next(f for f in _sdfunction_constants(constants) if f.name == "fact")
+    assert [(op.name, arg) for op, arg in fact.instructions] == [
+        ("LOAD_FAST", 0),
+        ("LOAD_CONST", 0),
+        ("COMPARE_LE", None),
+        ("JUMP_IF_FALSE", 6),
+        ("LOAD_CONST", 0),
+        ("RETURN_VALUE", None),
+        ("LOAD_FAST", 0),
+        ("LOAD_FAST", 0),
+        ("LOAD_CONST", 0),
+        ("BINARY_SUB", None),
+        ("CALL_FUNCTION", (1, 1, False)),
+        ("BINARY_MUL", None),
+        ("RETURN_VALUE", None),
+        ("PUSH_NULL", None),
+        ("RETURN_VALUE", None),
+    ]
+    assert "MAKE_OK" not in [op.name for op, arg in fact.instructions]
+
+
+def test_function_constant_bare_wapas_is_push_null_return():
+    # A bare ``wapas`` returns khali: PUSH_NULL + RETURN_VALUE, no MAKE_OK.
+    _ast, _instructions, constants = compile_program(
+        "kaam nada() {\n    wapas\n}\nnada()"
+    )
+    nada = next(f for f in _sdfunction_constants(constants) if f.name == "nada")
+    assert [(op.name, arg) for op, arg in nada.instructions] == [
+        ("PUSH_NULL", None),
+        ("RETURN_VALUE", None),
+        ("PUSH_NULL", None),
+        ("RETURN_VALUE", None),
+    ]
+    assert "MAKE_OK" not in [op.name for op, arg in nada.instructions]

@@ -118,8 +118,8 @@ def recursion_depth_reached(code: str, target: int) -> tuple[bool, int, float]:
         try:
             run_source(code, env)
             return True, target, time.perf_counter() - t
-        except Exception:
-            return False, 0, time.perf_counter() - t
+        except RecursionError:
+            return False, target, time.perf_counter() - t
     finally:
         sys.stdout = old_stdout
 

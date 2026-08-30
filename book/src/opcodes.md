@@ -41,13 +41,13 @@ All 50 opcodes from `backend/opcodes.py`, grouped by duty. Stack effect notation
 
 | Opcode | arg | Mechanism |
 |---|---|---|
-| `CALL_FUNCTION` | `(name_idx, nargs, has_kwargs)` | lookup global by name, bind, new frame |
-| `CALL_VALUE` | `(nargs, has_kwargs)` | callee already on stack (`f()()`, local callees) |
-| `CALL_METHOD` | `(name_idx, nargs, has_kwargs)` | MRO lookup on popped receiver; `.ok/.ghalti` special-cased |
+| `CALL_FUNCTION` | `(name_idx, nargs, has_markers)` | lookup global by name, bind, new frame |
+| `CALL_VALUE` | `(nargs, has_markers)` | callee already on stack (`f()()`, local callees) |
+| `CALL_METHOD` | `(name_idx, nargs, has_markers)` | MRO lookup on popped receiver; `.ok/.ghalti` special-cased |
 | `GET_ATTR` | name_idx | only `ok`/`ghalti` exist today |
 | `MAKE_FUNCTION` | ndefaults | binds defaults, links closure cells to defining frame |
 
-> `has_kwargs` is `True` when the call carries keyword arguments (marker pairs); the VM uses it to decide whether to scan for marker-encoded kwargs.
+> `has_markers` is `True` when the call carries marker-bearing arguments (keyword pairs, `*args`, or `**kwargs`); the VM uses it to decide whether to scan the stack for markers.
 
 Argument markers: kwargs travel as constant-pool `KwargMarker(name)` pairs, `*args`/`**kwargs` as marker+payload — so runtime strings can never impersonate parameter names.
 
@@ -70,8 +70,8 @@ Every opcode declares one operand shape, enforced at emit time (`Compiler.emit` 
 | `none` | `PUSH_*`, `BINARY_*`, `COMPARE_*`, `LOGICAL_NOT`, `POP_TOP`, `GET_ITER`, `BINARY/STORE_SUBSCRIPT`, `MAKE_OK`, `MAKE_ERROR`, `CALL_BACHAO`, `CALL_LAZMI`, `POSTFIX_*`, `PANIC`, `RETURN_VALUE`, `HALT` | no operand (`None`) |
 | `int` | `LOAD_CONST`, `LOAD/STORE_FAST`, `LOAD/STORE_DEREF`, `LOAD_GLOBAL`, `GET_ATTR`, `MAKE_FUNCTION`, `BUILD_*`, `JUMP_ABSOLUTE`, `JUMP_IF_*`, `FOR_ITER` | pool / slot / cell / name index, jump target, build count, default count |
 | `token` | `TYPECAST` | the `TokenType` cast target |
-| `call` | `CALL_FUNCTION`, `CALL_METHOD` | `(name_idx, nargs, has_kwargs)` |
-| `callvalue` | `CALL_VALUE` | `(nargs, has_kwargs)` |
+| `call` | `CALL_FUNCTION`, `CALL_METHOD` | `(name_idx, nargs, has_markers)` |
+| `callvalue` | `CALL_VALUE` | `(nargs, has_markers)` |
 | `store` | `STORE_GLOBAL` | bare `name_idx` (function def) **or** `(idx, is_const, type, elem)` enforcement tuple |
 
 <div class="recap">

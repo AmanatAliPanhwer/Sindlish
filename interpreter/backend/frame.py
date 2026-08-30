@@ -26,7 +26,6 @@ class BytecodeFrame:
     """
 
     __slots__ = (
-        "call_metadata",
         "cell_map",
         "cells",
         "constants",
@@ -47,7 +46,7 @@ class BytecodeFrame:
         constants: Sequence[object],
         line_col_map: Sequence[tuple[int, int]],
         slot_count: int,
-        slot_metadata: Mapping[str, object],
+        slot_metadata: Mapping[int, object],
         func: object | None = None,
     ):
         self.name = name
@@ -63,13 +62,11 @@ class BytecodeFrame:
             free_specs = getattr(func, "free_specs", ())
             if cell_names or free_specs:
                 cell_metadata = getattr(func, "cell_metadata", {})
-                idx = 0
-                for n in cell_names:
+                for idx, n in enumerate(cell_names):
                     self.cells.append(
                         Cell(name=n, metadata=cell_metadata.get(n, {}))
                     )
                     self.cell_map[n] = idx
-                    idx += 1
                 inherited = tuple(getattr(func, "cells", ()) or ())
                 for j, (_, n) in enumerate(free_specs):
                     if n not in self.cell_map:
@@ -77,9 +74,7 @@ class BytecodeFrame:
                         self.cells.append(
                             inherited[j] if j < len(inherited) else None
                         )
-                    idx += 1
         self.ip = 0
-        self.call_metadata = {}
         self.return_type = None
         self.function_name = None
 

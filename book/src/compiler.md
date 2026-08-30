@@ -60,15 +60,15 @@ While compiling a loop body the compiler keeps `(start, exit_jump_slot, break_sl
 
 ### Functions compile into their own pocket universe
 
-`compile_FunctionNode` swaps out `self.instructions` for a fresh list, compiles the body there (with an implicit `PUSH_NULL → MAKE_OK → RETURN_VALUE` tail), restores state, then stores the resulting `SdFunction` into the *parent's* constant pool. The function value reaches runtime via `LOAD_CONST` + `MAKE_FUNCTION` (which binds evaluated defaults and links closure cells) followed by `STORE_GLOBAL` — functions are globals, per [resolver.md](resolver.md).
+`compile_FunctionNode` swaps out `self.instructions` for a fresh list, compiles the body there (with an implicit `PUSH_NULL → RETURN_VALUE` tail for a bare tail and `RETURN_VALUE` directly for a trailing expression), restores state, then stores the resulting `SdFunction` into the *parent's* constant pool. The function value reaches runtime via `LOAD_CONST` + `MAKE_FUNCTION` (which binds evaluated defaults and links closure cells) followed by `STORE_GLOBAL` — functions are globals, per [resolver.md](resolver.md).
 
-### Returns always wrap
+### Returns unwrap at the boundary
 
-`wapas expr` compiles to `<expr>; MAKE_OK; RETURN_VALUE`. The auto-wrap pairs with the VM's boundary rule: returning unwraps Ok, passes Ghalti untouched ([results.md](results.md)). Bare `wapas` returns `Ok(khali)`.
+`wapas expr` compiles to `<expr>; RETURN_VALUE`; bare `wapas` compiles to `PUSH_NULL; RETURN_VALUE`. No `MAKE_OK` is emitted — `RETURN_VALUE` unwraps raw values and Ok results while passing Ghalti results through untouched ([results.md](results.md)). A bare `wapas` returns `khali`.
 
 ### Statement expressions must not leak
 
-A bare expression statement leaves a value on the stack; `compile_BlockNode` appends `POP_TOP` after such statements so the stack stays balanced. In function bodies, the final expression instead gets `MAKE_OK; RETURN_VALUE` — Ruby-style implicit returns.
+A bare expression statement leaves a value on the stack; `compile_BlockNode` appends `POP_TOP` after such statements so the stack stays balanced. In function bodies, the final expression instead gets `RETURN_VALUE` — Ruby-style implicit returns.
 
 <div class="recap">
 <p>Post-order emission; precedence lives in the tree, not here.</p>

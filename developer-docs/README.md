@@ -100,7 +100,7 @@ Sindlish/
 │   ├── analysis/              # Semantic analysis
 │   │   └── resolver.py        # Name resolution & type checking
 │   ├── backend/               # Compilation & execution
-│   │   ├── opcodes.py         # 37 bytecode opcodes
+│   │   ├── opcodes.py         # Bytecode opcodes + OPERAND_SHAPES encoding
 │   │   ├── compiler.py        # AST to bytecode compiler
 │   │   ├── frame.py           # Execution frame
 │   │   └── vm.py              # Stack-based virtual machine

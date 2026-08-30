@@ -55,7 +55,7 @@ from .opcodes import OPERAND_SHAPES, OpCode
 def _operand_fits(shape: str, arg: object | None) -> bool:
     """Return whether ``arg`` satisfies the operand shape ``shape``.
 
-    Already-emitted call args carry their real count and a ``has_kwargs``
+    Already-emitted call args carry their real count and a ``has_markers``
     flag, so ``call``/``callvalue``/``store`` shapes are validated against the
     tuple structure the VM handlers unpack.
     """
@@ -228,7 +228,7 @@ class Compiler:
         self.constants.append(value)
         return len(self.constants) - 1
 
-    def compile(self, node: Node | None) -> None | ProgramArtifacts:
+    def compile(self, node: Node | None) -> ProgramArtifacts | None:
         """Dispatch ``node`` to its ``compile_<TypeName>`` visitor.
 
         Returns ``None`` for a ``None`` node. Unknown node types fall back to
