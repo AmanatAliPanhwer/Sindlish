@@ -347,11 +347,11 @@ class Compiler:
             if is_function_body and is_last:
                 self.compile(stmt)
                 if isinstance(stmt, EXPRESSION_NODES):
-                    self.emit(OpCode.MAKE_OK, node=stmt)
+                    # RETURN_VALUE already preserves Err results and unwraps
+                    # raw/Ok values, so no MAKE_OK is needed here.
                     self.emit(OpCode.RETURN_VALUE, node=stmt)
                 else:
                     self.emit(OpCode.PUSH_NULL, node=stmt)
-                    self.emit(OpCode.MAKE_OK, node=stmt)
                     self.emit(OpCode.RETURN_VALUE, node=stmt)
                 continue
 
@@ -687,12 +687,11 @@ class Compiler:
         self.emit(OpCode.STORE_GLOBAL, name_idx, node=node)
 
     def compile_ReturnNode(self, node: ReturnNode) -> None:
-        """Compile ``wapas``, auto-wrapping a result and returning."""
+        """Compile ``wapas``. RETURN_VALUE unwraps ok(*)/raw into the value
+        and preserves ghalti() error results, so no MAKE_OK is needed."""
         if node.value:
             self.compile(node.value)
         else:
             self.emit(OpCode.PUSH_NULL, node=node)
 
-        # Auto-wrap in Ok (VM will pass through if already Result)
-        self.emit(OpCode.MAKE_OK, node=node)
         self.emit(OpCode.RETURN_VALUE, node=node)
