@@ -494,8 +494,10 @@ class VM:
             err.capture_traceback(self.frames, self.code_string)
             return err
         if isinstance(out, SdResult):
-            return self._handle_result(out)
-        return SdResult(SdResult.OK, out)
+            if out.is_error():
+                return self._handle_result(out)
+            return out.value
+        return out
 
     def _op_binary_add(self, frame, arg, line, column):
         right = self._unwrap_val(self.pop(), line, column)

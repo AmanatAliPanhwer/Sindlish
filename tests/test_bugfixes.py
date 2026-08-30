@@ -562,10 +562,13 @@ class TestLazyRange:
 
 
 class TestResultSemantics:
-    def test_arithmetic_stores_ok_result(self):
+    def test_arithmetic_returns_raw_success(self):
+        # Successful arithmetic is a raw value (raw = success); only Err
+        # results survive as SdResult. See roadmap/TODO.md on Result boxing.
         interp, _ = run("x = 2 + 3")
         stored = interp.variables["x"]["value"]
-        assert isinstance(stored, SdResult) and stored.is_ok()
+        assert not isinstance(stored, SdResult)
+        assert extract_value(stored) == 5
 
     def test_wrapped_results_chain(self):
         interp, out = run("x = 2 + 3\ny = x * 2\nlikh(y)")
