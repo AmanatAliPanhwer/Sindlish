@@ -10,8 +10,6 @@ class SdResult(SdShey):
     __slots__ = (
         "_captured_traceback",
         "_error_cls",
-        "ghalti",
-        "ok",
         "value",
         "variant",
     )
@@ -20,15 +18,23 @@ class SdResult(SdShey):
     GHALTI = "GHALTI"
 
     def __init__(self, variant, value, error_cls=None):
-        from .numbers import SdBool  # Local import to prevent circular dependency
-
         super().__init__(RESULT_TYPE)
         self.variant = variant
         self.value = value
-        self.ok = SdBool(self.variant == self.OK)
-        self.ghalti = SdBool(self.variant == self.GHALTI)
         self._captured_traceback = []
         self._error_cls = error_cls or "HalndeVaktGhalti"
+
+    @property
+    def ok(self):
+        from .numbers import SdBool
+
+        return SdBool(self.variant == self.OK)
+
+    @property
+    def ghalti(self):
+        from .numbers import SdBool
+
+        return SdBool(self.variant == self.GHALTI)
 
     def capture_traceback(self, frames, code_string):
         """Captures the current call stack for GHALTI results."""
