@@ -719,10 +719,16 @@ class VM:
             plan = CallPlan(func.params, func.defaults, func.cell_names)
             func.call_plan = plan
         params = plan.params
+        expected_types = plan.expected_types
+
+        if plan.simple and not kwargs:
+            return self._call_simple_function(
+                func, plan, params, expected_types, positional, line, column
+            )
+
         has_star_param = plan.has_star
         has_kw_param = plan.has_kw
         defaults_map = plan.defaults_map
-        expected_types = plan.expected_types
 
         if plan.known_names is not None:
             for key in kwargs:
@@ -819,6 +825,70 @@ class VM:
             "return_type": func.return_type,
             "function_name": func.name,
         }
+        self.frames.append(new_frame)
+
+    def _call_simple_function(
+        self,
+        func,
+        plan,
+        params,
+        expected_types,
+        positional,
+        line,
+        column,
+    ):
+        """Single-pass call for closure-free, default-free, exact-arity functions.
+
+        Mirrors the general binding path exactly (arity errors, Ok-unwrapping,
+        type checks) but skips the ``bound`` dict, kwargs/defaults machinery,
+        and the second frame-fill loop.
+        """
+        n = plan.arity
+        supplied = len(positional)
+        if supplied != n:
+            if supplied < n:
+                raise LikhaiJeGhalti(
+                    f"Parameter '{params[supplied].name}' laai value lazmi aahe.",
+                    line,
+                    column,
+                    self.code_string,
+                )
+            raise LikhaiJeGhalti(
+                f"{supplied - n} wadhoo arguments mile; kaam khe itna khapay na tha.",
+                line,
+                column,
+                self.code_string,
+            )
+
+        new_frame = BytecodeFrame(
+            func.name,
+            func.instructions,
+            func.constants,
+            func.line_col_map,
+            func.slot_count,
+            func.slot_metadata,
+            func=func,
+        )
+
+        for i in range(n):
+            val = positional[i]
+            if isinstance(val, SdResult) and val.is_ok():
+                val = val.value
+            expected = expected_types[i]
+            if expected is not None and val.type != expected:
+                raise QisamJeGhalti(
+                    f"Parameter '{params[i].name}' khe '{_type_label(params[i].type)}' khapyo paye par '{val.type.name.lower()}' milyo.",
+                    line,
+                    column,
+                    self.code_string,
+                )
+            new_frame.slots[i] = val
+
+        if func.return_type is not None:
+            new_frame.call_metadata = {
+                "return_type": func.return_type,
+                "function_name": func.name,
+            }
         self.frames.append(new_frame)
 
     def _op_make_function(self, frame, arg, line, column):

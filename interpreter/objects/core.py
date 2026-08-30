@@ -83,7 +83,6 @@ class CallPlan:
 
     __slots__ = (
         "arity",
-        "captured",
         "defaults_map",
         "expected_types",
         "has_defaults",
@@ -130,7 +129,6 @@ class CallPlan:
             TokenType.MAJMUO: MAJMUO_TYPE,
         }
         self.expected_types = tuple(type_map.get(p.type) for p in params)
-        self.captured = tuple(name in cell_names for name in (p.name for p in params))
 
         self.simple = (
             not self.has_star
