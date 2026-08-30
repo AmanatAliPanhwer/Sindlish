@@ -606,24 +606,30 @@ class VM:
             frame.ip = arg  # Jump to end
 
     def _op_call_function(self, frame, arg, line, column):
-        const_idx, num_args = arg
+        const_idx, num_args, has_markers = arg
         name = frame.constants[const_idx].value
         args_list = [self.pop() for _ in range(num_args)]
         args_list.reverse()
 
-        positional, kwargs = self._expand_call_args(args_list, line, column)
+        if has_markers:
+            positional, kwargs = self._expand_call_args(args_list, line, column)
+        else:
+            positional, kwargs = args_list, {}
 
         record = self.globals.lookup_record(name, None, self.code_string)
         self._invoke(record.value, positional, kwargs, name, line, column)
 
     def _op_call_value(self, frame, arg, line, column):
         """Call a function value from the stack (chained calls like f()())."""
-        num_args = arg
+        num_args, has_markers = arg
         args_list = [self.pop() for _ in range(num_args)]
         args_list.reverse()
         callee = self.pop()
 
-        positional, kwargs = self._expand_call_args(args_list, line, column)
+        if has_markers:
+            positional, kwargs = self._expand_call_args(args_list, line, column)
+        else:
+            positional, kwargs = args_list, {}
         name = getattr(callee, "name", None) or "<expression>"
         self._invoke(callee, positional, kwargs, name, line, column)
 
@@ -920,13 +926,16 @@ class VM:
         self.push(func)
 
     def _op_call_method(self, frame, arg, line, column):
-        const_idx, num_args = arg
+        const_idx, num_args, has_markers = arg
         method_name = frame.constants[const_idx].value
         args = [self.pop() for _ in range(num_args)]
         args.reverse()
         obj = self.pop()
 
-        positional, kwargs = self._expand_call_args(args, line, column)
+        if has_markers:
+            positional, kwargs = self._expand_call_args(args, line, column)
+        else:
+            positional, kwargs = args, {}
         if kwargs:
             raise QisamJeGhalti(
                 f"Method '{method_name}' keyword arguments support natho kando.",

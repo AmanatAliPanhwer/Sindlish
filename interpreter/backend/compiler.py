@@ -549,24 +549,40 @@ class Compiler:
                 # (CALL_FUNCTION only looks up globals, so it can't call locals.)
                 self.compile(callee)
                 total_args = self._compile_call_args(node)
-                self.emit(OpCode.CALL_VALUE, total_args, node=node)
+                self.emit(
+                    OpCode.CALL_VALUE,
+                    (total_args, total_args > len(node.args)),
+                    node=node,
+                )
             else:
                 total_args = self._compile_call_args(node)
                 const_idx = self.add_const(SdString(node.name))
-                self.emit(OpCode.CALL_FUNCTION, (const_idx, total_args), node=node)
+                self.emit(
+                    OpCode.CALL_FUNCTION,
+                    (const_idx, total_args, total_args > len(node.args)),
+                    node=node,
+                )
         else:
             # Expression callee (f()(), factory results): callee first,
             # then args; CALL_VALUE pops args then the callee.
             self.compile(node.name)
             total_args = self._compile_call_args(node)
-            self.emit(OpCode.CALL_VALUE, total_args, node=node)
+            self.emit(
+                OpCode.CALL_VALUE,
+                (total_args, total_args > len(node.args)),
+                node=node,
+            )
 
     def compile_MethodCallNode(self, node: MethodCallNode) -> None:
         """Compile a method call (instance then marker-encoded arguments)."""
         self.compile(node.instance)
         total_args = self._compile_call_args(node)
         const_idx = self.add_const(SdString(node.method_name))
-        self.emit(OpCode.CALL_METHOD, (const_idx, total_args), node=node)
+        self.emit(
+            OpCode.CALL_METHOD,
+            (const_idx, total_args, total_args > len(node.args)),
+            node=node,
+        )
 
     def compile_GetAttrNode(self, node: GetAttrNode) -> None:
         """Compile attribute read (obj.attr)."""
