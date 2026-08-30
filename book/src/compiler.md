@@ -4,7 +4,7 @@
 
 ## 🌱 The hook
 
-The annotated AST still speaks in trees; CPUs speak in lists. The compiler (`interpreter/backend/compiler.py`, ~500 lines) flattens the tree into **bytecode** — a flat list of `(opcode, arg)` tuples plus a **constant pool** of pre-built values. It's a mechanical translator: no decisions, no surprises, deterministic output you can snapshot in tests.
+The annotated AST still speaks in trees; CPUs speak in lists. The compiler (`interpreter/backend/compiler.py`, ~500 lines) flattens the tree into **bytecode** — a flat list of `(opcode, arg)` tuples plus a **constant pool** of pre-built values. It's a mechanical translator: no decisions, no surprises, deterministic output you can snapshot in tests. These exact listings are pinned in `tests/test_golden_bytecode.py` — any change to emission or operand shapes turns those tests red.
 
 ## 🧠 Mental model: post-order walk
 
