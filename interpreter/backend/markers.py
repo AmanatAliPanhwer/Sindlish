@@ -1,3 +1,13 @@
+"""Call-stack markers for expanded arguments.
+
+The compiler pushes one of these ahead of every ``*args`` / ``**kwargs`` /
+``key=value`` payload so the VM can split a flat stack slot list back into
+positionals and keyword arguments (:meth:`.vm.VM._expand_call_args`).
+Plain calls carry no markers and skip that expansion entirely.
+"""
+
+from __future__ import annotations
+
 from ..objects.strings import SdString
 
 
@@ -10,7 +20,7 @@ class KwargMarker(SdString):
 
     __slots__ = ()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"KwargMarker({self.value!r})"
 
 

@@ -1,3 +1,23 @@
+"""Stack-machine VM for Sindlish bytecode.
+
+The VM consumes the flat instruction list emitted by :mod:`.compiler` and
+executes it against a single shared operand stack (``self.stack``) plus one
+:class:`.frame.BytecodeFrame` per active call (each with its own local
+slots / closure cells / instruction pointer).
+
+Dispatch contract (see :meth:`VM.step`): every handler takes
+``(frame, arg, line, column)``; handlers ``pop`` their operands from the
+top of ``self.stack`` in evaluation order and ``append`` their result, so
+the stack depth is unchanged. ``line``/``column`` point at the executing
+instruction for error messages and are unused by the fast instruction
+paths.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass
+
 from ..errors import (
     ERROR_MAP,
     HalndeVaktGhalti,
@@ -33,6 +53,10 @@ from .frame import BytecodeFrame
 from .markers import KwargMarker, KwargsDictMarker, StarArgsMarker
 from .opcodes import OpCode
 
+OpcodeHandler = Callable[["VM", BytecodeFrame, object, int, int], None]
+DispatchTable = dict[OpCode, OpcodeHandler]
+StoreGlobalArg = object | tuple[object, bool, object | None, object | None]
+
 TYPE_MAP = {
     TokenType.ADAD: ADAD_TYPE,
     TokenType.DAHAI: DAHAI_TYPE,
@@ -45,10 +69,13 @@ TYPE_MAP = {
 }
 
 
+@dataclass(frozen=True)
 class LocationProxy:
-    def __init__(self, line, column):
-        self.line = line
-        self.column = column
+    """Minimal ``node``-shaped object used to hand the VM position into
+    :meth:`.objects.base.SdShey.call_method` without allocating a token."""
+
+    line: int
+    column: int
 
 
 def _get_expected_type(type_hint):
@@ -65,17 +92,17 @@ def _type_label(type_hint):
 class VM:
     def __init__(
         self,
-        code_string,
-        instructions,
-        constants,
-        globals_env,
-        slot_count,
-        slot_metadata,
-        line_col_map=None,
+        code_string: str,
+        instructions: list[tuple[object, object]],
+        constants: list[object],
+        globals_env: object,
+        slot_count: int,
+        slot_metadata: dict,
+        line_col_map: list[tuple[int, int]] | None = None,
     ):
         self.code_string = code_string
         self.globals = globals_env
-        self.stack = []
+        self.stack: list[object] = []
         self.line_col_map = line_col_map or []
 
         self.simple_handler = SimpleBuiltins()
@@ -90,7 +117,7 @@ class VM:
         )
         self.frames = [main_frame]
 
-        self.dispatch_table = {
+        self.dispatch_table: DispatchTable = {
             OpCode.LOAD_CONST: self._op_load_const,
             OpCode.LOAD_FAST: self._op_load_fast,
             OpCode.STORE_FAST: self._op_store_fast,
@@ -144,17 +171,19 @@ class VM:
             OpCode.HALT: self._op_halt,
         }
 
-        self._dispatch = [None] * (int(max(OpCode)) + 1)
+        self._dispatch: list[OpcodeHandler | None] = [
+            None
+        ] * (int(max(OpCode)) + 1)
         for opcode, handler in self.dispatch_table.items():
             self._dispatch[int(opcode)] = handler
 
-    def push(self, value):
+    def push(self, value: object) -> None:
         self.stack.append(value)
 
-    def pop(self):
+    def pop(self) -> object:
         return self.stack.pop()
 
-    def _unwrap_val(self, val, line, column):
+    def _unwrap_val(self, val: object, line: int, column: int) -> object:
         """Extracts the value from an Ok result, or panics on a Ghalti result."""
         if isinstance(val, SdResult):
             if val.is_ok():
@@ -170,7 +199,14 @@ class VM:
                 )
         return val
 
-    def _check_type(self, value, expected_type, element_type=None, line=0, column=0):
+    def _check_type(
+        self,
+        value: object,
+        expected_type: object | None,
+        element_type: object | None = None,
+        line: int = 0,
+        column: int = 0,
+    ) -> None:
         if isinstance(value, SdResult):
             if value.is_ok():
                 value = value.value
@@ -256,8 +292,8 @@ class VM:
         return True
 
     def _check_element_type(
-        self, value, element_type, line=0, column=0, container_name="Fehrist"
-    ):
+        self, value: object, element_type: object, line: int = 0, column: int = 0, container_name: str = "Fehrist"
+    ) -> None:
         if isinstance(value, SdResult) and value.is_ok():
             value = value.value
         match element_type:
@@ -297,7 +333,7 @@ class VM:
                     )
 
     @property
-    def variables(self):
+    def variables(self) -> dict:
         result = {}
         for name, record in self.globals.records.items():
             result[name] = {
@@ -306,7 +342,7 @@ class VM:
             }
         return result
 
-    def run(self):
+    def run(self) -> None:
         try:
             while self.frames:
                 frame = self.frames[-1]
@@ -326,7 +362,7 @@ class VM:
             traceback.print_exc()
             raise
 
-    def _build_traceback(self, error: SindhiBaseError):
+    def _build_traceback(self, error: SindhiBaseError) -> None:
         if error.traceback:
             return
 
@@ -343,12 +379,12 @@ class VM:
             )
             error.add_traceback(frame.name, line, col, source_line)
 
-    def _handle_result(self, result):
+    def _handle_result(self, result: object) -> object:
         if isinstance(result, SdResult) and result.is_error() and not result._captured_traceback:
             result.capture_traceback(self.frames, self.code_string)
         return result
 
-    def step(self):
+    def step(self) -> None:
         frame = self.frames[-1]
         instructions = frame.instructions
         pc = frame.ip
@@ -368,13 +404,16 @@ class VM:
 
     # ===== OpCode Handlers =====
 
-    def _op_load_const(self, frame, arg, line, column):
+    def _op_load_const(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Push the pooled constant ``result`` (``< -- result``)."""
         self.stack.append(frame.constants[arg])
 
-    def _op_load_fast(self, frame, arg, line, column):
+    def _op_load_fast(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Push the local slot ``arg`` (``< -- slot``)."""
         self.stack.append(frame.slots[arg])
 
-    def _op_store_fast(self, frame, arg, line, column):
+    def _op_store_fast(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a value into local slot ``arg``, after const/type checks (``value -- >``)."""
         value = self.stack.pop()
         metadata = frame.slot_metadata.get(arg, {})
         if metadata.get("is_const") and frame.slots[arg] is not None:
@@ -395,12 +434,14 @@ class VM:
             )
         frame.slots[arg] = value
 
-    def _op_load_global(self, frame, arg, line, column):
+    def _op_load_global(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Push the named global's value (``< -- global``)."""
         name = frame.constants[arg].value
         record = self.globals.lookup_record(name, None, self.code_string)
         self.push(record.value)
 
-    def _op_store_global(self, frame, arg, line, column):
+    def _op_store_global(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a value into the named global, after const/type checks (``value -- >``)."""
         if not isinstance(arg, tuple):
             name = frame.constants[arg].value
             val = self.pop()
@@ -441,16 +482,20 @@ class VM:
                 name, val, var_type=expected_type, is_const=is_const
             )
 
-    def _op_push_null(self, frame, arg, line, column):
+    def _op_push_null(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Push ``SdNull()`` (``< -- null``)."""
         self.stack.append(SdNull())
 
-    def _op_push_true(self, frame, arg, line, column):
+    def _op_push_true(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Push ``SdBool(True)`` (``< -- true``)."""
         self.stack.append(SdBool(True))
 
-    def _op_push_false(self, frame, arg, line, column):
+    def _op_push_false(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Push ``SdBool(False)`` (``< -- false``)."""
         self.stack.append(SdBool(False))
 
-    def _op_load_deref(self, frame, arg, line, column):
+    def _op_load_deref(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Push closure cell ``arg``'s value (``< -- cell``)."""
         cell = frame.cells[arg]
         if cell.value is None:
             name = getattr(cell, "name", None) or f"cell[{arg}]"
@@ -462,7 +507,8 @@ class VM:
             )
         self.push(cell.value)
 
-    def _op_store_deref(self, frame, arg, line, column):
+    def _op_store_deref(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a value into closure cell ``arg``, after const/type checks (``value -- >``)."""
         value = self.pop()
         cell = frame.cells[arg]
         metadata = getattr(cell, "metadata", {})
@@ -484,7 +530,9 @@ class VM:
             )
         cell.value = value
 
-    def _binary_op_result(self, left, right, dunder, line, column):
+    def _binary_op_result(
+        self, left: object, right: object, dunder: str, line: int, column: int
+    ) -> object:
         try:
             out = left.call_method(
                 dunder, [right], LocationProxy(line, column), self.code_string
@@ -501,7 +549,8 @@ class VM:
             return out.value
         return out
 
-    def _op_binary_add(self, frame, arg, line, column):
+    def _op_binary_add(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left + right`` (others: see dunder)."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -511,7 +560,8 @@ class VM:
                 self._binary_op_result(left, right, "__add__", line, column)
             )
 
-    def _op_binary_sub(self, frame, arg, line, column):
+    def _op_binary_sub(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left - right`` (others: see dunder)."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -521,7 +571,8 @@ class VM:
                 self._binary_op_result(left, right, "__sub__", line, column)
             )
 
-    def _op_binary_mul(self, frame, arg, line, column):
+    def _op_binary_mul(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left * right`` (others: see dunder)."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -531,7 +582,8 @@ class VM:
                 self._binary_op_result(left, right, "__mul__", line, column)
             )
 
-    def _op_binary_div(self, frame, arg, line, column):
+    def _op_binary_div(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left / right`` (others: see dunder)."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if (
@@ -545,7 +597,8 @@ class VM:
                 self._binary_op_result(left, right, "__truediv__", line, column)
             )
 
-    def _op_binary_pow(self, frame, arg, line, column):
+    def _op_binary_pow(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left ** right`` (others: see dunder)."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -555,7 +608,8 @@ class VM:
                 self._binary_op_result(left, right, "__pow__", line, column)
             )
 
-    def _op_binary_mod(self, frame, arg, line, column):
+    def _op_binary_mod(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left % right`` (others: see dunder)."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if (
@@ -569,7 +623,8 @@ class VM:
                 self._binary_op_result(left, right, "__mod__", line, column)
             )
 
-    def _op_compare_eq(self, frame, arg, line, column):
+    def _op_compare_eq(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left == right``."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -579,7 +634,8 @@ class VM:
                 left.call_method("__eq__", [right], None, self.code_string)
             )
 
-    def _op_compare_ne(self, frame, arg, line, column):
+    def _op_compare_ne(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left != right``."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -589,7 +645,8 @@ class VM:
                 left.call_method("__ne__", [right], None, self.code_string)
             )
 
-    def _op_compare_lt(self, frame, arg, line, column):
+    def _op_compare_lt(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left < right``."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -599,7 +656,8 @@ class VM:
                 left.call_method("__lt__", [right], None, self.code_string)
             )
 
-    def _op_compare_le(self, frame, arg, line, column):
+    def _op_compare_le(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left <= right``."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -609,7 +667,8 @@ class VM:
                 left.call_method("__le__", [right], None, self.code_string)
             )
 
-    def _op_compare_gt(self, frame, arg, line, column):
+    def _op_compare_gt(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left > right``."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -619,7 +678,8 @@ class VM:
                 left.call_method("__gt__", [right], None, self.code_string)
             )
 
-    def _op_compare_ge(self, frame, arg, line, column):
+    def _op_compare_ge(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``left`` and ``right``; push ``left >= right``."""
         right = self._unwrap_val(self.stack.pop(), line, column)
         left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
@@ -629,33 +689,39 @@ class VM:
                 left.call_method("__ge__", [right], None, self.code_string)
             )
 
-    def _op_logical_not(self, frame, arg, line, column):
+    def _op_logical_not(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a value; push its truthy negation (``value -- > not value``)."""
         val = self._unwrap_val(self.stack.pop(), line, column)
         self.stack.append(SdBool(not sd_truthy(val)))
 
-    def _op_jump_absolute(self, frame, arg, line, column):
+    def _op_jump_absolute(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Set the instruction pointer to ``arg``."""
         frame.ip = arg
 
-    def _op_jump_if_false(self, frame, arg, line, column):
+    def _op_jump_if_false(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a value; jump to ``arg`` if it is falsy."""
         condition = self._unwrap_val(self.stack.pop(), line, column)
         if not sd_truthy(condition):
             frame.ip = arg
 
-    def _op_jump_if_false_or_pop(self, frame, arg, line, column):
+    def _op_jump_if_false_or_pop(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Peek top value; pop it if truthy, else jump to ``arg``."""
         condition = self._unwrap_val(self.stack[-1], line, column)
         if sd_truthy(condition):
             self.stack.pop()
         else:
             frame.ip = arg
 
-    def _op_jump_if_true_or_pop(self, frame, arg, line, column):
+    def _op_jump_if_true_or_pop(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Peek top value; jump to ``arg`` if truthy, else pop it."""
         condition = self._unwrap_val(self.stack[-1], line, column)
         if sd_truthy(condition):
             frame.ip = arg
         else:
             self.stack.pop()
 
-    def _op_get_iter(self, frame, arg, line, column):
+    def _op_get_iter(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop an object; push its iterator (``< -- iterator``)."""
         obj = self._unwrap_val(self.pop(), line, column)
         try:
             it = iter(obj)
@@ -668,7 +734,8 @@ class VM:
                 self.code_string,
             )
 
-    def _op_for_iter(self, frame, arg, line, column):
+    def _op_for_iter(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Advance the top iterator; push next value, or pop and jump at end."""
         it = self.stack[-1]  # Peek at the iterator
         try:
             val = next(it)
@@ -677,7 +744,8 @@ class VM:
             self.pop()  # Pop the iterator
             frame.ip = arg  # Jump to end
 
-    def _op_call_function(self, frame, arg, line, column):
+    def _op_call_function(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop call args; invoke the named global function (``args -- > result``)."""
         const_idx, num_args, has_markers = arg
         name = frame.constants[const_idx].value
         args_list = [self.pop() for _ in range(num_args)]
@@ -691,7 +759,7 @@ class VM:
         record = self.globals.lookup_record(name, None, self.code_string)
         self._invoke(record.value, positional, kwargs, name, line, column)
 
-    def _op_call_value(self, frame, arg, line, column):
+    def _op_call_value(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
         """Call a function value from the stack (chained calls like f()())."""
         num_args, has_markers = arg
         args_list = [self.pop() for _ in range(num_args)]
@@ -705,7 +773,7 @@ class VM:
         name = getattr(callee, "name", None) or "<expression>"
         self._invoke(callee, positional, kwargs, name, line, column)
 
-    def _invoke(self, func, positional, kwargs, name, line, column):
+    def _invoke(self, func: object, positional: list, kwargs: dict, name: str, line: int, column: int) -> None:
         if isinstance(func, SdFunction):
             self._call_sd_function(func, positional, kwargs, line, column)
         else:
@@ -725,7 +793,7 @@ class VM:
                     e.code_string = self.code_string
                 raise
 
-    def _expand_call_args(self, args_list, line, column):
+    def _expand_call_args(self, args_list: list, line: int, column: int) -> tuple[list, dict]:
         """Split raw stack slots into positional values and kwargs.
 
         Markers precede their payload: KwargMarker+value pairs, then
@@ -791,7 +859,7 @@ class VM:
                 i += 1
         return positional, kwargs
 
-    def _call_sd_function(self, func, positional, kwargs, line, column):
+    def _call_sd_function(self, func, positional: list, kwargs: dict, line: int, column: int) -> object:
         plan = func.call_plan
         if plan is None:
             plan = CallPlan(func.params, func.defaults, func.cell_names)
@@ -905,14 +973,14 @@ class VM:
 
     def _call_simple_function(
         self,
-        func,
+        func: object,
         plan,
         params,
         expected_types,
         positional,
         line,
         column,
-    ):
+    ) -> object:
         """Single-pass call for closure-free, default-free, exact-arity functions.
 
         Mirrors the general binding path exactly (arity errors, Ok-unwrapping,
@@ -965,7 +1033,8 @@ class VM:
             new_frame.function_name = func.name
         self.frames.append(new_frame)
 
-    def _op_make_function(self, frame, arg, line, column):
+    def _op_make_function(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a function and optional defaults; push it bound to cells/defs."""
         func = self.pop()
         if arg:
             defaults = tuple(self.pop() for _ in range(arg))
@@ -997,7 +1066,8 @@ class VM:
                 func.cells = tuple(bound_cells)
         self.push(func)
 
-    def _op_call_method(self, frame, arg, line, column):
+    def _op_call_method(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop method args and object; push the method call result (``< -- result``)."""
         const_idx, num_args, has_markers = arg
         method_name = frame.constants[const_idx].value
         args = [self.pop() for _ in range(num_args)]
@@ -1046,7 +1116,8 @@ class VM:
                 self.code_string,
             )
 
-    def _op_get_attr(self, frame, arg, line, column):
+    def _op_get_attr(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop an object; push its ``arg`` attribute/result (``< -- attr``)."""
         attr_name = frame.constants[arg].value
         obj = self.pop()
         if isinstance(obj, SdResult) and attr_name in ("ok", "ghalti"):
@@ -1061,11 +1132,13 @@ class VM:
                 f"Attribute {attr_name} na milyo.", line, column, self.code_string
             )
 
-    def _op_make_ok(self, frame, arg, line, column):
+    def _op_make_ok(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a value; push it wrapped as an Ok result (``< -- Ok``)."""
         val = self.pop()
         self.push(val if isinstance(val, SdResult) else SdResult(SdResult.OK, val))
 
-    def _op_make_error(self, frame, arg, line, column):
+    def _op_make_error(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a value; push it wrapped as a Ghalti result (``< -- Ghalti``)."""
         val = self.pop()
         self.push(
             val
@@ -1073,7 +1146,8 @@ class VM:
             else SdResult(SdResult.GHALTI, val)
         )
 
-    def _op_call_bachao(self, frame, arg, line, column):
+    def _op_call_bachao(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop result and fallback; push Ok value or fallback on Ghalti."""
         fallback = self.pop()
         result = self.pop()
         if not isinstance(result, SdResult):
@@ -1082,7 +1156,8 @@ class VM:
             return
         self.push(result.value if result.is_ok() else fallback)
 
-    def _op_call_lazmi(self, frame, arg, line, column):
+    def _op_call_lazmi(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop result and message; push Ok value or unwrap/raise the Ghalti."""
         message = self.pop()
         result = self.pop()
         if not isinstance(result, SdResult):
@@ -1105,14 +1180,16 @@ class VM:
                 traceback=result._captured_traceback,
             )
 
-    def _op_postfix_qmark(self, frame, arg, line, column):
+    def _op_postfix_qmark(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a result; push its Ok value or keep the Ghalti result unchanged."""
         result = self.pop()
         if not isinstance(result, SdResult):
             self.push(result)
             return
         self.push(result.value if result.is_ok() else result)
 
-    def _op_postfix_bangbang(self, frame, arg, line, column):
+    def _op_postfix_bangbang(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a result; push its Ok value or raise the Ghalti error."""
         result = self.pop()
         if not isinstance(result, SdResult):
             self.push(result)
@@ -1130,7 +1207,8 @@ class VM:
                 traceback=result._captured_traceback,
             )
 
-    def _op_panic(self, frame, arg, line, column):
+    def _op_panic(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a message and raise a runtime error (``message -- >``)."""
         message = self.pop()
         msg_val = (
             message.value
@@ -1139,7 +1217,8 @@ class VM:
         )
         raise HalndeVaktGhalti(msg_val, line, column, self.code_string)
 
-    def _op_typecast(self, frame, arg, line, column):
+    def _op_typecast(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop a value; push it cast to ``arg``'s target type (``< -- cast``)."""
         target_type = arg
         value = self.pop()
 
@@ -1239,12 +1318,14 @@ class VM:
                 self.code_string,
             )
 
-    def _op_build_list(self, frame, arg, line, column):
+    def _op_build_list(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``arg`` elements; push a list (``< -- list``)."""
         elements = [self._unwrap_val(self.pop(), line, column) for _ in range(arg)]
         elements.reverse()
         self.push(SdList(elements))
 
-    def _op_build_dict(self, frame, arg, line, column):
+    def _op_build_dict(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``arg`` key/value pairs; push a dict (``< -- dict``)."""
         pairs = {}
         for _ in range(arg):
             v = self._unwrap_val(self.pop(), line, column)
@@ -1260,7 +1341,8 @@ class VM:
                 )
         self.push(SdDict(pairs))
 
-    def _op_build_set(self, frame, arg, line, column):
+    def _op_build_set(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop ``arg`` elements; push a set (``< -- set``)."""
         elements = set()
         for _ in range(arg):
             el = self._unwrap_val(self.pop(), line, column)
@@ -1275,25 +1357,30 @@ class VM:
                 )
         self.push(SdSet(elements))
 
-    def _op_binary_subscript(self, frame, arg, line, column):
+    def _op_binary_subscript(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop index and object; push ``obj[idx]`` (``< -- element``)."""
         idx = self._unwrap_val(self.pop(), line, column)
         obj = self._unwrap_val(self.pop(), line, column)
         self.push(obj.call_method("__getitem__", [idx], None, self.code_string))
 
-    def _op_store_subscript(self, frame, arg, line, column):
+    def _op_store_subscript(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop value, index, and object; store ``obj[idx] = val`` and push ``val``."""
         val = self._unwrap_val(self.pop(), line, column)
         idx = self._unwrap_val(self.pop(), line, column)
         obj = self._unwrap_val(self.pop(), line, column)
         obj.call_method("__setitem__", [idx, val], None, self.code_string)
         self.push(val)
 
-    def _op_pop_top(self, frame, arg, line, column):
+    def _op_pop_top(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Discard the top value (``value -- >``)."""
         self.stack.pop()
 
-    def _op_dup_top(self, frame, arg, line, column):
+    def _op_dup_top(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Duplicate the top value (``< -- value``)."""
         self.stack.append(self.stack[-1])
 
-    def _op_return_value(self, frame, arg, line, column):
+    def _op_return_value(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Pop the return value, pop the frame, and push it onto the caller's stack."""
         val = self.stack.pop()
         frame = self.frames.pop()
 
@@ -1322,5 +1409,6 @@ class VM:
 
         self.stack.append(val)
 
-    def _op_halt(self, frame, arg, line, column):
+    def _op_halt(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
+        """Set the instruction pointer past the end to stop execution."""
         frame.ip = len(frame.instructions)

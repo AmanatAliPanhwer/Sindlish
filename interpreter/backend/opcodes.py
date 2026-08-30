@@ -1,3 +1,12 @@
+"""The bytecode instruction set.
+
+Each :class:`OpCode` value is the index into the VM's contiguous dispatch
+table (see :class:`.vm.VM`); the enumerator is deliberately mono-directional
+(``auto()``) so opcodes stay packed from 1 upward.
+"""
+
+from __future__ import annotations
+
 from enum import IntEnum, auto
 
 
