@@ -27,6 +27,7 @@ from ..objects import (
     SdString,
 )
 from ..objects.base import sd_truthy
+from ..objects.core import CallPlan
 from ..runtime.builtins import SimpleBuiltins
 from .frame import BytecodeFrame
 from .markers import KwargMarker, KwargsDictMarker, StarArgsMarker
@@ -713,25 +714,19 @@ class VM:
         return positional, kwargs
 
     def _call_sd_function(self, func, positional, kwargs, line, column):
-        params = func.params
+        plan = func.call_plan
+        if plan is None:
+            plan = CallPlan(func.params, func.defaults, func.cell_names)
+            func.call_plan = plan
+        params = plan.params
+        has_star_param = plan.has_star
+        has_kw_param = plan.has_kw
+        defaults_map = plan.defaults_map
+        expected_types = plan.expected_types
 
-        has_star_param = any(p.is_star for p in params)
-        has_kw_param = any(p.is_kw for p in params)
-
-        # Map defaulted param names to their def-time evaluated values
-        defaults_map = {}
-        di = 0
-        for p in params:
-            if p.default is not None:
-                defaults_map[p.name] = (
-                    func.defaults[di] if di < len(func.defaults) else p.default
-                )
-                di += 1
-
-        if not has_kw_param:
-            known_names = {p.name for p in params}
+        if plan.known_names is not None:
             for key in kwargs:
-                if key not in known_names:
+                if key not in plan.known_names:
                     raise LikhaiJeGhalti(
                         f"Achanak keyword argument '{key}' milo.",
                         line,
@@ -741,7 +736,7 @@ class VM:
 
         bound = {}
         pos_idx = 0
-        for param in params:
+        for i, param in enumerate(params):
             if param.is_star or param.is_kw:
                 continue
             if param.name in kwargs:
@@ -762,7 +757,8 @@ class VM:
             if isinstance(val, SdResult) and val.is_ok():
                 val = val.value
 
-            if param.type and not self._is_type_match(val, param.type):
+            expected = expected_types[i]
+            if expected is not None and val.type != expected:
                 raise QisamJeGhalti(
                     f"Parameter '{param.name}' khe '{_type_label(param.type)}' khapyo paye par '{val.type.name.lower()}' milyo.",
                     line,
@@ -856,10 +852,6 @@ class VM:
                     bound_cells.append(defining.cells[idx])
                 func.cells = tuple(bound_cells)
         self.push(func)
-
-    def _is_type_match(self, value, expected_type_name):
-        expected = _get_expected_type(expected_type_name)
-        return expected is None or value.type == expected
 
     def _op_call_method(self, frame, arg, line, column):
         const_idx, num_args = arg
