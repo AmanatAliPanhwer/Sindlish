@@ -149,16 +149,31 @@ class TestParams:
         assert "1" in out
 
     def test_elem_typed_param_rejects_wrong_element(self):
-        with pytest.raises(QisamJeGhalti, match="Fehrist"):
+        with pytest.raises(QisamJeGhalti, match="Fehrist je elements jo qisam 'adad'"):
             run('kaam f(fehrist[adad] xs) { wapas 0 }\nf(["a"])')
 
     def test_elem_typed_majmuo_param_rejects(self):
-        with pytest.raises(QisamJeGhalti, match="Majmuo"):
+        with pytest.raises(QisamJeGhalti, match="Majmuo je elements jo qisam 'adad'"):
             run('kaam f(majmuo[adad] s) { wapas 0 }\nf({1, "x"})')
 
     def test_elem_typed_lughat_param_rejects_value(self):
-        with pytest.raises(QisamJeGhalti, match="Lughat"):
+        with pytest.raises(QisamJeGhalti, match="Lughat je elements jo qisam 'adad'"):
             run('kaam f(lughat[lafz, adad] d) { wapas 0 }\nf({"a": "x"})')
+
+    def test_elem_typed_lughat_param_rejects_key(self):
+        with pytest.raises(QisamJeGhalti, match="Lughat je element jo qisam 'lafz'"):
+            run('kaam f(lughat[lafz, adad] d) { wapas 0 }\nf({1: "x"})')
+
+    def test_typed_store_message_names_real_container(self):
+        # Original #31/3.6 repro: a typed lughat assignment failure used to say
+        # "Fehrist je elements…" regardless of the container. Resolved at
+        # store time (resolver.py), so the type names arrive lower-cased.
+        with pytest.raises(QisamJeGhalti, match="Lughat je elements jo qisam adad"):
+            run('lughat[lafz, adad] ages = {"ali": "x"}')
+        with pytest.raises(QisamJeGhalti, match="Majmuo je elements jo qisam adad"):
+            run('majmuo[adad] setone = {"x", 1}')
+        with pytest.raises(QisamJeGhalti, match="Fehrist je elements jo qisam adad"):
+            run("fehrist[adad] ax = [1, 'x']")
 
     def test_elem_typed_param_default_validated(self):
         _, out = run("kaam f(fehrist[adad] xs = [10]) { wapas xs[0] }\nlikh(f())")
