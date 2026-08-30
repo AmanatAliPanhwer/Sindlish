@@ -117,58 +117,12 @@ class VM:
         )
         self.frames = [main_frame]
 
+        # Dispatch table is generated from handler names: every opcode's
+        # handler must be named ``_op_<name.lower()>``. A missing handler is
+        # a programming error surfaced immediately at construction.
         self.dispatch_table: DispatchTable = {
-            OpCode.LOAD_CONST: self._op_load_const,
-            OpCode.LOAD_FAST: self._op_load_fast,
-            OpCode.STORE_FAST: self._op_store_fast,
-            OpCode.LOAD_GLOBAL: self._op_load_global,
-            OpCode.STORE_GLOBAL: self._op_store_global,
-            OpCode.LOAD_DEREF: self._op_load_deref,
-            OpCode.STORE_DEREF: self._op_store_deref,
-            OpCode.PUSH_NULL: self._op_push_null,
-            OpCode.PUSH_TRUE: self._op_push_true,
-            OpCode.PUSH_FALSE: self._op_push_false,
-            OpCode.BINARY_ADD: self._op_binary_add,
-            OpCode.BINARY_SUB: self._op_binary_sub,
-            OpCode.BINARY_MUL: self._op_binary_mul,
-            OpCode.BINARY_DIV: self._op_binary_div,
-            OpCode.BINARY_POW: self._op_binary_pow,
-            OpCode.BINARY_MOD: self._op_binary_mod,
-            OpCode.COMPARE_EQ: self._op_compare_eq,
-            OpCode.COMPARE_NE: self._op_compare_ne,
-            OpCode.COMPARE_LT: self._op_compare_lt,
-            OpCode.COMPARE_LE: self._op_compare_le,
-            OpCode.COMPARE_GT: self._op_compare_gt,
-            OpCode.COMPARE_GE: self._op_compare_ge,
-            OpCode.LOGICAL_NOT: self._op_logical_not,
-            OpCode.JUMP_ABSOLUTE: self._op_jump_absolute,
-            OpCode.JUMP_IF_FALSE: self._op_jump_if_false,
-            OpCode.JUMP_IF_FALSE_OR_POP: self._op_jump_if_false_or_pop,
-            OpCode.JUMP_IF_TRUE_OR_POP: self._op_jump_if_true_or_pop,
-            OpCode.GET_ITER: self._op_get_iter,
-            OpCode.FOR_ITER: self._op_for_iter,
-            OpCode.CALL_FUNCTION: self._op_call_function,
-            OpCode.CALL_VALUE: self._op_call_value,
-            OpCode.CALL_METHOD: self._op_call_method,
-            OpCode.GET_ATTR: self._op_get_attr,
-            OpCode.MAKE_FUNCTION: self._op_make_function,
-            OpCode.MAKE_OK: self._op_make_ok,
-            OpCode.MAKE_ERROR: self._op_make_error,
-            OpCode.CALL_BACHAO: self._op_call_bachao,
-            OpCode.CALL_LAZMI: self._op_call_lazmi,
-            OpCode.POSTFIX_QMARK: self._op_postfix_qmark,
-            OpCode.POSTFIX_BANGBANG: self._op_postfix_bangbang,
-            OpCode.PANIC: self._op_panic,
-            OpCode.BUILD_LIST: self._op_build_list,
-            OpCode.BUILD_DICT: self._op_build_dict,
-            OpCode.BUILD_SET: self._op_build_set,
-            OpCode.BINARY_SUBSCRIPT: self._op_binary_subscript,
-            OpCode.STORE_SUBSCRIPT: self._op_store_subscript,
-            OpCode.POP_TOP: self._op_pop_top,
-            OpCode.TYPECAST: self._op_typecast,
-            OpCode.DUP_TOP: self._op_dup_top,
-            OpCode.RETURN_VALUE: self._op_return_value,
-            OpCode.HALT: self._op_halt,
+            opcode: getattr(self, f"_op_{opcode.name.lower()}")
+            for opcode in OpCode
         }
 
         self._dispatch: list[OpcodeHandler | None] = [
@@ -1374,10 +1328,6 @@ class VM:
     def _op_pop_top(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
         """Discard the top value (``value -- >``)."""
         self.stack.pop()
-
-    def _op_dup_top(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
-        """Duplicate the top value (``< -- value``)."""
-        self.stack.append(self.stack[-1])
 
     def _op_return_value(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
         """Pop the return value, pop the frame, and push it onto the caller's stack."""

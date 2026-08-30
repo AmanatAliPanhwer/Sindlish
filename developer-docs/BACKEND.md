@@ -60,20 +60,17 @@ The `OpCode` IntEnum defines 37 bytecode instructions organized into 10 categori
 | `COMPARE_GT` | -- | `left > right` | `__gt__` |
 | `COMPARE_GE` | -- | `left >= right` | `__ge__` |
 
-#### Logical (3)
+#### Logical (1)
 
 | Opcode | Arg | Description | Protocol Method |
 |--------|-----|-------------|-----------------|
-| `LOGICAL_AND` | -- | `left aen right` | `__and__` |
-| `LOGICAL_OR` | -- | `left ya right` | `__or__` |
 | `LOGICAL_NOT` | -- | `nah value` | `__invert__` |
 
-#### Stack Manipulation (2)
+#### Stack Manipulation (1)
 
 | Opcode | Arg | Description |
 |--------|-----|-------------|
 | `POP_TOP` | -- | Pop and discard top of stack |
-| `DUP_TOP` | -- | Duplicate top of stack (peek) |
 
 #### Control Flow (2)
 
@@ -213,8 +210,8 @@ flowchart TD
     D -->|"<="| N["COMPARE_LE"]
     D -->|">"| O["COMPARE_GT"]
     D -->|">="| P["COMPARE_GE"]
-    D -->|"aen"| Q["LOGICAL_AND"]
-    D -->|"ya"| R["LOGICAL_OR"]
+    D -->|"aen"| Q["JUMP_IF_FALSE_OR_POP (short-circuit)"]
+    D -->|"ya"| R["JUMP_IF_TRUE_OR_POP (short-circuit)"]
 ```
 
 #### Unary Operations

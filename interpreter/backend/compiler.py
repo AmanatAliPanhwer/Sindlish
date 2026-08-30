@@ -49,7 +49,59 @@ from ..frontend.ast_nodes import (
 from ..frontend.tokens import TokenType
 from ..objects import SdFunction, SdNumber, SdString
 from .markers import KwargMarker, KwargsDictMarker, StarArgsMarker
-from .opcodes import OpCode
+from .opcodes import OPERAND_SHAPES, OpCode
+
+
+def _operand_fits(shape: str, arg: object | None) -> bool:
+    """Return whether ``arg`` satisfies the operand shape ``shape``.
+
+    Already-emitted call args carry their real count and a ``has_kwargs``
+    flag, so ``call``/``callvalue``/``store`` shapes are validated against the
+    tuple structure the VM handlers unpack.
+    """
+    if shape == "none":
+        return arg is None
+    if shape == "int":
+        return isinstance(arg, int)
+    if shape == "token":
+        return isinstance(arg, TokenType)
+    if shape == "call":
+        return (
+            isinstance(arg, tuple)
+            and len(arg) == 3
+            and isinstance(arg[0], int)
+            and isinstance(arg[1], int)
+            and isinstance(arg[2], bool)
+        )
+    if shape == "callvalue":
+        return (
+            isinstance(arg, tuple)
+            and len(arg) == 2
+            and isinstance(arg[0], int)
+            and isinstance(arg[1], bool)
+        )
+    if shape == "store":
+        if isinstance(arg, int):
+            return True
+        return (
+            isinstance(arg, tuple)
+            and len(arg) == 4
+            and isinstance(arg[0], int)
+            and isinstance(arg[1], bool)
+        )
+    return False
+
+
+def _check_operand_shape(opcode: OpCode, arg: object | None) -> None:
+    """Raise a ``ValueError`` when ``(opcode, arg)`` violates its encoding."""
+    shape = OPERAND_SHAPES.get(opcode)
+    if shape is None:
+        raise ValueError(f"No OPERAND_SHAPES entry for {opcode.name}; encoding table incomplete.")
+    if not _operand_fits(shape, arg):
+        raise ValueError(
+            f"Opcode {opcode.name} expects operand shape '{shape}', "
+            f"got {arg!r}."
+        )
 
 op_map: dict[TokenType, OpCode] = {
     TokenType.PLUS: OpCode.BINARY_ADD,
@@ -132,6 +184,7 @@ class Compiler:
 
     def _patch(self, idx: int, opcode: OpCode, arg: object) -> None:
         """Overwrite the instruction at ``idx`` (used for back-patching jumps)."""
+        _check_operand_shape(opcode, arg)
         self.instructions[idx] = (opcode, arg)
 
     def emit(
@@ -151,6 +204,7 @@ class Compiler:
             line = getattr(node, "line", line or 0)
             column = getattr(node, "column", column or 0)
 
+        _check_operand_shape(opcode, arg)
         idx = self._current_pc()
         self.instructions.append((opcode, arg))
         self.line_col_map.append((line or 0, column or 0))
