@@ -144,11 +144,9 @@ class VM:
             OpCode.HALT: self._op_halt,
         }
 
-    def _get_line_column(self):
-        frame = self.frames[-1]
-        line_col_map = frame.line_col_map
-        pc = frame.ip
-        return line_col_map[pc] if 0 <= pc < len(line_col_map) else (0, 0)
+        self._dispatch = [None] * (int(max(OpCode)) + 1)
+        for opcode, handler in self.dispatch_table.items():
+            self._dispatch[int(opcode)] = handler
 
     def push(self, value):
         self.stack.append(value)
@@ -351,12 +349,16 @@ class VM:
         return result
 
     def step(self):
-        line, column = self._get_line_column()
         frame = self.frames[-1]
-        opcode, arg = frame.instructions[frame.ip]
-        frame.ip += 1
+        instructions = frame.instructions
+        pc = frame.ip
+        opcode, arg = instructions[pc]
+        frame.ip = pc + 1
 
-        handler = self.dispatch_table.get(opcode)
+        line_col = frame.line_col_map
+        line, column = line_col[pc] if 0 <= pc < len(line_col) else (0, 0)
+
+        handler = self._dispatch[opcode]
         if handler:
             handler(frame, arg, line, column)
         else:
@@ -367,13 +369,13 @@ class VM:
     # ===== OpCode Handlers =====
 
     def _op_load_const(self, frame, arg, line, column):
-        self.push(frame.constants[arg])
+        self.stack.append(frame.constants[arg])
 
     def _op_load_fast(self, frame, arg, line, column):
-        self.push(frame.slots[arg])
+        self.stack.append(frame.slots[arg])
 
     def _op_store_fast(self, frame, arg, line, column):
-        value = self.pop()
+        value = self.stack.pop()
         metadata = frame.slot_metadata.get(arg, {})
         if metadata.get("is_const") and frame.slots[arg] is not None:
             raise HalndeVaktGhalti(
@@ -440,13 +442,13 @@ class VM:
             )
 
     def _op_push_null(self, frame, arg, line, column):
-        self.push(SdNull())
+        self.stack.append(SdNull())
 
     def _op_push_true(self, frame, arg, line, column):
-        self.push(SdBool(True))
+        self.stack.append(SdBool(True))
 
     def _op_push_false(self, frame, arg, line, column):
-        self.push(SdBool(False))
+        self.stack.append(SdBool(False))
 
     def _op_load_deref(self, frame, arg, line, column):
         cell = frame.cells[arg]
@@ -500,125 +502,149 @@ class VM:
         return out
 
     def _op_binary_add(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdNumber(left.value + right.value))
+            self.stack.append(SdNumber(left.value + right.value))
         else:
-            self.push(self._binary_op_result(left, right, "__add__", line, column))
+            self.stack.append(
+                self._binary_op_result(left, right, "__add__", line, column)
+            )
 
     def _op_binary_sub(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdNumber(left.value - right.value))
+            self.stack.append(SdNumber(left.value - right.value))
         else:
-            self.push(self._binary_op_result(left, right, "__sub__", line, column))
+            self.stack.append(
+                self._binary_op_result(left, right, "__sub__", line, column)
+            )
 
     def _op_binary_mul(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdNumber(left.value * right.value))
+            self.stack.append(SdNumber(left.value * right.value))
         else:
-            self.push(self._binary_op_result(left, right, "__mul__", line, column))
+            self.stack.append(
+                self._binary_op_result(left, right, "__mul__", line, column)
+            )
 
     def _op_binary_div(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if (
             isinstance(left, SdNumber)
             and isinstance(right, SdNumber)
             and right.value != 0
         ):
-            self.push(SdNumber(left.value / right.value))
+            self.stack.append(SdNumber(left.value / right.value))
         else:
-            self.push(self._binary_op_result(left, right, "__truediv__", line, column))
+            self.stack.append(
+                self._binary_op_result(left, right, "__truediv__", line, column)
+            )
 
     def _op_binary_pow(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdNumber(left.value**right.value))
+            self.stack.append(SdNumber(left.value**right.value))
         else:
-            self.push(self._binary_op_result(left, right, "__pow__", line, column))
+            self.stack.append(
+                self._binary_op_result(left, right, "__pow__", line, column)
+            )
 
     def _op_binary_mod(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if (
             isinstance(left, SdNumber)
             and isinstance(right, SdNumber)
             and right.value != 0
         ):
-            self.push(SdNumber(left.value % right.value))
+            self.stack.append(SdNumber(left.value % right.value))
         else:
-            self.push(self._binary_op_result(left, right, "__mod__", line, column))
+            self.stack.append(
+                self._binary_op_result(left, right, "__mod__", line, column)
+            )
 
     def _op_compare_eq(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdBool(left.value == right.value))
+            self.stack.append(SdBool(left.value == right.value))
         else:
-            self.push(left.call_method("__eq__", [right], None, self.code_string))
+            self.stack.append(
+                left.call_method("__eq__", [right], None, self.code_string)
+            )
 
     def _op_compare_ne(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdBool(left.value != right.value))
+            self.stack.append(SdBool(left.value != right.value))
         else:
-            self.push(left.call_method("__ne__", [right], None, self.code_string))
+            self.stack.append(
+                left.call_method("__ne__", [right], None, self.code_string)
+            )
 
     def _op_compare_lt(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdBool(left.value < right.value))
+            self.stack.append(SdBool(left.value < right.value))
         else:
-            self.push(left.call_method("__lt__", [right], None, self.code_string))
+            self.stack.append(
+                left.call_method("__lt__", [right], None, self.code_string)
+            )
 
     def _op_compare_le(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdBool(left.value <= right.value))
+            self.stack.append(SdBool(left.value <= right.value))
         else:
-            self.push(left.call_method("__le__", [right], None, self.code_string))
+            self.stack.append(
+                left.call_method("__le__", [right], None, self.code_string)
+            )
 
     def _op_compare_gt(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdBool(left.value > right.value))
+            self.stack.append(SdBool(left.value > right.value))
         else:
-            self.push(left.call_method("__gt__", [right], None, self.code_string))
+            self.stack.append(
+                left.call_method("__gt__", [right], None, self.code_string)
+            )
 
     def _op_compare_ge(self, frame, arg, line, column):
-        right = self._unwrap_val(self.pop(), line, column)
-        left = self._unwrap_val(self.pop(), line, column)
+        right = self._unwrap_val(self.stack.pop(), line, column)
+        left = self._unwrap_val(self.stack.pop(), line, column)
         if isinstance(left, SdNumber) and isinstance(right, SdNumber):
-            self.push(SdBool(left.value >= right.value))
+            self.stack.append(SdBool(left.value >= right.value))
         else:
-            self.push(left.call_method("__ge__", [right], None, self.code_string))
+            self.stack.append(
+                left.call_method("__ge__", [right], None, self.code_string)
+            )
 
     def _op_logical_not(self, frame, arg, line, column):
-        val = self._unwrap_val(self.pop(), line, column)
-        self.push(SdBool(not sd_truthy(val)))
+        val = self._unwrap_val(self.stack.pop(), line, column)
+        self.stack.append(SdBool(not sd_truthy(val)))
 
     def _op_jump_absolute(self, frame, arg, line, column):
         frame.ip = arg
 
     def _op_jump_if_false(self, frame, arg, line, column):
-        condition = self._unwrap_val(self.pop(), line, column)
+        condition = self._unwrap_val(self.stack.pop(), line, column)
         if not sd_truthy(condition):
             frame.ip = arg
 
     def _op_jump_if_false_or_pop(self, frame, arg, line, column):
         condition = self._unwrap_val(self.stack[-1], line, column)
         if sd_truthy(condition):
-            self.pop()
+            self.stack.pop()
         else:
             frame.ip = arg
 
@@ -627,7 +653,7 @@ class VM:
         if sd_truthy(condition):
             frame.ip = arg
         else:
-            self.pop()
+            self.stack.pop()
 
     def _op_get_iter(self, frame, arg, line, column):
         obj = self._unwrap_val(self.pop(), line, column)
@@ -1262,13 +1288,13 @@ class VM:
         self.push(val)
 
     def _op_pop_top(self, frame, arg, line, column):
-        self.pop()
+        self.stack.pop()
 
     def _op_dup_top(self, frame, arg, line, column):
-        self.push(self.stack[-1])
+        self.stack.append(self.stack[-1])
 
     def _op_return_value(self, frame, arg, line, column):
-        val = self.pop()
+        val = self.stack.pop()
         frame = self.frames.pop()
 
         if isinstance(val, SdResult) and val.is_ok():
@@ -1281,7 +1307,7 @@ class VM:
                 check_val = val
                 if isinstance(val, SdResult):
                     if val.is_error():
-                        self.push(val)
+                        self.stack.append(val)
                         return
                     check_val = val.value
 
@@ -1294,7 +1320,7 @@ class VM:
                         self.code_string,
                     )
 
-        self.push(val)
+        self.stack.append(val)
 
     def _op_halt(self, frame, arg, line, column):
         frame.ip = len(frame.instructions)
