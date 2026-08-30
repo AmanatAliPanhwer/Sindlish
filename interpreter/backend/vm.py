@@ -89,9 +89,6 @@ class VM:
         )
         self.frames = [main_frame]
 
-        self._setup_dispatch_table()
-
-    def _setup_dispatch_table(self):
         self.dispatch_table = {
             OpCode.LOAD_CONST: self._op_load_const,
             OpCode.LOAD_FAST: self._op_load_fast,
@@ -179,82 +176,84 @@ class VM:
             if value.is_ok():
                 value = value.value
             else:
-                # Error Results stay values: propagate across typed boundaries
-                # instead of raising "RESULT milyo" (TODO:57).
                 return
-        if expected_type == TokenType.ADAD:
-            if not isinstance(value, SdNumber) or not isinstance(value.value, int):
-                raise QisamJeGhalti(
-                    f"'adad' qisam laai adad khapyo paye, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-        elif expected_type == TokenType.DAHAI:
-            if not isinstance(value, SdNumber) or not isinstance(value.value, float):
-                raise QisamJeGhalti(
-                    f"'dahai' qisam laai dahai khapyo paye, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-        elif expected_type == TokenType.LAFZ:
-            if not isinstance(value, SdString):
-                raise QisamJeGhalti(
-                    f"'lafz' qisam laai lafz khapyo paye, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-        elif expected_type == TokenType.FAISLO:
-            if not isinstance(value, SdBool):
-                raise QisamJeGhalti(
-                    f"'faislo' qisam laai faislo khapyo paye, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-        elif expected_type == TokenType.FEHRIST:
-            if not isinstance(value, SdList):
-                raise QisamJeGhalti(
-                    f"'fehrist' qisam laai fehrist khapyo paye, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-            if element_type is not None:
-                for elem in value.elements:
-                    self._check_element_type(elem, element_type, line, column)
-        elif expected_type == TokenType.MAJMUO:
-            if not isinstance(value, SdSet):
-                raise QisamJeGhalti(
-                    f"'majmuo' qisam laai majmuo khapyo paye, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-            if element_type is not None:
-                for elem in value.elements:
-                    self._check_element_type(
-                        elem, element_type, line, column, container_name="Majmuo"
+        match expected_type:
+            case TokenType.ADAD:
+                if not isinstance(value, SdNumber) or not isinstance(value.value, int):
+                    raise QisamJeGhalti(
+                        f"'adad' qisam laai adad khapyo paye, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
                     )
-        elif expected_type == TokenType.LUGHAT:
-            if not isinstance(value, SdDict):
-                raise QisamJeGhalti(
-                    f"'lughat' qisam laai lughat khapyo paye, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-            if element_type is not None and isinstance(element_type, list):
-                key_type, val_type = element_type
-                for k, v in value.pairs.items():
-                    self._check_element_type(
-                        k, key_type, line, column, container_name="Lughat"
+            case TokenType.DAHAI:
+                if not isinstance(value, SdNumber) or not isinstance(
+                    value.value, float
+                ):
+                    raise QisamJeGhalti(
+                        f"'dahai' qisam laai dahai khapyo paye, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
                     )
-                    self._check_element_type(
-                        v, val_type, line, column, container_name="Lughat"
+            case TokenType.LAFZ:
+                if not isinstance(value, SdString):
+                    raise QisamJeGhalti(
+                        f"'lafz' qisam laai lafz khapyo paye, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
                     )
+            case TokenType.FAISLO:
+                if not isinstance(value, SdBool):
+                    raise QisamJeGhalti(
+                        f"'faislo' qisam laai faislo khapyo paye, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+            case TokenType.FEHRIST:
+                if not isinstance(value, SdList):
+                    raise QisamJeGhalti(
+                        f"'fehrist' qisam laai fehrist khapyo paye, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+                if element_type is not None:
+                    for elem in value.elements:
+                        self._check_element_type(elem, element_type, line, column)
+
+            case TokenType.MAJMUO:
+                if not isinstance(value, SdSet):
+                    raise QisamJeGhalti(
+                        f"'majmuo' qisam laai majmuo khapyo paye, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+                if element_type is not None:
+                    for elem in value.elements:
+                        self._check_element_type(
+                            elem, element_type, line, column, container_name="Majmuo"
+                        )
+            case TokenType.LUGHAT:
+                if not isinstance(value, SdDict):
+                    raise QisamJeGhalti(
+                        f"'lughat' qisam laai lughat khapyo paye, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+                if element_type is not None and isinstance(element_type, list):
+                    key_type, val_type = element_type
+                    for k, v in value.pairs.items():
+                        self._check_element_type(
+                            k, key_type, line, column, container_name="Lughat"
+                        )
+                        self._check_element_type(
+                            v, val_type, line, column, container_name="Lughat"
+                        )
         return True
 
     def _check_element_type(
@@ -262,38 +261,41 @@ class VM:
     ):
         if isinstance(value, SdResult) and value.is_ok():
             value = value.value
-        if element_type == TokenType.ADAD:
-            if not isinstance(value, SdNumber) or not isinstance(value.value, int):
-                raise QisamJeGhalti(
-                    f"{container_name} je elements jo qisam 'adad' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-        elif element_type == TokenType.DAHAI:
-            if not isinstance(value, SdNumber) or not isinstance(value.value, float):
-                raise QisamJeGhalti(
-                    f"{container_name} je element jo qisam 'dahai' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-        elif element_type == TokenType.LAFZ:
-            if not isinstance(value, SdString):
-                raise QisamJeGhalti(
-                    f"{container_name} je element jo qisam 'lafz' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
-        elif element_type == TokenType.FAISLO:
-            if not isinstance(value, SdBool):
-                raise QisamJeGhalti(
-                    f"{container_name} je element jo qisam 'faislo' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
-                    line,
-                    column,
-                    self.code_string,
-                )
+        match element_type:
+            case TokenType.ADAD:
+                if not isinstance(value, SdNumber) or not isinstance(value.value, int):
+                    raise QisamJeGhalti(
+                        f"{container_name} je elements jo qisam 'adad' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+            case TokenType.DAHAI:
+                if not isinstance(value, SdNumber) or not isinstance(
+                    value.value, float
+                ):
+                    raise QisamJeGhalti(
+                        f"{container_name} je element jo qisam 'dahai' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+            case TokenType.LAFZ:
+                if not isinstance(value, SdString):
+                    raise QisamJeGhalti(
+                        f"{container_name} je element jo qisam 'lafz' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+            case TokenType.FAISLO:
+                if not isinstance(value, SdBool):
+                    raise QisamJeGhalti(
+                        f"{container_name} je element jo qisam 'faislo' hujjhan lazmi aahe, par '{value.type.name}' milyo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
 
     @property
     def variables(self):
@@ -326,7 +328,6 @@ class VM:
             raise
 
     def _build_traceback(self, error: SindhiBaseError):
-        # Only build new traceback if it's empty (didn't come from a Result)
         if error.traceback:
             return
 
@@ -334,9 +335,7 @@ class VM:
         for frame in self.frames:
             line_col_map = frame.line_col_map
             pc = frame.ip - 1
-            line, col = (
-                line_col_map[pc] if 0 <= pc < len(line_col_map) else (0, 0)
-            )
+            line, col = line_col_map[pc] if 0 <= pc < len(line_col_map) else (0, 0)
             if line == 0:
                 continue
 
@@ -346,9 +345,8 @@ class VM:
             error.add_traceback(frame.name, line, col, source_line)
 
     def _handle_result(self, result):
-        if isinstance(result, SdResult) and result.is_error():
-            if not result._captured_traceback:
-                result.capture_traceback(self.frames, self.code_string)
+        if isinstance(result, SdResult) and result.is_error() and not result._captured_traceback:
+            result.capture_traceback(self.frames, self.code_string)
         return result
 
     def step(self):
@@ -365,7 +363,7 @@ class VM:
                 f"Na-maloom opcode: {opcode}.", line, column, self.code_string
             )
 
-    # --- OpCode Handlers ---
+    # ===== OpCode Handlers =====
 
     def _op_load_const(self, frame, arg, line, column):
         self.push(frame.constants[arg])
@@ -400,44 +398,45 @@ class VM:
         self.push(record.value)
 
     def _op_store_global(self, frame, arg, line, column):
-        if isinstance(arg, tuple):
-            const_idx, is_const, expected_type, element_type = arg
-            name = frame.constants[const_idx].value
+        if not isinstance(arg, tuple):
+            name = frame.constants[arg].value
             val = self.pop()
             if name in self.globals.records:
-                record = self.globals.records[name]
-                if record.is_const and record.value is not None:
-                    raise HalndeVaktGhalti(
-                        f"'{name}' pakko (const) aahe, eho badli natho saghjay.",
-                        line,
-                        column,
-                        self.code_string,
-                    )
-                if expected_type is None:
-                    expected_type = record.type
-                    element_type = (
-                        element_type if expected_type is None else record.element_type
-                    )
-                if expected_type is not None:
-                    self._check_type(
-                        val, expected_type, element_type, line=line, column=column
-                    )
-                record.value = val
+                self.globals.assign(name, val, None, self.code_string)
             else:
-                if expected_type is not None:
-                    self._check_type(
-                        val, expected_type, element_type, line=line, column=column
-                    )
-                self.globals.define(
-                    name, val, var_type=expected_type, is_const=is_const
-                )
+                self.globals.define(name, val)
             return
-        name = frame.constants[arg].value
+        
+        const_idx, is_const, expected_type, element_type = arg
+        name = frame.constants[const_idx].value
         val = self.pop()
         if name in self.globals.records:
-            self.globals.assign(name, val, None, self.code_string)
+            record = self.globals.records[name]
+            if record.is_const and record.value is not None:
+                raise HalndeVaktGhalti(
+                    f"'{name}' pakko (const) aahe, eho badli natho saghjay.",
+                    line,
+                    column,
+                    self.code_string,
+                )
+            if expected_type is None:
+                expected_type = record.type
+                element_type = (
+                    element_type if expected_type is None else record.element_type
+                )
+            if expected_type is not None:
+                self._check_type(
+                    val, expected_type, element_type, line=line, column=column
+                )
+            record.value = val
         else:
-            self.globals.define(name, val)
+            if expected_type is not None:
+                self._check_type(
+                    val, expected_type, element_type, line=line, column=column
+                )
+            self.globals.define(
+                name, val, var_type=expected_type, is_const=is_const
+            )
 
     def _op_push_null(self, frame, arg, line, column):
         self.push(SdNull())
@@ -570,13 +569,15 @@ class VM:
             frame.ip = arg
 
     def _op_jump_if_false_or_pop(self, frame, arg, line, column):
-        if sd_truthy(self._unwrap_val(self.stack[-1], line, column)):
+        condition = self._unwrap_val(self.stack[-1], line, column)
+        if sd_truthy(condition):
             self.pop()
         else:
             frame.ip = arg
 
     def _op_jump_if_true_or_pop(self, frame, arg, line, column):
-        if sd_truthy(self._unwrap_val(self.stack[-1], line, column)):
+        condition = self._unwrap_val(self.stack[-1], line, column)
+        if sd_truthy(condition):
             frame.ip = arg
         else:
             self.pop()
@@ -804,8 +805,7 @@ class VM:
             func=func,
         )
 
-        frame_idx = 0
-        for param in params:
+        for frame_idx, param in enumerate(params):
             if param.is_star:
                 val = SdList(list(extra_positional))
             elif param.is_kw:
@@ -818,7 +818,6 @@ class VM:
                 new_frame.cells[cell_idx].value = val
             else:
                 new_frame.slots[frame_idx] = val
-            frame_idx += 1
 
         new_frame.call_metadata = {
             "return_type": func.return_type,
@@ -1159,8 +1158,6 @@ class VM:
         val = self.pop()
         frame = self.frames.pop()
 
-        # Arithmetic auto-boxes results in Ok; returning is a consumption
-        # boundary, so success values are unwrapped here. Err propagates.
         if isinstance(val, SdResult) and val.is_ok():
             val = val.value
 
@@ -1168,8 +1165,6 @@ class VM:
         if return_type:
             expected = _get_expected_type(return_type)
             if expected:
-                # If it's a Result, we only check the type if it's OK.
-                # GHALTI variants are always allowed to propagate.
                 check_val = val
                 if isinstance(val, SdResult):
                     if val.is_error():
