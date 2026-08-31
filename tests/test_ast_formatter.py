@@ -55,8 +55,8 @@ class TestBuildAstText:
         lines = text.split("\n")
         root = lines[0]
         assert not root.startswith("    ")
-        assert any(l.startswith("    statements=[") for l in lines)
-        assert any(l.startswith("        NumberNode(") for l in lines)
+        assert any(line.startswith("    statements=[") for line in lines)
+        assert any(line.startswith("        NumberNode(") for line in lines)
 
     def test_no_box_drawing_pipes(self):
         text = plain(ProgramNode([NumberNode(5)]))

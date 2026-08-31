@@ -35,9 +35,7 @@ def _is_complex(value) -> bool:
 
 def _scalar_text(value) -> Text:
     """Render a scalar value, colorized by kind."""
-    if isinstance(value, (str, int, float, bool)):
-        return Text(repr(value), style=VALUE_STYLE)
-    return Text(repr(value))
+    return Text(repr(value), style=VALUE_STYLE)
 
 
 def _lines_value(value, depth: int) -> list[tuple[int, Text]]:
@@ -55,7 +53,12 @@ def _lines_value(value, depth: int) -> list[tuple[int, Text]]:
 
 def _with_comma(last: tuple[int, Text]) -> tuple[int, Text]:
     line, text = last
-    return (line, Text(text).append(","))
+    if isinstance(text, Text):
+        text = text.copy()
+    else:
+        text = Text(text)
+    text.append(",")
+    return (line, text)
 
 
 def _lines_node(node: Node, depth: int) -> list[tuple[int, Text]]:
