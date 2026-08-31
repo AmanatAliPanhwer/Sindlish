@@ -44,7 +44,7 @@ adad x = 3 + 4 * 2
 Two things to notice forever:
 
 - **Order of operands**: `BINARY_MUL` pops right first, then left. Handlers are careful to pop `right` then `left`.
-- **Arithmetic returns Results internally** — `_binary_op_result` wraps success as Ok. Assignment/conditions unwrap at boundaries, so this trace shows plain numbers.
+- **Arithmetic unwraps success** — `_binary_op_result` returns a raw value for Ok and keeps only Err boxed as a Result. Assignment/conditions consume Results at boundaries, so this trace shows plain numbers.
 
 ### Trace 2 · Branching
 
@@ -99,7 +99,7 @@ Top-level code stores through `STORE_GLOBAL` (globals environment dict, carrying
 
 <div class="recap">
 <p>Fetch-bump-dispatch; handlers push/pop and delegate to values.</p>
-<p>Binary ops pop right-then-left; arithmetic wraps results internally.</p>
+<p>Binary ops pop right-then-left; arithmetic unwraps success, keeps only Err results.</p>
 <p><code>JUMP_IF_FALSE</code> consumes its condition; else-chains are forward patches.</p>
 <p>Loops = backward jump to a remembered top.</p>
 <p>FAST/GLOBAL/DEREF are the three storage tiers.</p>

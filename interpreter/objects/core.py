@@ -10,8 +10,6 @@ class SdResult(SdShey):
     __slots__ = (
         "_captured_traceback",
         "_error_cls",
-        "ghalti",
-        "ok",
         "value",
         "variant",
     )
@@ -20,15 +18,23 @@ class SdResult(SdShey):
     GHALTI = "GHALTI"
 
     def __init__(self, variant, value, error_cls=None):
-        from .numbers import SdBool  # Local import to prevent circular dependency
-
         super().__init__(RESULT_TYPE)
         self.variant = variant
         self.value = value
-        self.ok = SdBool(self.variant == self.OK)
-        self.ghalti = SdBool(self.variant == self.GHALTI)
         self._captured_traceback = []
         self._error_cls = error_cls or "HalndeVaktGhalti"
+
+    @property
+    def ok(self):
+        from .numbers import SdBool
+
+        return SdBool(self.variant == self.OK)
+
+    @property
+    def ghalti(self):
+        from .numbers import SdBool
+
+        return SdBool(self.variant == self.GHALTI)
 
     def capture_traceback(self, frames, code_string):
         """Captures the current call stack for GHALTI results."""
@@ -39,7 +45,11 @@ class SdResult(SdShey):
 
         source_lines = code_string.split("\n")
         for frame in frames:
-            line, col = frame.line_col_map.get(frame.ip - 1, (0, 0))
+            line_col_map = frame.line_col_map
+            pc = frame.ip - 1
+            line, col = (
+                line_col_map[pc] if 0 <= pc < len(line_col_map) else (0, 0)
+            )
             if line == 0:
                 continue
             source_line = (
@@ -69,6 +79,72 @@ class SdResult(SdShey):
         return hash((self.variant, self.value))
 
 
+class CallPlan:
+    """Precomputed call-time metadata for a :class:`SdFunction`.
+
+    Built once when a function is defined and refreshed when defaults are
+    bound, eliminating the per-call scans of ``params`` and default-value
+    lookups that previously happened on every invocation.
+    """
+
+    __slots__ = (
+        "arity",
+        "defaults_map",
+        "expected_types",
+        "has_defaults",
+        "has_kw",
+        "has_star",
+        "known_names",
+        "params",
+        "simple",
+    )
+
+    def __init__(self, params, defaults=(), cell_names=()):
+        from .collections import FEHRIST_TYPE, LUGHAT_TYPE, MAJMUO_TYPE
+        from .numbers import ADAD_TYPE, DAHAI_TYPE, FAISLO_TYPE
+        from .strings import LAFZ_TYPE
+
+        params = tuple(params)
+        self.params = params
+        self.has_star = any(p.is_star for p in params)
+        self.has_kw = any(p.is_kw for p in params)
+        self.arity = sum(1 for p in params if not p.is_star and not p.is_kw)
+
+        defaults_map = {}
+        defaults = tuple(defaults)
+        di = 0
+        for p in params:
+            if p.default is not None:
+                defaults_map[p.name] = (
+                    defaults[di] if di < len(defaults) else p.default
+                )
+                di += 1
+        self.defaults_map = defaults_map
+        self.has_defaults = bool(defaults_map)
+        self.known_names = (
+            None if self.has_kw else frozenset(p.name for p in params)
+        )
+
+        type_map = {
+            TokenType.ADAD: ADAD_TYPE,
+            TokenType.DAHAI: DAHAI_TYPE,
+            TokenType.LAFZ: LAFZ_TYPE,
+            TokenType.FAISLO: FAISLO_TYPE,
+            TokenType.FEHRIST: FEHRIST_TYPE,
+            TokenType.LUGHAT: LUGHAT_TYPE,
+            TokenType.MAJMUO: MAJMUO_TYPE,
+        }
+        self.expected_types = tuple(type_map.get(p.type) for p in params)
+
+        self.simple = (
+            not self.has_star
+            and not self.has_kw
+            and not self.has_defaults
+            and not any(p.element_type is not None for p in params)
+            and not cell_names
+        )
+
+
 class Cell:
     """Mutable box shared between a function frame and its closures."""
 
@@ -82,6 +158,7 @@ class Cell:
 
 class SdFunction(SdShey):
     __slots__ = (
+        "call_plan",
         "cell_metadata",
         "cell_names",
         "cells",
@@ -127,6 +204,7 @@ class SdFunction(SdShey):
         self.free_specs = tuple(free_specs)
         self.cells = tuple(cells)
         self.cell_metadata = dict(cell_metadata) if cell_metadata else {}
+        self.call_plan = CallPlan(self.params, self.defaults, self.cell_names)
 
     def bind_defaults(self, defaults):
         """Return a copy of this function carrying evaluated default values."""

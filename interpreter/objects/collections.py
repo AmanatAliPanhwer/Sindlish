@@ -443,7 +443,7 @@ def fehrist_tarteeb(obj, args):
 
     try:
         obj.elements.sort(key=compare_key)
-    except Exception as e:
+    except (TypeError, ValueError) as e:
         raise QisamJeGhalti(f"Tarteeb mein ghalti: {e!s}.")
     return obj
 

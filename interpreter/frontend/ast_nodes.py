@@ -104,10 +104,7 @@ class VariableNode(Node):
     """Variable reference by name."""
 
     name: str
-    slot_index: int | None = None
-    scope_level: int | None = None
-    deref_depth: int | None = None
-    deref_name: str | None = None
+    hints: object = field(default=None, init=False)
 
 
 @dataclass(slots=True, repr=False)
@@ -120,10 +117,7 @@ class AssignNode(Node):
     is_const: bool = False
     element_type: object = None
     has_explicit_type: bool = False
-    slot_index: int | None = None
-    scope_level: int | None = None
-    deref_depth: int | None = None
-    deref_name: str | None = None
+    hints: object = field(default=None, init=False)
 
 
 # ===== Operators =====
@@ -185,7 +179,7 @@ class ForNode(Node):
     iterator: str
     iterable: Node
     body: BlockNode
-    iterator_slot: int | None = None
+    hints: object = field(default=None, init=False)
 
 
 @dataclass(slots=True, repr=False)
@@ -270,11 +264,7 @@ class FunctionNode(Node):
     params: list
     body: BlockNode
     return_type: TokenType | str | None = None
-    slot_count: int = 0
-    cell_slots: tuple = ()
-    free_slots: tuple = ()
-    slot_metadata: dict = field(default_factory=dict)
-    cell_metadata: dict = field(default_factory=dict)
+    hints: object = field(default=None, init=False)
 
 
 @dataclass(slots=True, repr=False)
@@ -290,7 +280,7 @@ class CallNode(Node):
     keywords: list = field(default_factory=list)
     star_args: Node | None = None
     kw_args: Node | None = None
-    callee_variable: Node | None = None
+    hints: object = field(default=None, init=False)
 
     def __post_init__(self):
         self.keywords = self.keywords or []

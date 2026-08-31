@@ -46,7 +46,7 @@ class SdResult(SdShey):
 
 | Form | Becomes | Verified behavior |
 |---|---|---|
-| `ok(expr)` | Ok parcel | usually implicit via arithmetic |
+| `ok(expr)` | Ok parcel | explicit `ok()` only; successful arithmetic returns raw values directly |
 | `ghalti("msg")` as expression | Ghalti parcel | |
 | `ghalti("msg")` alone as a **statement** | panic! | the one true panic form — aborts immediately with `HalndeVaktGhalti` (verified; previous lines still print first) |
 

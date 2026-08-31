@@ -16,19 +16,21 @@ flowchart LR
 
 ## Opcodes (`interpreter/backend/opcodes.py`)
 
-The `OpCode` IntEnum defines 37 bytecode instructions organized into 10 categories.
+The `OpCode` IntEnum defines 50 bytecode instructions organized into 12 categories.
 
 ### Complete Opcode Reference
 
-#### Constants and Variables (5)
+#### Constants and Variables (7)
 
 | Opcode | Arg | Description |
 |--------|-----|-------------|
 | `LOAD_CONST` | const_index | Push `constants[arg]` onto stack |
 | `LOAD_FAST` | slot_index | Push `frame.slots[arg]` (O(1) local access) |
-| `STORE_FAST` | slot_index | Pop value, store in `frame.slots[arg]` |
-| `LOAD_GLOBAL` | const_index | Look up `constants[arg].value` in globals, push value |
-| `STORE_GLOBAL` | const_index | Pop value, store in globals under `constants[arg].value` |
+| `STORE_FAST` | slot_index | Pop value, store in `frame.slots[arg]` (enforces pakko + types) |
+| `LOAD_GLOBAL` | name_index | Look up `constants[arg].value` in globals, push value |
+| `STORE_GLOBAL` | name_index or tuple | Pop value, store in globals; tuple carries `(idx, is_const, type, elem)` enforcement |
+| `LOAD_DEREF` | cell_index | Push closure cell `frame.cells[arg].value` |
+| `STORE_DEREF` | cell_index | Pop value, store in closure cell `frame.cells[arg].value` |
 
 #### Primitive Values (3)
 
@@ -60,27 +62,26 @@ The `OpCode` IntEnum defines 37 bytecode instructions organized into 10 categori
 | `COMPARE_GT` | -- | `left > right` | `__gt__` |
 | `COMPARE_GE` | -- | `left >= right` | `__ge__` |
 
-#### Logical (3)
+#### Logical (1)
 
-| Opcode | Arg | Description | Protocol Method |
-|--------|-----|-------------|-----------------|
-| `LOGICAL_AND` | -- | `left aen right` | `__and__` |
-| `LOGICAL_OR` | -- | `left ya right` | `__or__` |
-| `LOGICAL_NOT` | -- | `nah value` | `__invert__` |
+| Opcode | Arg | Description |
+|--------|-----|-------------|
+| `LOGICAL_NOT` | -- | `nah value`; push truthy negation via `sd_truthy` |
 
-#### Stack Manipulation (2)
+#### Stack Manipulation (1)
 
 | Opcode | Arg | Description |
 |--------|-----|-------------|
 | `POP_TOP` | -- | Pop and discard top of stack |
-| `DUP_TOP` | -- | Duplicate top of stack (peek) |
 
-#### Control Flow (2)
+#### Control Flow (4)
 
 | Opcode | Arg | Description |
 |--------|-----|-------------|
 | `JUMP_ABSOLUTE` | address | Set `frame.ip = arg` |
 | `JUMP_IF_FALSE` | address | Pop condition; if falsy, jump to `arg` |
+| `JUMP_IF_FALSE_OR_POP` | address | Peek condition; if true pop it, else jump to `arg` (short-circuit `aen`) |
+| `JUMP_IF_TRUE_OR_POP` | address | Peek condition; if false pop it, else jump to `arg` (short-circuit `ya`) |
 
 #### Iteration (2)
 
@@ -88,12 +89,6 @@ The `OpCode` IntEnum defines 37 bytecode instructions organized into 10 categori
 |--------|-----|-------------|
 | `GET_ITER` | -- | Pop object, push `iter(obj)` |
 | `FOR_ITER` | exit_addr | Peek iterator, call `next()`. On `StopIteration`, pop iterator and jump to `arg`. |
-
-#### I/O (1)
-
-| Opcode | Arg | Description |
-|--------|-----|-------------|
-| `PRINT_ITEM` | -- | Pop top and print to stdout |
 
 #### Collections (5)
 
@@ -105,13 +100,15 @@ The `OpCode` IntEnum defines 37 bytecode instructions organized into 10 categori
 | `BINARY_SUBSCRIPT` | -- | Pop index, obj, push `obj[index]` |
 | `STORE_SUBSCRIPT` | -- | Pop value, index, obj, call `obj[index] = value` |
 
-#### Functions and Methods (3)
+#### Functions and Methods (5)
 
 | Opcode | Arg | Description |
 |--------|-----|-------------|
-| `CALL_FUNCTION` | (const_idx, num_args) | Call function by name from globals |
-| `CALL_METHOD` | (const_idx, num_args) | Call method on object |
-| `GET_ATTR` | const_index | Get attribute from object |
+| `CALL_FUNCTION` | `(const_idx, num_args, has_markers)` | Call global function by name |
+| `CALL_VALUE` | `(num_args, has_markers)` | Call a function value already on the stack (`f()()`, local callees) |
+| `CALL_METHOD` | `(const_idx, num_args, has_markers)` | Call method on object (MRO lookup) |
+| `GET_ATTR` | const_index | Get attribute (only `ok`/`ghalti` exist today) |
+| `MAKE_FUNCTION` | ndefaults | Turn an `SdFunction` constant into a callable, binding defaults and closure cells |
 
 #### Result System and Errors (8)
 
@@ -213,8 +210,8 @@ flowchart TD
     D -->|"<="| N["COMPARE_LE"]
     D -->|">"| O["COMPARE_GT"]
     D -->|">="| P["COMPARE_GE"]
-    D -->|"aen"| Q["LOGICAL_AND"]
-    D -->|"ya"| R["LOGICAL_OR"]
+    D -->|"aen"| Q["JUMP_IF_FALSE_OR_POP (short-circuit)"]
+    D -->|"ya"| R["JUMP_IF_TRUE_OR_POP (short-circuit)"]
 ```
 
 #### Unary Operations
@@ -637,10 +634,11 @@ def _setup_dispatch_table(self):
         OpCode.PUSH_NULL: self._op_push_null,
         OpCode.PUSH_TRUE: self._op_push_true,
         OpCode.PUSH_FALSE: self._op_push_false,
-        OpCode.BINARY_ADD: self._op_binary_add,
-        # ... all 37 opcodes mapped
+        # ... all 50 opcodes mapped
         OpCode.HALT: self._op_halt,
     }
 ```
+
+The VM actually **generates** this table from handler names (`{op: getattr(self, f"_op_{op.name.lower()}") for op in OpCode}`), so a handler is never accidentally omitted — a missing `_op_*` method fails loudly at VM construction. `tests/test_dispatch_table.py` pins the handler↔opcode contract.
 
 The VM uses a dictionary-based dispatch table (like CPython) rather than a large `match` statement or `if/elif` chain.
