@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "prompt-toolkit>=3.0.52",
+    "rich>=15.0.0",
 ]
 
 [project.scripts]
@@ -15,6 +16,5 @@ sindlish = "main:main"
 dev = [
     "pytest>=9.0.3",
     "pyinstaller",
-    "rich>=15.0.0",
     "ruff>=0.16.4",
 ]
