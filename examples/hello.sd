@@ -673,8 +673,8 @@ likh("4. chad(99) - discard (no error):", s1)
 # bade - union
 likh("5. bade(s2) - union:", s1.bade(s2))
 
-# milap - intersection
-likh("6. milap(s2) - intersection:", s1.milap(s2))
+# mushtarak - intersection
+likh("6. mushtarak(s2) - intersection:", s1.mushtarak(s2))
 
 # farq - difference
 likh("7. farq(s2) - difference:", s1.farq(s2))

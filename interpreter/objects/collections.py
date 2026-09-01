@@ -559,9 +559,9 @@ def majmuo_bade(obj, args):
     return SdSet(obj.elements.union(args[0].elements))
 
 
-def majmuo_milap(obj, args):
+def majmuo_mushtarak(obj, args):
     if not isinstance(args[0], SdSet):
-        raise QisamJeGhalti("Milap sirf Majmuo laai aahe.")
+        raise QisamJeGhalti("Mushtarak sirf Majmuo laai aahe.")
     return SdSet(obj.elements.intersection(args[0].elements))
 
 
@@ -637,7 +637,7 @@ def majmuo_update(obj, args):
 MAJMUO_TYPE.register_method("addkar", majmuo_addkar)
 MAJMUO_TYPE.register_method("chad", majmuo_chad)
 MAJMUO_TYPE.register_method("bade", majmuo_bade)
-MAJMUO_TYPE.register_method("milap", majmuo_milap)
+MAJMUO_TYPE.register_method("mushtarak", majmuo_mushtarak)
 MAJMUO_TYPE.register_method("farq", majmuo_farq)
 MAJMUO_TYPE.register_method("symmetric_farq", majmuo_symmetric_farq)
 MAJMUO_TYPE.register_method("nandohisoahe", majmuo_nandohisoahe)

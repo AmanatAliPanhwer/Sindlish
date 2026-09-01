@@ -331,7 +331,7 @@ adad result = divide(10, 0).lazmi("Division failed")
 | `nakal()` | copy | Shallow copy |
 | `update(set)` | update | Add elements from another set |
 | `bade(set)` | union | New set (union) |
-| `milap(set)` | intersection | New set (intersection) |
+| `mushtarak(set)` | intersection | New set (intersection) |
 | `farq(set)` | difference | New set (difference) |
 | `symmetric_farq(set)` | sym. difference | New set (symmetric difference) |
 | `nandohisoahe(set)` | issubset | Check subset |

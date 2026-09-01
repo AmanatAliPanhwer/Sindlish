@@ -42,9 +42,9 @@ Registered once at import time, bottom half of `collections.py`. Signature for e
 
 **lughat** — `hasil(key, dflt)` get · `syon` items · `cabeyon` keys · `raqamon` values · `syonkadh` popitem · `defaultrakh` setdefault · `update` · `kadh` pop · `saf` · `nakal`
 
-**majmuo** — `addkar` add · `chad` discard · `hata` remove(strict) · `kadh` pop · `bade` union · `milap` intersection · `farq` difference · `symmetric_farq` · `nandohisoahe` ⊆ · `wadohisoahe` ⊇ · `alaghahe` disjoint · `saf` · `nakal` · `update`
+**majmuo** — `addkar` add · `chad` discard · `hata` remove(strict) · `kadh` pop · `bade` union · `mushtarak` intersection · `farq` difference · `symmetric_farq` · `nandohisoahe` ⊆ · `wadohisoahe` ⊇ · `alaghahe` disjoint · `saf` · `nakal` · `update`
 
-> 📝 Naming footnote: SLA dictionaries list both "bade" and "milap" as words for *union*, but current code maps `bade → union`, `milap → intersection`. An open decision is logged in `roadmap/TODO.md`.
+> 📝 Naming footnote: SLA dictionaries list both `bade` (ٻڌي) and `milap` (ميلاپ) as words for *union*, so mapping `milap → intersection` contradicted the source. **Decided in #32:** union keeps `bade`; intersection was renamed to `mushtarak` (مشترک, "shared/common") — matching the SLA's view of *milap* as a union word.
 
 Mutating methods return the object itself (`return obj`) so chains like `nums.wadha(4).wadha(5)` read left-to-right; a few return `SdNull` instead (e.g. `SdList.append` the dunder-side helper). Consistency here is an easy first contribution.
 

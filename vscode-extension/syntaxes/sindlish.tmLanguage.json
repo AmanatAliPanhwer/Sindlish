@@ -102,7 +102,7 @@
                     "name": "support.function.sindlish"
                 },
                 {
-                    "match": "\\.\\s*(?:addkar|alaghahe|bade|cabeyon|chad|defaultrakh|farq|garn|hasil|hata|index|kadh|milap|nakal|nandohisoahe|raqamon|saf|symmetric_farq|syon|syonkadh|tarteeb|ulto|update|wadha|wadhayo|wadohisoahe|wajh)\\b",
+                    "match": "\\.\\s*(?:addkar|alaghahe|bade|cabeyon|chad|defaultrakh|farq|garn|hasil|hata|index|kadh|mushtarak|nakal|nandohisoahe|raqamon|saf|symmetric_farq|syon|syonkadh|tarteeb|ulto|update|wadha|wadhayo|wadohisoahe|wajh)\\b",
                     "name": "entity.name.function.sindlish"
                 }
             ]

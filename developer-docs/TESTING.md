@@ -137,7 +137,7 @@ def test_list_append():
 | `test_dicts.py` | Dict operations | Literals, bracket indexing, assignment, typed dicts |
 | `test_dict_methods.py` | 10 dict methods | `hasil`, `cabeyon`, `raqamon`, `syon`, etc. |
 | `test_sets.py` | Set operations | Literals, `majmuo()`, typed sets |
-| `test_set_methods.py` | 14 set methods | `addkar`, `chad`, `bade`, `milap`, `farq`, etc. |
+| `test_set_methods.py` | 14 set methods | `addkar`, `chad`, `bade`, `mushtarak`, `farq`, etc. |
 | `test_strings.py` | String operations | Single/double/triple quotes, escapes, multiline |
 | `test_builtins.py` | Built-in functions | `lambi()`, `likh()` as function call |
 | `test_comments.py` | Comment support | `#` line comments, `/* */` block comments |

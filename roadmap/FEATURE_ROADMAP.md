@@ -315,7 +315,7 @@ string"""
 | discard | chad | ✅ | P0 |
 | clear | saf | ✅ | P0 |
 | union | bade | ✅ | P0 |
-| intersection | milap | ✅ | P0 |
+| intersection | mushtarak | ✅ | P0 |
 | difference | farq | ✅ | P0 |
 | symmetric_difference | symmetric_farq | ✅ | P0 |
 | issubset | nandohisoahe | ✅ | P0 |
