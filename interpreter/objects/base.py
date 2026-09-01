@@ -87,16 +87,20 @@ class SdType:
         if not self._bases:
             return (self,)
 
-        # C3 linearization algorithm
+        # C3 linearization algorithm: merge each base's own MRO together
+        # with the direct base list (as CPython does), then prepend self.
+        # Merging the direct bases as a sequence is what keeps a direct
+        # base ahead of a shared ancestor in a diamond hierarchy.
         merge_seq = []
         for base in self._bases:
             if isinstance(base, SdType):
                 merge_seq.append(base.mro)
             else:
                 merge_seq.append((base,))
+        merge_seq.append(tuple(self._bases))
 
         result = self._c3_merge(merge_seq)
-        return tuple(result) + (self,)
+        return (self,) + tuple(result)
 
     def _c3_merge(self, sequences: list) -> list:
         """
@@ -130,7 +134,13 @@ class SdType:
                     break
 
             if not merged:
-                break
+                raise TypeError(
+                    "Cannot create a consistent method resolution order (MRO) for bases "
+                    + ", ".join(
+                        base.name if isinstance(base, SdType) else repr(base)
+                        for base in self._bases
+                    )
+                )
 
             # Check if all sequences are empty
             if all(not seq for seq in sequences):
