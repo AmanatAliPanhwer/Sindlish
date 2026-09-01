@@ -17,8 +17,6 @@ class Environment:
     def __init__(self, parent: Optional["Environment"] = None):
         self.records: dict[str, VariableRecord] = {}
         self.parent = parent
-        self.global_names = set()
-        self.nonlocal_names = set()
 
     def define(
         self,

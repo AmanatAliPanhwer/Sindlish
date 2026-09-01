@@ -20,9 +20,7 @@ classDiagram
     }
     class SdShey {
         +SdType _type
-        +int _ref_count
         +call_method(name, args)
-        +incref() decref()
     }
     SdType --> SdShey : creates & describes
     SdShey --> SdType : _type points back
@@ -39,7 +37,7 @@ Types are singletons (`ADAD_TYPE`, `LAFZ_TYPE`, … created once at import). Ins
 
 ### Dispatch: the two-step lookup
 
-Every operation funnels through one method (`base.py:249`):
+Every operation funnels through one method (`base.py:274`):
 
 ```mermaid
 flowchart TD
@@ -55,13 +53,13 @@ flowchart TD
 
 Why two steps? Speed and history. Hot operators (`+ - [] ==`) are Python dunders on subclasses — a direct attribute hit. Named methods (`wadha`, `tarteeb`) live in `_methods` dicts on the *type singleton*, so they cost nothing per-instance and are shared across all instances.
 
-### Reference counting… mostly decorative
+### Reference counting… removed
 
-`incref/decref/_dealloc` exist on every object but nothing calls them today (CPython's GC does the real work). Logged as vestigial in `roadmap/TODO.md`. Read them as documentation of intent, not machinery.
+An early prototype carried CPython-style `incref/decref/_dealloc` on every object, but nothing ever called them (CPython's GC does the real work). The vestigial refcount machinery was **removed in #32**; no object carries a `_ref_count` slot today.
 
 ### Truthiness: one function to rule conditions
 
-`sd_truthy()` (`base.py:163`) is tiny and everywhere: Results unwrap (Ok → its value's truthiness; Ghalti → **true** — an error is information), everything else defers to Python. Conditions, loops, `aen/ya/nah` all route through it.
+`sd_truthy()` (`base.py:190`) is tiny and everywhere: Results unwrap (Ok → its value's truthiness; Ghalti → **true** — an error is information), everything else defers to Python. Conditions, loops, `aen/ya/nah` all route through it.
 
 ### Instance creation
 
@@ -70,5 +68,5 @@ Why two steps? Speed and history. Hot operators (`+ - [] ==`) are Python dunders
 <div class="recap">
 <p>Two pillars: <code>SdType</code> (identity, skills, family) and <code>SdShey</code> (card + dispatch).</p>
 <p>Dispatch = dunder first, then MRO'd registry; exceptions laundered at the border.</p>
-<p>Refcounts are vestigial; truthiness is centralized in <code>sd_truthy</code>.</p>
+<p>The vestigial refcount is gone; truthiness is centralized in <code>sd_truthy</code>.</p>
 </div>

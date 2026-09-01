@@ -206,11 +206,10 @@ class SdShey:
     and dynamic attribute storage.
     """
 
-    __slots__ = ("_ref_count", "_type")
+    __slots__ = ("_type",)
 
     def __init__(self, type_obj: SdType):
         self._type = type_obj
-        self._ref_count = 1
 
     @property
     def type(self) -> SdType:
@@ -220,11 +219,6 @@ class SdShey:
     @type.setter
     def type(self, value: SdType):
         self._type = value
-
-    @property
-    def ref_count(self) -> int:
-        """Reference count"""
-        return self._ref_count
 
     # Python special methods - default implementations
     def __eq__(self, other) -> bool:
@@ -334,17 +328,3 @@ class SdShey:
             raise QisamJeGhalti(str(e), line, column, code)
         except Exception as e:  # noqa: BLE001 - any unexpected method error -> runtime
             raise HalndeVaktGhalti(str(e), line, column, code)
-
-    # Reference counting
-    def incref(self):
-        """Increment reference count"""
-        self._ref_count += 1
-
-    def decref(self):
-        """Decrement reference count"""
-        self._ref_count -= 1
-        if self._ref_count <= 0:
-            self._dealloc()
-
-    def _dealloc(self):
-        """Deallocate object - override for cleanup"""
