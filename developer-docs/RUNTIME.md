@@ -114,16 +114,16 @@ Five functions are available in the global scope without declaration.
 class SimpleBuiltins:
     functions = {}  # Class-level shared registry
 
-    @staticmethod
-    def _register(registry_dict):
-        def decorator(func):
-            registry_dict[func.__name__] = func
-            return func
 
-        return decorator
+def register(registry_dict):
+    def decorator(func):
+        registry_dict[func.__name__] = func
+        return func
+
+    return decorator
 ```
 
-Functions are registered via the `@_register` decorator pattern.
+Functions are registered via the `@register` decorator pattern.
 
 ### Built-in Function Reference
 

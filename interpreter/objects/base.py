@@ -87,10 +87,7 @@ class SdType:
         if not self._bases:
             return (self,)
 
-        # C3 linearization algorithm: merge each base's own MRO together
-        # with the direct base list (as CPython does), then prepend self.
-        # Merging the direct bases as a sequence is what keeps a direct
-        # base ahead of a shared ancestor in a diamond hierarchy.
+        # C3 linearization: merge base MROs, then prepend self
         merge_seq = []
         for base in self._bases:
             if isinstance(base, SdType):

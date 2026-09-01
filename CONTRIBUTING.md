@@ -259,13 +259,13 @@ interpreter/
 1. Add the function to `interpreter/runtime/builtins.py`:
 
 ```python
-@_register(SimpleBuiltins.functions)
+@register(SimpleBuiltins.functions)
 def my_func(self, args):
     # Implementation
     return result
 ```
 
-2. It's automatically available globally (registered via `@_register`)
+2. It's automatically available globally (registered via `@register`)
 
 ### Adding a New Collection Method
 
