@@ -132,7 +132,7 @@ class SdType:
 
             if not merged:
                 raise TypeError(
-                    "Cannot create a consistent method resolution order (MRO) for bases "
+                    "Bases ji consistent method resolution order (MRO) nathi banay saghjo: "
                     + ", ".join(
                         base.name if isinstance(base, SdType) else repr(base)
                         for base in self._bases
