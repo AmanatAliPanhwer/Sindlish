@@ -51,7 +51,7 @@ classDiagram
         +set elements
         +addkar(item)
         +bade(other)
-        +milap(other)
+        +mushtarak(other)
     }
 
     class SdResult {
@@ -372,7 +372,7 @@ Wraps a Python `set`. Uses `MAJMUO_TYPE`. Mutable set type. Elements must be has
 | `nakal` | copy | `set.nakal()` | Returns a shallow copy. |
 | `update` | update | `set.update(other)` | Adds elements from another set. Rejects mutable elements. |
 | `bade` | union | `set.bade(other)` | Returns new set (union). |
-| `milap` | intersection | `set.milap(other)` | Returns new set (intersection). |
+| `mushtarak` | intersection | `set.mushtarak(other)` | Returns new set (intersection). |
 | `farq` | difference | `set.farq(other)` | Returns new set (difference). |
 | `symmetric_farq` | sym. difference | `set.symmetric_farq(other)` | Returns new set (symmetric difference). |
 | `nandohisoahe` | issubset | `set.nandohisoahe(other)` | Returns `SdBool`. |

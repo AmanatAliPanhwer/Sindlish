@@ -399,9 +399,9 @@ likh("")
 
 likh("--- PART 13a: FOR LOOPS (HAR) ---")
 
-# har i mein range(5) - Every i in range(5)
-likh("Iterate using range():")
-har i mein range(3) {
+# har i mein silsilo(5) - Every i in silsilo(5)
+likh("Iterate using silsilo():")
+har i mein silsilo(3) {
     likh("   i =", i)
 }
 
@@ -429,7 +429,7 @@ likh("--- PART 13c: LOOP CONTROL (TOR & JARI) ---")
 
 # tor (break) exits the loop
 likh("Break (tor) example:")
-har i mein range(10) {
+har i mein silsilo(10) {
     agar i == 3 {
         likh("   Breaking at 3")
         tor
@@ -439,7 +439,7 @@ har i mein range(10) {
 
 # jari (continue) skips to the next iteration
 likh("Continue (jari) example:")
-har i mein range(5) {
+har i mein silsilo(5) {
     agar i == 2 {
         likh("   Skipping 2")
         jari
@@ -673,8 +673,8 @@ likh("4. chad(99) - discard (no error):", s1)
 # bade - union
 likh("5. bade(s2) - union:", s1.bade(s2))
 
-# milap - intersection
-likh("6. milap(s2) - intersection:", s1.milap(s2))
+# mushtarak - intersection
+likh("6. mushtarak(s2) - intersection:", s1.mushtarak(s2))
 
 # farq - difference
 likh("7. farq(s2) - difference:", s1.farq(s2))

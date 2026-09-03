@@ -45,9 +45,9 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 - [x] `match` keyword accepted by lexer but parser has no handler — reserved with a clear message until implemented
 - [x] Duplicate `JUMP_IF_FALSE` entry in VM dispatch table; unused `DUP_TOP` opcode
 - [x] `SdString.__add__` type-mismatch message mentions comparison ("bhet") instead of concatenation
-- [ ] Set method naming: Sindhi Language Authority dictionaries list **both** `ٻڌي` ("bade") and `ميلاپ` ("milap") as words for **union**; official intersection terms are cutting/crossing words (ڪٽڻ، منقطع ٿيڻ). So `bade` = union is defensible, but `milap` for intersection contradicts SLA. Suggest renaming intersection to something like `mushtarak` (مشترک، "shared/common", familiar from Urdu math education) or keeping `milap` as an alias — decision needed
+- [x] Set method naming: Sindhi Language Authority dictionaries list **both** `ٻڌي` ("bade") and `ميلاپ` ("milap") as words for **union**; official intersection terms are cutting/crossing words (ڪٽڻ، منقطع ٿيڻ). So `bade` = union is defensible, but `milap` for intersection contradicts SLA. **Decided 2026-08 (#32): option 2 — intersection renamed to `mushtarak` (مشترک, "shared/common", familiar from Urdu math education); `bade` keeps union; `milap` retired (no alias).**
 - [x] `main.py tokens/ast` commands skip the file-existence check other commands perform → raw `FileNotFoundError` traceback
-- [x] `range(step=0)` leaks raw Python `ValueError` — guarded with a clean error; `range()` now returns a lazy `SdRange` (O(1) `lambi`, indexing, truthiness, no list materialization)
+- [x] `silsilo(step=0)` leaks raw Python `ValueError` — guarded with a clean error; `silsilo()` now returns a lazy `SdRange` (O(1) `lambi`, indexing, truthiness, no list materialization)
 - [x] `-2 ^ 2 == 4` kept **deliberately**: unary minus binds tighter than `^`, so it reads as `(-2) ^ 2`. Documented language convention; do not "fix" toward Python's `-4`
 - [x] Dead code removed: conftest no longer builds the `slot_names` hack; `VM.variables` reads only globals-environment records; `get_variable_value` prefers `vm.globals.records`
 - [x] **`main.py ast` crashes on any program containing a function** — `FunctionNode.__repr__` iterates every name in `__slots__`, but `slot_metadata` is declared there yet never initialized in `FunctionNode.__init__` (the resolver assigns it later). Printing a pre-resolution AST raises `AttributeError: ... has no attribute 'slot_metadata'`. Found 2026-08 while verifying docs snippets (`python main.py ast journey.sd`). **Fixed 2026-08 by the #29 frontend refactor:** `FunctionNode` (and all AST nodes) became a `@dataclass(slots=True)` with `slot_metadata: dict = field(default_factory=dict)`, so it is initialized at construction time
@@ -55,10 +55,10 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 - [x] **Dead print pipeline: `TokenType.LIKH`, `parse_print()`, `PrintNode`, `PRINT_ITEM` are all unreachable** — `"likh"` is missing from `KEYWORDS` (`interpreter/frontend/keywords.py`), so the lexer always emits `IDENTIFIER('likh')`; printing actually works as a builtin call (`CallNode` → `CALL_FUNCTION` → `SimpleBuiltins.likh`). The whole dedicated statement path is dead weight kept in sync by hand. Found 2026-08 while writing the lexer chapter (`python main.py tokens` shows `IDENTIFIER('likh')`). **Fixed 2026-08 by the #29 frontend refactor:** deleted the whole dead chain — `TokenType.LIKH`, `parse_print()`, `PrintNode`, `PRINT_ITEM`, and `resolve_PrintNode` now have zero references in `interpreter/` (printing remains a builtin call)
 - [x] **Dict/set element-type violations say "Fehrist"** — `VM._check_element_type` (`interpreter/backend/vm.py:183`) hardcodes "Fehrist je elements jo qisam …" in every message branch. When a typed `lughat[lafz, adad] = {"ali": "x"}` fails its value check, or a `majmuo[lafz]` gets a bad member, the user is told about *fehrist* regardless of container. Verified 2026-08: `lughat[lafz, adad] ages = {"ali": "x"}` → `QisamJeGhalti: Fehrist je elements jo qisam 'adad' hujjhan lazmi aahe`. **Fixed 2026-08 by the #29 frontend refactor:** `_check_element_type` takes a `container_name` parameter and callers pass "Majmuo"/"Lughat" so messages name the right container
 - [x] **Storing a propagated Ghalti Result into an annotated variable raises instead of propagating** — `VM._check_type` (`interpreter/backend/vm.py:146`) unwraps only *Ok* results; an *Err* flowing through `expr?` into an explicitly-typed slot hits the type comparison and raises `QisamJeGhalti: 'dahai' qisam laai dahai khapyo paye, par 'RESULT' milyo.` Verified 2026-08: `kaam bhag(adad a, adad b) { dahai r = a / b?  wapas r }` with `bhag(9, 0)` reports RESULT-milyo at the store instead of surfacing ZeroVindJeGhalti (untyped slots propagate correctly). Fix direction: in `_check_type`, early-return true when `isinstance(value, SdResult) and value.is_error()` so errors stay values across typed boundaries. **Fixed 2026-08 by the #30 Phase 2 resolver refactor:** `_check_type` early-returns on error `SdResult`, keeping errors as values across typed boundaries (covered by `TestResultTyping::test_error_result_propagates_through_typed_slot`)
-- [ ] **MRO/C3 is inverted and silently truncates (blocks future classes work)** — two verified defects in `SdType` (`interpreter/objects/base.py:67-124`), found 2026-08 while writing the book's MRO chapter:
-  1. `_compute_mro` appends `self` at the **end** (`result + (self,)`) instead of merging it as the *first* C3 sequence like Python does. Consequence: ancestor methods override descendants — `B(A)` that registers its own `hello` still resolves A's version via `lookup_method`. Overriding is structurally broken for any type using inheritance.
-  2. `_c3_merge` has no failure path: when no valid head exists it just `break`s and returns a partial order. Repro: F/G unrelated; `FA(F,G)`, `GA(G,F)`, `HA(FA,GA)` → `HA.mro == (HA,)` — both parents vanish from the MRO with no error. Python raises `TypeError: Cannot create a consistent method resolution order`. The old developer-docs even documented a `RuntimeError("Inconsistent MRO")` branch that doesn't exist in the code.
-  Fix direction: build merge_seq as `[ (self,) ] + [base.mro ...]`, take result[0] as self, and raise on stuck-merge. Currently dormant because no built-in type sets `bases`, but it's load-bearing for the planned `jamaat` classes feature
+- [x] **MRO/C3 was inverted and silently truncated** (fixed in #32) — two verified defects in `SdType` (`interpreter/objects/base.py:67-124`), found 2026-08 while writing the book's MRO chapter:
+  1. `_compute_mro` appended `self` at the **end** (`result + (self,)`) instead of merging it as the *first* C3 sequence like Python does. Consequence: ancestor methods overrode descendants — `B(A)` that registers its own `hello` still resolved A's version via `lookup_method`. Overriding was structurally broken for any type using inheritance.
+  2. `_c3_merge` had no failure path: when no valid head existed it just `break`s and returned a partial order. Repro: F/G unrelated; `FA(F,G)`, `GA(G,F)`, `HA(FA,GA)` → `HA.mro == (HA,)` — both parents vanished from the MRO with no error. Python raises `TypeError: Cannot create a consistent method resolution order`.
+  **Fixed 2026-08 by #32:** `_compute_mro` now prepends `self` and includes `self._bases` in the merge so direct bases precede shared ancestors; `_c3_merge` raises `TypeError` on stuck-merge (message in Romanized Sindhi). Covered by `tests/test_mro.py`. Load-bearing for the planned `jamaat` classes feature.
 - [ ] **`tests/conftest.py` hardcodes a machine-specific sys.path** — line 12 does `sys.path.insert(0, "d:/Code/Sindlish")`, which breaks on any other checkout location/OS. Fix: derive from `pathlib.Path(__file__).resolve().parents[1]`. Found 2026-08 while writing the testing chapter
 
 ---
@@ -85,7 +85,7 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 
 ### Output & Builtins
 - [ ] `likh(sep=, end=)` parameters
-- [ ] Runtime type-check builtin `qisam(x)`
+- [x] Runtime type-check builtin `qisam(x)` — shipped with #32; returns the type name of its argument as a `lafz`
 - [ ] More casts: `lafz()` for numbers, `lughat()`
 
 ---
@@ -124,7 +124,7 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 - [ ] Tests for every fix above (currently 236 passing)
 - [ ] VM performance pass guided by `bench/run_benchmarks.py`
 - [ ] Sync docs website (`docs/` submodule) with language changes
-- [ ] Remove vestigial code: `SdShey._ref_count`, unused `Environment.global_names/nonlocal_names`
+- [x] Remove vestigial code: `SdShey._ref_count`, unused `Environment.global_names/nonlocal_names` — shipped with #32
 
 ---
 

@@ -21,6 +21,6 @@ agar x > z {
     likh("x choto aahe")
 }
 
-har i mein range(5) {
+har i mein silsilo(5) {
     likh(i)
 }

@@ -95,7 +95,7 @@ khali d       # defaults to khali (None)
 | Tuple | ❌ | - | P2 | - |
 | Frozen Set | ❌ | - | P3 | - |
 | Byte Array | ❌ | - | P3 | - |
-| Range | ✅ | `range(5)` | P2 | - |
+| Range (`silsilo`) | ✅ | `silsilo(5)` | P2 | - |
 | Deque | ❌ | - | P3 | - |
 | Nested Collections | ✅ | `fehrist[fehrist]` | P1 | Typed collections |
 
@@ -197,7 +197,7 @@ jistain x < 10 {
     x = x + 1
 }
 
-har i mein range(5) {
+har i mein silsilo(5) {
     likh(i)
 }
 ```
@@ -208,7 +208,7 @@ har i mein range(5) {
 
 | Feature | Status | Syntax | Priority | Dependencies |
 |---------|--------|--------|----------|--------------|
-| Built-in Functions | ✅ | `likh()`, `lambi()`, `puch()`, `range()`, `majmuo()` | P0 | - |
+| Built-in Functions | ✅ | `likh()`, `lambi()`, `puch()`, `silsilo()`, `majmuo()`, `qisam()` | P0 | - |
 | Method Calls | ✅ | `list.wadha(item)` | P0 | - |
 | User-defined Functions | ✅ | `kaam add(a, b) { }` | P0 | - |
 | Recursion | ✅ | Function calling itself | P1 | User-defined functions |
@@ -263,7 +263,7 @@ string"""
 | Length (lambi) | ✅ | `lambi(list)` | P0 | - |
 | Indexing | ✅ | `l[0]`, `l[-1]`, nested `m[1][0]` | P0 | - |
 | Index Assignment | ✅ | `l[0] = 99`, `d["k"] = v` | P0 | - |
-| Iteration | ✅ | lists, dicts, sets, strings, range | P0 | - |
+| Iteration | ✅ | lists, dicts, sets, strings, `silsilo` | P0 | - |
 | List Slicing | ❌ | `l[1:3]` | P1 | - |
 | List Comprehension | ❌ | `[x har x mein l]` (syntax TBD) | P1 | - |
 | Dict Comprehension | ❌ | - | P1 | - |
@@ -315,7 +315,7 @@ string"""
 | discard | chad | ✅ | P0 |
 | clear | saf | ✅ | P0 |
 | union | bade | ✅ | P0 |
-| intersection | milap | ✅ | P0 |
+| intersection | mushtarak | ✅ | P0 |
 | difference | farq | ✅ | P0 |
 | symmetric_difference | symmetric_farq | ✅ | P0 |
 | issubset | nandohisoahe | ✅ | P0 |
@@ -394,7 +394,7 @@ Sindlish deliberately replaces try/catch with a **Result system**.
 | Union Types | ❌ | `adad | lafz` | P2 | - |
 | Optional Types | ❌ | - | P1 | - |
 | Type Guards | ❌ | - | P2 | - |
-| Runtime Type Check | ❌ | planned builtin `qisam(x)` | P1 | - |
+| Runtime Type Check | ✅ | builtin `qisam(x)` | P1 | - |
 
 ---
 
@@ -483,7 +483,7 @@ Sindlish deliberately replaces try/catch with a **Result system**.
 - [ ] List comprehension
 - [ ] File I/O
 - [ ] JSON support
-- [ ] Runtime type checking (`qisam`)
+- [x] Runtime type checking (`qisam`)
 - [x] For loops
 - [x] Break/continue
 - [x] User input

@@ -1,14 +1,16 @@
 """
 Built-in functions for the Sindlish language.
 
-Standalone functions available in the global scope: lambi, likh, majmuo.
+Standalone functions available in the global scope: lambi, likh, majmuo, puch, qisam, silsilo.
 """
+
+from typing import ClassVar
 
 from ..errors import HalndeVaktGhalti, QisamJeGhalti
 from ..objects import SdNull, SdNumber, SdRange, SdSet, SdString
 
 
-def _register(registry_dict):
+def register(registry_dict):
     """Decorator to auto-register functions into a dictionary."""
 
     def decorator(func):
@@ -21,9 +23,9 @@ def _register(registry_dict):
 class SimpleBuiltins:
     """Built-in standalone functions available in the global scope."""
 
-    functions = {}
+    functions: ClassVar[dict] = {}
 
-    @_register(functions)
+    @register(functions)
     def majmuo(self, args):
         """Create a new set from arguments."""
         if len(args) == 0:
@@ -32,7 +34,7 @@ class SimpleBuiltins:
             return SdSet(set(args[0]))
         raise HalndeVaktGhalti("majmuo() khe 0 ya 1 argument khapay.")
 
-    @_register(functions)
+    @register(functions)
     def lambi(self, args):
         """Return the length of a collection or string."""
         if len(args) != 1:
@@ -48,21 +50,21 @@ class SimpleBuiltins:
             return SdNumber(len(obj.value))
         raise QisamJeGhalti(f"'{obj.type.name}' ji lambai nathi mapay saghjay.")
 
-    @_register(functions)
+    @register(functions)
     def likh(self, args):
         """Print values to stdout."""
         print(*(str(arg) for arg in args))
         return SdNull()
 
-    @_register(functions)
+    @register(functions)
     def puch(self, args):
         """Takes input from user."""
         prompt = " ".join(str(arg) for arg in args)
         return SdString(input(prompt))
 
-    @_register(functions)
-    def range(self, args):
-        """Return a list of numbers from start to end with step."""
+    @register(functions)
+    def silsilo(self, args):
+        """Return a lazy range of numbers from start (inclusive) to end (exclusive) with step."""
         if len(args) == 1:
             start, end, step = 0, int(args[0].value), 1
         elif len(args) == 2:
@@ -74,11 +76,24 @@ class SimpleBuiltins:
                 int(args[2].value),
             )
         else:
-            raise HalndeVaktGhalti("range() khe 1, 2, ya 3 arguments khapan.")
+            raise HalndeVaktGhalti("silsilo() khe 1, 2, ya 3 arguments khapan.")
         if step == 0:
-            raise HalndeVaktGhalti("range() jo step zero (0) natho thi saghjay.")
+            raise HalndeVaktGhalti("silsilo() jo step zero (0) natho thi saghjay.")
 
         return SdRange(start, end, step)
+
+    @register(functions)
+    def qisam(self, args):
+        """Returns the type of the object."""
+        if len(args) != 1:
+            raise HalndeVaktGhalti("qisam() khe sirf 1 argument khapay.")
+        try:
+            return SdString(args[0].type.name)
+        except AttributeError:
+            raise HalndeVaktGhalti(
+                "qisam() builtins jo qisam natho bodaey sghe."
+            ) from None
+
 
     def get_all(self):
         """Return all registered built-in functions."""

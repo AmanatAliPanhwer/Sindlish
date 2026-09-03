@@ -87,16 +87,17 @@ class SdType:
         if not self._bases:
             return (self,)
 
-        # C3 linearization algorithm
+        # C3 linearization: merge base MROs, then prepend self
         merge_seq = []
         for base in self._bases:
             if isinstance(base, SdType):
                 merge_seq.append(base.mro)
             else:
                 merge_seq.append((base,))
+        merge_seq.append(tuple(self._bases))
 
         result = self._c3_merge(merge_seq)
-        return tuple(result) + (self,)
+        return (self,) + tuple(result)
 
     def _c3_merge(self, sequences: list) -> list:
         """
@@ -130,7 +131,13 @@ class SdType:
                     break
 
             if not merged:
-                break
+                raise TypeError(
+                    "Bases ji consistent method resolution order (MRO) nathi banay saghjo: "
+                    + ", ".join(
+                        base.name if isinstance(base, SdType) else repr(base)
+                        for base in self._bases
+                    )
+                )
 
             # Check if all sequences are empty
             if all(not seq for seq in sequences):
@@ -196,11 +203,10 @@ class SdShey:
     and dynamic attribute storage.
     """
 
-    __slots__ = ("_ref_count", "_type")
+    __slots__ = ("_type",)
 
     def __init__(self, type_obj: SdType):
         self._type = type_obj
-        self._ref_count = 1
 
     @property
     def type(self) -> SdType:
@@ -210,11 +216,6 @@ class SdShey:
     @type.setter
     def type(self, value: SdType):
         self._type = value
-
-    @property
-    def ref_count(self) -> int:
-        """Reference count"""
-        return self._ref_count
 
     # Python special methods - default implementations
     def __eq__(self, other) -> bool:
@@ -324,17 +325,3 @@ class SdShey:
             raise QisamJeGhalti(str(e), line, column, code)
         except Exception as e:  # noqa: BLE001 - any unexpected method error -> runtime
             raise HalndeVaktGhalti(str(e), line, column, code)
-
-    # Reference counting
-    def incref(self):
-        """Increment reference count"""
-        self._ref_count += 1
-
-    def decref(self):
-        """Decrement reference count"""
-        self._ref_count -= 1
-        if self._ref_count <= 0:
-            self._dealloc()
-
-    def _dealloc(self):
-        """Deallocate object - override for cleanup"""

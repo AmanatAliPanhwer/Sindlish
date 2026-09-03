@@ -43,11 +43,11 @@ class TestBade:
         assert extract_value(interp.variables["val"]["value"]) == {1, 2, 3}
 
 
-class TestMilap:
+class TestMushtarak:
     """intersection"""
 
-    def test_milap(self):
-        interp, _ = run("a = {1, 2, 3}\nb = {2, 3, 4}\nval = a.milap(b)")
+    def test_mushtarak(self):
+        interp, _ = run("a = {1, 2, 3}\nb = {2, 3, 4}\nval = a.mushtarak(b)")
         assert extract_value(interp.variables["val"]["value"]) == {2, 3}
 
 

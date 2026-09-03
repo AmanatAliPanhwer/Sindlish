@@ -13,7 +13,8 @@ Builtins are seeded into this environment at startup (`tests/conftest.py` shows 
 | `likh(...)` | space-separated print; does **not** consume Results |
 | `puch(prompt)` | returns `SdString` |
 | `lambi(x)` | works on strings, lists/dicts/sets, ranges |
-| `range(a[,b[,c]])` | returns **lazy** `SdRange` (O(1) length, indexable) |
+| `silsilo(a[,b[,c]])` | returns **lazy** `SdRange` (O(1) length, indexable) |
+| `qisam(x)` | returns the type name of `x` as a `lafz` |
 | `majmuo([iterable])` | 0 or 1 args |
 
 ## 🖥️ The REPL (`interpreter/repl.py`)
@@ -27,6 +28,6 @@ Errors in REPL mode don't kill the session: the interpreter reports and keeps th
 
 <div class="recap">
 <p>Globals = records with enforcement metadata attached.</p>
-<p>Builtins seed as const KAAM records; <code>range</code> is lazy.</p>
+<p>Builtins seed as const KAAM records; <code>silsilo</code> is lazy.</p>
 <p>REPL = pipeline + shared globals environment + symbols-driven completion.</p>
 </div>

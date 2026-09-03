@@ -25,25 +25,46 @@ uv run pytest tests/test_arithmetic.py::TestAddition::test_add_two_integers
 
 Three helper functions power all tests:
 
-### `run(code) -> VM`
+### `run(code) -> (VM, str)`
 
-Executes Sindlish source code through the full pipeline (Lexer -> Parser -> Resolver -> Compiler -> VM) and captures stdout:
+Executes Sindlish source code through the full pipeline (Lexer -> Parser -> Resolver -> Compiler -> VM), capturing stdout, and returns the `(vm, captured_stdout)` tuple:
 
 ```python
-def run(code):
-    import io
-    import sys
+def run(code: str):
+    lexer = Lexer(code)
+    tokens = lexer.generate_tokens()
+    parser = Parser(tokens, code)
+    ast = parser.parse()
+
+    resolver = Resolver(code)
+    resolver.resolve(ast)
+
+    compiler = Compiler(code)
+    instructions, constants, line_col_map = compiler.compile(ast)
+
+    globals_env = create_globals_env()
+    slot_metadata = resolver.get_slot_metadata()
 
     old_stdout = sys.stdout
     sys.stdout = buffer = io.StringIO()
+    try:
+        vm = VM(
+            code,
+            instructions,
+            constants,
+            globals_env,
+            getattr(ast, "slot_count", 0),
+            slot_metadata,
+            line_col_map,
+        )
+        vm.run()
+    finally:
+        sys.stdout = old_stdout
 
-    interp = Interpreter()
-    vm = interp.run_source(code, is_repl=True)
-
-    sys.stdout = old_stdout
-    vm.stdout_output = buffer.getvalue()
-    return vm
+    return vm, buffer.getvalue()
 ```
+
+Callers unpack both values — the VM for variable assertions, the captured stdout for output checks (e.g. `_, out = run(...)` then `assert "text" in out`).
 
 ### `get_variable_value(vm, name) -> Any`
 
@@ -131,13 +152,13 @@ def test_list_append():
 | `test_print.py` | `likh()` function | Strings, numbers, expressions, multiple args |
 | `test_if_else.py` | Conditional statements | `agar`, `warna`, `yawari`, nesting |
 | `test_while.py` | While loops | `jistain` with counters, accumulation |
-| `test_loops.py` | For loops, break, continue | `har...mein`, `tor`, `jari`, `range()` |
+| `test_loops.py` | For loops, break, continue | `har...mein`, `tor`, `jari`, `silsilo()` |
 | `test_lists.py` | List operations | Literals, indexing, negative index, typed lists |
 | `test_list_methods.py` | 11 list methods | `wadha`, `wadhayo`, `wajh`, `hata`, `kadh`, etc. |
 | `test_dicts.py` | Dict operations | Literals, bracket indexing, assignment, typed dicts |
 | `test_dict_methods.py` | 10 dict methods | `hasil`, `cabeyon`, `raqamon`, `syon`, etc. |
 | `test_sets.py` | Set operations | Literals, `majmuo()`, typed sets |
-| `test_set_methods.py` | 14 set methods | `addkar`, `chad`, `bade`, `milap`, `farq`, etc. |
+| `test_set_methods.py` | 14 set methods | `addkar`, `chad`, `bade`, `mushtarak`, `farq`, etc. |
 | `test_strings.py` | String operations | Single/double/triple quotes, escapes, multiline |
 | `test_builtins.py` | Built-in functions | `lambi()`, `likh()` as function call |
 | `test_comments.py` | Comment support | `#` line comments, `/* */` block comments |
