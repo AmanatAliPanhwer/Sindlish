@@ -1,7 +1,7 @@
 """
 Built-in functions for the Sindlish language.
 
-Standalone functions available in the global scope: lambi, likh, majmuo, puch, range.
+Standalone functions available in the global scope: lambi, likh, majmuo, puch, qisam, silsilo.
 """
 
 from typing import ClassVar
@@ -89,8 +89,10 @@ class SimpleBuiltins:
             raise HalndeVaktGhalti("qisam() khe sirf 1 argument khapay.")
         try:
             return SdString(args[0].type.name)
-        except:  # noqa: E722
-            raise HalndeVaktGhalti("qisam() builtins jo qisam natho bodaey sghe.")
+        except AttributeError:
+            raise HalndeVaktGhalti(
+                "qisam() builtins jo qisam natho bodaey sghe."
+            ) from None
 
 
     def get_all(self):

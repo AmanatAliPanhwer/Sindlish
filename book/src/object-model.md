@@ -37,7 +37,7 @@ Types are singletons (`ADAD_TYPE`, `LAFZ_TYPE`, … created once at import). Ins
 
 ### Dispatch: the two-step lookup
 
-Every operation funnels through one method (`base.py:274`):
+Every operation funnels through one method (`base.py:271`):
 
 ```mermaid
 flowchart TD

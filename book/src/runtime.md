@@ -14,6 +14,7 @@ Builtins are seeded into this environment at startup (`tests/conftest.py` shows 
 | `puch(prompt)` | returns `SdString` |
 | `lambi(x)` | works on strings, lists/dicts/sets, ranges |
 | `silsilo(a[,b[,c]])` | returns **lazy** `SdRange` (O(1) length, indexable) |
+| `qisam(x)` | returns the type name of `x` as a `lafz` |
 | `majmuo([iterable])` | 0 or 1 args |
 
 ## 🖥️ The REPL (`interpreter/repl.py`)

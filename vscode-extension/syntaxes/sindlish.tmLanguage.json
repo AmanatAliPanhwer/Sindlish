@@ -98,7 +98,7 @@
         "builtins": {
             "patterns": [
                 {
-                    "match": "\\b(?:majmuo|lambi|likh|puch|range)\\b",
+                    "match": "\\b(?:majmuo|lambi|likh|puch|qisam|silsilo)\\b",
                     "name": "support.function.sindlish"
                 },
                 {

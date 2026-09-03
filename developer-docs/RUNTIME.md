@@ -106,7 +106,7 @@ Local variables use slot-based array access for O(1) performance. Global variabl
 
 ## Built-in Functions (`interpreter/runtime/builtins.py`)
 
-Five functions are available in the global scope without declaration.
+Six functions are available in the global scope without declaration.
 
 ### Registration System
 
@@ -184,35 +184,36 @@ Returns the length of a collection or string.
 - `SdSet` → `len(elements)`
 - `SdString` → `len(value)` (string length)
 
-#### `range(n)`, `range(a, b)`, `range(a, b, s)` — Number Range
+#### `silsilo(a, b?, s?)` — Number Range (lazy)
 
 ```python
-def range_builtin(self, args):
+def silsilo(self, args):
     if len(args) == 1:
-        return SdList([SdNumber(i) for i in range(0, int(args[0].value), 1)])
+        start, end, step = 0, int(args[0].value), 1
     elif len(args) == 2:
-        return SdList(
-            [SdNumber(i) for i in range(int(args[0].value), int(args[1].value), 1)]
-        )
+        start, end, step = int(args[0].value), int(args[1].value), 1
     elif len(args) == 3:
-        return SdList(
-            [
-                SdNumber(i)
-                for i in range(
-                    int(args[0].value), int(args[1].value), int(args[2].value)
-                )
-            ]
+        start, end, step = (
+            int(args[0].value),
+            int(args[1].value),
+            int(args[2].value),
         )
+    else:
+        raise HalndeVaktGhalti("silsilo() khe 1, 2, ya 3 arguments khapan.")
+    if step == 0:
+        raise HalndeVaktGhalti("silsilo() jo step zero (0) natho thi saghjay.")
+    return SdRange(start, end, step)
 ```
 
-Creates a list of integers.
+Returns a **lazy** `SdRange` (never materializes a list). Supports O(1) `lambi()`, indexing (with negative indexes), truthiness, and iteration. A zero `step` raises `HalndeVaktGhalti` instead of leaking a raw `ValueError`.
 
-| Signature | Result |
+| Signature | Yields |
 |-----------|--------|
-| `range(5)` | `[0, 1, 2, 3, 4]` |
-| `range(2, 7)` | `[2, 3, 4, 5, 6]` |
-| `range(0, 10, 2)` | `[0, 2, 4, 6, 8]` |
-| `range(10, 0, -2)` | `[10, 8, 6, 4, 2]` |
+| `silsilo(5)`       | `0, 1, 2, 3, 4` |
+| `silsilo(2, 7)`    | `2, 3, 4, 5, 6` |
+| `silsilo(0, 10, 2)`| `0, 2, 4, 6, 8` |
+| `silsilo(10, 0, -2)`| `10, 8, 6, 4, 2` |
+| `silsilo(5, 5)`    | empty (falsy) |
 
 #### `majmuo(*args)` — Set Constructor
 

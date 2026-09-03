@@ -104,15 +104,15 @@ lambi({"a": 1, "b": 2}) # 2
 lambi({1, 2, 3})        # 3
 ```
 
-### `range(n)`, `range(a, b)`, `range(a, b, s)`
+### `silsilo(n)`, `silsilo(a, b)`, `silsilo(a, b, s)`
 
-Creates a list of integers.
+Creates a lazy number range (`SdRange` — never materializes a list; O(1) `lambi()`, indexable, iterable).
 
 ```
-range(5)                # [0, 1, 2, 3, 4]
-range(2, 7)             # [2, 3, 4, 5, 6]
-range(0, 10, 2)         # [0, 2, 4, 6, 8]
-range(10, 0, -2)        # [10, 8, 6, 4, 2]
+silsilo(5)                # 0, 1, 2, 3, 4
+silsilo(2, 7)             # 2, 3, 4, 5, 6
+silsilo(0, 10, 2)         # 0, 2, 4, 6, 8
+silsilo(10, 0, -2)        # 10, 8, 6, 4, 2
 ```
 
 ### `majmuo(*args)`
@@ -123,6 +123,16 @@ Creates a new set.
 majmuo()                # {} (empty set)
 majmuo([1, 2, 3])       # {1, 2, 3}
 majmuo(1, 2, 3)         # Error: expected 0 or 1 args
+```
+
+### `qisam(x)`
+
+Returns the type name of `x` as a string (`lafz`).
+
+```
+qisam(5)                # "adad"
+qisam("hi")             # "lafz"
+qisam([1, 2])           # "fehrist"
 ```
 
 ## Operators
@@ -201,7 +211,7 @@ jistain x > 0 {
 }
 
 # For
-har i mein range(5) {
+har i mein silsilo(5) {
     likh(i)
 }
 
