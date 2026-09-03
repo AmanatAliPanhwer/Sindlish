@@ -166,8 +166,8 @@ class SdRange(SdShey):
 
     def __str__(self):
         if self.step == 1:
-            return f"range({self.start}, {self.stop})"
-        return f"range({self.start}, {self.stop}, {self.step})"
+            return f"silsilo({self.start}, {self.stop})"
+        return f"silsilo({self.start}, {self.stop}, {self.step})"
 
     def __hash__(self):
         raise TypeError(f"Unhashable qisam: '{self.type.name}'.")

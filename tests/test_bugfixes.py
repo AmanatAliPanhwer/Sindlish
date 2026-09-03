@@ -328,9 +328,9 @@ class TestCollectionsAndBuiltins:
         with pytest.raises(LikhaiJeGhalti, match="sirf hikro argument"):
             run("majmuo(1, 2)")
 
-    def test_range_zero_step_raises(self):
+    def test_silsilo_zero_step_raises(self):
         with pytest.raises(HalndeVaktGhalti, match="step"):
-            run("range(0, 10, 0)")
+            run("silsilo(0, 10, 0)")
 
     def test_set_literal_unhashable_clean_error(self):
         with pytest.raises(QisamJeGhalti, match="hashable"):
@@ -536,44 +536,44 @@ class TestFunctionLocalConstraints:
         assert extract_value(interp.variables["x"]["value"]) == 6
 
 
-class TestLazyRange:
-    def test_har_loop_over_range(self):
-        interp, _ = run("jama = 0\nhar i mein range(1, 101) { jama = jama + i }")
+class TestLazysilsilo:
+    def test_har_loop_over_silsilo(self):
+        interp, _ = run("jama = 0\nhar i mein silsilo(1, 101) { jama = jama + i }")
         assert extract_value(interp.variables["jama"]["value"]) == 5050
 
     def test_lambi_is_constant_time(self):
-        interp, _ = run("x = lambi(range(0, 1000000000, 5))")
+        interp, _ = run("x = lambi(silsilo(0, 1000000000, 5))")
         assert extract_value(interp.variables["x"]["value"]) == 200000000
 
-    def test_range_does_not_materialize(self):
+    def test_silsilo_does_not_materialize(self):
         interp, _ = run(
-            "x = 0\nhar v mein range(1000000000000, 1000000000010) { x = v }"
+            "x = 0\nhar v mein silsilo(1000000000000, 1000000000010) { x = v }"
         )
         assert extract_value(interp.variables["x"]["value"]) == 1000000000009
 
     def test_negative_step(self):
-        _interp, out = run("r = range(10, 0, -2)\nlikh(r[2])")
+        _interp, out = run("r = silsilo(10, 0, -2)\nlikh(r[2])")
         assert "6" in out
 
     def test_indexing_and_length(self):
-        interp, _ = run("r = range(1, 20, 3)\na = r[4]\nb = lambi(r)")
+        interp, _ = run("r = silsilo(1, 20, 3)\na = r[4]\nb = lambi(r)")
         assert extract_value(interp.variables["a"]["value"]) == 13
         assert extract_value(interp.variables["b"]["value"]) == 7
 
     def test_str_representation(self):
-        _, out = run("likh(range(1, 5, 2))")
-        assert "range(1, 5, 2)" in out
+        _, out = run("likh(silsilo(1, 5, 2))")
+        assert "silsilo(1, 5, 2)" in out
 
     def test_truthiness(self):
         _, out = run(
-            'agar range(5, 5) { likh("t") } warna { likh("f") }\nagar range(1) { likh("big") }'
+            'agar silsilo(5, 5) { likh("t") } warna { likh("f") }\nagar silsilo(1) { likh("big") }'
         )
         assert "f" in out
         assert "big" in out
 
     def test_out_of_bounds_index_raises(self):
         with pytest.raises(QisamJeGhalti, match="bahar"):
-            run("r = range(3)\nr[7]")
+            run("r = silsilo(3)\nr[7]")
 
 
 class TestResultSemantics:

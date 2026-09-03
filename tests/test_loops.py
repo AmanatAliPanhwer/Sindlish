@@ -15,20 +15,20 @@ har n mein nums {
         interp, _ = run(code)
         assert extract_value(interp.variables["total"]["value"]) == 6
 
-    def test_for_range_1(self):
+    def test_for_silsilo_1(self):
         code = """
 total = 0
-har i mein range(5) {
+har i mein silsilo(5) {
     total = total + i
 }
 """
         interp, _ = run(code)
         assert extract_value(interp.variables["total"]["value"]) == 10
 
-    def test_for_range_start_stop(self):
+    def test_for_silsilo_start_stop(self):
         code = """
 total = 0
-har i mein range(2, 5) {
+har i mein silsilo(2, 5) {
     total = total + i
 }
 """
@@ -38,8 +38,8 @@ har i mein range(2, 5) {
     def test_for_nested(self):
         code = """
 count = 0
-har i mein range(3) {
-    har j mein range(2) {
+har i mein silsilo(3) {
+    har j mein silsilo(2) {
         count = count + 1
     }
 }
@@ -65,7 +65,7 @@ jistain x < 10 {
     def test_for_break(self):
         code = """
 total = 0
-har i mein range(10) {
+har i mein silsilo(10) {
     agar i == 5 {
         tor
     }
@@ -94,7 +94,7 @@ jistain x < 5 {
     def test_for_continue(self):
         code = """
 total = 0
-har i mein range(5) {
+har i mein silsilo(5) {
     agar i == 2 {
         jari
     }

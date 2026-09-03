@@ -63,7 +63,7 @@ class SimpleBuiltins:
         return SdString(input(prompt))
 
     @register(functions)
-    def range(self, args):
+    def silsilo(self, args):
         """Return a lazy range of numbers from start (inclusive) to end (exclusive) with step."""
         if len(args) == 1:
             start, end, step = 0, int(args[0].value), 1
@@ -76,11 +76,22 @@ class SimpleBuiltins:
                 int(args[2].value),
             )
         else:
-            raise HalndeVaktGhalti("range() khe 1, 2, ya 3 arguments khapan.")
+            raise HalndeVaktGhalti("silsilo() khe 1, 2, ya 3 arguments khapan.")
         if step == 0:
-            raise HalndeVaktGhalti("range() jo step zero (0) natho thi saghjay.")
+            raise HalndeVaktGhalti("silsilo() jo step zero (0) natho thi saghjay.")
 
         return SdRange(start, end, step)
+
+    @register(functions)
+    def qisam(self, args):
+        """Returns the type of the object."""
+        if len(args) != 1:
+            raise HalndeVaktGhalti("qisam() khe sirf 1 argument khapay.")
+        try:
+            return SdString(args[0].type.name)
+        except:  # noqa: E722
+            raise HalndeVaktGhalti("qisam() builtins jo qisam natho bodaey sghe.")
+
 
     def get_all(self):
         """Return all registered built-in functions."""
