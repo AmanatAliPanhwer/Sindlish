@@ -40,7 +40,7 @@ flowchart TD
 | `objects/strings.py` | ~90 | `SdString`. |
 | `objects/collections.py` | ~570 | List/dict/set/range + all registered native methods. |
 | `runtime/env.py` | ~72 | Globals `Environment`: name → `VariableRecord(value, type, is_const)`. |
-| `runtime/builtins.py` | ~80 | `likh`, `puch`, `lambi`, `range`, `majmuo`. |
+| `runtime/builtins.py` | ~80 | `likh`, `puch`, `lambi`, `silsilo`, `majmuo`. |
 | `errors.py` | ~119 | Error hierarchy + ANSI-pretty `ErrorReporter`. |
 | `repl.py` | — | Interactive shell with highlighting/completion. |
 

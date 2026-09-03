@@ -124,7 +124,7 @@ There is no second `x`. Assignment resolution consults `_find(name)` first (`res
 `resolve_ForNode` (`resolver.py:560`) binds the iterator in the *current* scope — an ordinary local slot inside a function, a global at program level (`iterator_slot` -1). The iterator leaks its last value after the loop, exactly like a module-level Python `for` variable:
 
 ```sd
-har i mein range(3) {
+har i mein silsilo(3) {
     likh(i)
 }
 likh(i)
