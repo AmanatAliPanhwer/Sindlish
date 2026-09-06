@@ -253,9 +253,16 @@ class Compiler:
         )
 
     def compile_ProgramNode(self, node: ProgramNode) -> ProgramArtifacts:
-        """Compile every top-level statement and cap the program with ``HALT``."""
+        """Compile every top-level statement and cap the program with ``HALT``.
+
+        Statement-expression values are popped exactly as block bodies do
+        (``compile_BlockNode``), so a discarded top-level Ghalti parcel raises
+        when the VM reaches ``POP_TOP`` instead of dangling unused.
+        """
         for stmt in node.statements:
             self.compile(stmt)
+            if isinstance(stmt, EXPRESSION_NODES):
+                self.emit(OpCode.POP_TOP, node=stmt)
         self.emit(OpCode.HALT, line=0, column=0)
         return self.instructions, self.constants, self.line_col_map
 

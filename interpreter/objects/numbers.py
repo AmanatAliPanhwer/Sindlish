@@ -80,10 +80,13 @@ class SdNumber(SdShey):
                 SdString(
                     f"Adad khe '{other.type.name}' saan puro vand natho kare saghjay."
                 ),
+                "QisamJeGhalti",
             )
         if other.value == 0:
             return SdResult(
-                SdResult.GHALTI, SdString("Zero (0) saan vand natho kare saghjay.")
+                SdResult.GHALTI,
+                SdString("Zero (0) saan vand natho kare saghjay."),
+                "ZeroVindJeGhalti",
             )
         return SdResult(SdResult.OK, SdNumber(self.value // other.value))
 
@@ -97,10 +100,13 @@ class SdNumber(SdShey):
                 SdString(
                     f"'{other.type.name}' saan pachi (remainder) natho kadhi saghjay."
                 ),
+                "QisamJeGhalti",
             )
         if other.value == 0:
             return SdResult(
-                SdResult.GHALTI, SdString("Zero (0) saan pachi natho kadhi saghjay.")
+                SdResult.GHALTI,
+                SdString("Zero (0) saan pachi natho kadhi saghjay."),
+                "ZeroVindJeGhalti",
             )
         return SdResult(SdResult.OK, SdNumber(self.value % other.value))
 

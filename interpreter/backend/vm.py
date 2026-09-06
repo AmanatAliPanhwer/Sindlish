@@ -137,20 +137,23 @@ class VM:
     def pop(self) -> object:
         return self.stack.pop()
 
+    def _raise_from_result(self, val: SdResult, line: int, column: int) -> None:
+        """Raise the error a Ghalti parcel remembers, with its frozen traceback."""
+        error_cls = ERROR_MAP.get(val._error_cls, HalndeVaktGhalti)
+        raise error_cls(
+            str(val.value),
+            line,
+            column,
+            self.code_string,
+            traceback=val._captured_traceback,
+        )
+
     def _unwrap_val(self, val: object, line: int, column: int) -> object:
         """Extracts the value from an Ok result, or panics on a Ghalti result."""
         if isinstance(val, SdResult):
             if val.is_ok():
                 return val.value
-            else:
-                error_cls = ERROR_MAP.get(val._error_cls, HalndeVaktGhalti)
-                raise error_cls(
-                    str(val.value),
-                    line,
-                    column,
-                    self.code_string,
-                    traceback=val._captured_traceback,
-                )
+            self._raise_from_result(val, line, column)
         return val
 
     def _check_type(
@@ -862,6 +865,12 @@ class VM:
             if isinstance(val, SdResult) and val.is_ok():
                 val = val.value
 
+            if isinstance(val, SdResult) and val.is_error():
+                # Ghalti survives the boundary like a value; the type check
+                # applies only to real values (mirrors _check_type).
+                bound[param.name] = val
+                continue
+
             expected = expected_types[i]
             if expected is not None and val.type != expected:
                 raise QisamJeGhalti(
@@ -971,6 +980,10 @@ class VM:
             val = positional[i]
             if isinstance(val, SdResult) and val.is_ok():
                 val = val.value
+            if isinstance(val, SdResult) and val.is_error():
+                # Ghalti survives the boundary like a value.
+                new_frame.slots[i] = val
+                continue
             expected = expected_types[i]
             if expected is not None and val.type != expected:
                 raise QisamJeGhalti(
@@ -1325,8 +1338,14 @@ class VM:
         self.push(val)
 
     def _op_pop_top(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
-        """Discard the top value (``value -- >``)."""
-        self.stack.pop()
+        """Discard the top value (``value -- >``).
+
+        Discarding a Ghalti parcel raises it: errors demand acknowledgment.
+        Storing, printing, or inspecting a Ghalti never reaches this opcode.
+        """
+        val = self.stack.pop()
+        if isinstance(val, SdResult) and val.is_error():
+            self._raise_from_result(val, line, column)
 
     def _op_return_value(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
         """Pop the return value, pop the frame, and push it onto the caller's stack."""
