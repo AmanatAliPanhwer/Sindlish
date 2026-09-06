@@ -36,7 +36,8 @@ class TestIndexJeGhaltiIsAlive:
             "x = [1, 2, 3]\ny = x[-9]",
             'y = "abcf"[9]',
             "y = silsilo(3)[7]",
-            "x = [1, 2]\ny = x[9]\nx[5] = 9",
+            "x = [1, 2]\ny = x[9]",
+            "x = [1, 2]\nx[5] = 9",
         ],
     )
     def test_positional_oob_is_index_error(self, code):

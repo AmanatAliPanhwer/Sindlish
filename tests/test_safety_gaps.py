@@ -7,6 +7,7 @@ end-to-end interface (``tests.conftest.run``).
 
 import pytest
 
+from interpreter.backend.vm import VM
 from interpreter.errors import (
     HalndeVaktGhalti,
     MatalabJeGhalti,
@@ -24,14 +25,42 @@ class TestTopLevelReturn:
 
 class TestDuplicateKeyword:
     def test_duplicate_keyword_argument_raises_arity_error(self):
-        with pytest.raises(MatalabJeGhalti, match="(?i)dobara"):
+        with pytest.raises(MatalabJeGhalti, match=r"(?i)dobara"):
             run("kaam f(a) { wapas a }\nf(a=1, a=2)")
+
+    def test_duplicate_keyword_via_kwargs_dict_raises_arity_error(self):
+        with pytest.raises(MatalabJeGhalti, match=r"(?i)dobara"):
+            run('kaam f(a) { wapas a }\nf(a=1, **{"a": 2})')
+
+    def test_unique_kwargs_dict_still_works(self):
+        _, out = run('kaam f(a) { wapas a }\nlikh(f(**{"a": 5}))')
+        assert out.strip() == "5"
 
 
 class TestSilsiloArguments:
-    def test_non_numeric_argument_is_clean_type_error(self):
-        with pytest.raises(QisamJeGhalti, match="(?i)adad"):
-            run("silsilo('a', 'b')")
+    @pytest.mark.parametrize(
+        "code",
+        [
+            "silsilo('a', 'b')",
+            "silsilo(1, 'b')",
+            "silsilo(1, 2, 'c')",
+        ],
+    )
+    def test_non_numeric_argument_is_clean_type_error(self, code):
+        with pytest.raises(QisamJeGhalti, match=r"(?i)adad"):
+            run(code)
+
+    @pytest.mark.parametrize(
+        "code",
+        [
+            "silsilo(1.5, 5)",
+            "silsilo(1, 2.9, 1)",
+            "silsilo(1, 5, 0.5)",
+        ],
+    )
+    def test_decimal_argument_is_rejected_not_truncated(self, code):
+        with pytest.raises(QisamJeGhalti, match=r"(?i)adad"):
+            run(code)
 
     def test_numeric_arguments_still_build_range(self):
         _, out = run("likh(silsilo(1, 5, 2))")
@@ -51,6 +80,10 @@ class TestTypedElementChecks:
         with pytest.raises(QisamJeGhalti, match="elements"):
             run("fehrist[adad] x = [1]\nx[0] = 'str'")
 
+    def test_error_parcel_passes_through_wadha(self):
+        _, out = run("fehrist[adad] x = [1]\nx.wadha(1 / 0)\nlikh(x[1])")
+        assert "Zero (0)" in out
+
     def test_right_type_wadha_still_works(self):
         _, out = run("fehrist[adad] x = [1]\nx.wadha(2)\nlikh(x)")
         assert out.strip() == "[1, 2]"
@@ -65,10 +98,20 @@ class TestRecursionDepth:
         with pytest.raises(HalndeVaktGhalti, match="hadd"):
             run("kaam rec(a) { rec(a) }\nrec(0)")
 
-    def test_deep_bounded_recursion_still_runs(self):
+    def test_max_allowed_depth_still_runs(self):
+        n = VM.MAX_FRAME_DEPTH - 2
         code = (
             "kaam d(n) { agar n < 1 { wapas 0 } wapas d(n - 1) }\n"
-            "likh(d(9000))"
+            f"likh(d({n}))"
         )
         _, out = run(code)
         assert out.strip() == "0"
+
+    def test_first_depth_beyond_cap_raises(self):
+        n = VM.MAX_FRAME_DEPTH - 1
+        code = (
+            "kaam d(n) { agar n < 1 { wapas 0 } wapas d(n - 1) }\n"
+            f"d({n})"
+        )
+        with pytest.raises(HalndeVaktGhalti, match="hadd"):
+            run(code)
