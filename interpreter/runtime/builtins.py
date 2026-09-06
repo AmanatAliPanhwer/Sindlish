@@ -71,6 +71,11 @@ class SimpleBuiltins:
                     f"silsilo() khe '{i + 1}jo' argument 'adad' khapyo paye, par "
                     f"'{arg.type.name}' milyo."
                 )
+            if not isinstance(arg.value, int):
+                raise QisamJeGhalti(
+                    f"silsilo() khe '{i + 1}jo' argument 'adad' khapyo paye, par "
+                    f"'dahai' milyo."
+                )
         if len(args) == 1:
             start, end, step = 0, int(args[0].value), 1
         elif len(args) == 2:
