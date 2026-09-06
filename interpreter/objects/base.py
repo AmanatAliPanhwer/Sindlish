@@ -1,9 +1,9 @@
 from ..errors import (
     HalndeVaktGhalti,
     IndexJeGhalti,
-    LikhaiJeGhalti,
     NaleJeGhalti,
     QisamJeGhalti,
+    SindhiBaseError,
     ZeroVindJeGhalti,
 )
 from ..frontend.tokens import TokenType
@@ -283,14 +283,7 @@ class SdShey:
         if protocol_method and callable(protocol_method):
             try:
                 return protocol_method(*args)
-            except (
-                QisamJeGhalti,
-                HalndeVaktGhalti,
-                NaleJeGhalti,
-                ZeroVindJeGhalti,
-                IndexJeGhalti,
-                LikhaiJeGhalti,
-            ) as e:
+            except SindhiBaseError as e:
                 if e.line is None:
                     e.line, e.column, e.code_string = line, column, code
                 raise
@@ -316,14 +309,7 @@ class SdShey:
 
         try:
             return method(*args)
-        except (
-            QisamJeGhalti,
-            HalndeVaktGhalti,
-            NaleJeGhalti,
-            ZeroVindJeGhalti,
-            IndexJeGhalti,
-            LikhaiJeGhalti,
-        ):
+        except SindhiBaseError:
             raise
         except TypeError as e:
             raise QisamJeGhalti(str(e), line, column, code)

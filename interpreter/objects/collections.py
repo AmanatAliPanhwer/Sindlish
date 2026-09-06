@@ -20,8 +20,11 @@ def _check_list_element(value, element_type):
     """
     if element_type is None:
         return
-    if isinstance(value, SdResult) and value.is_ok():
-        value = value.value
+    if isinstance(value, SdResult):
+        if value.is_ok():
+            value = value.value
+        else:
+            return
     match element_type:
         case TokenType.ADAD:
             if not isinstance(value, SdNumber) or not isinstance(value.value, int):
