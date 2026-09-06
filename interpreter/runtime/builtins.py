@@ -65,6 +65,12 @@ class SimpleBuiltins:
     @register(functions)
     def silsilo(self, args):
         """Return a lazy range of numbers from start (inclusive) to end (exclusive) with step."""
+        for i, arg in enumerate(args):
+            if not isinstance(arg, SdNumber):
+                raise QisamJeGhalti(
+                    f"silsilo() khe '{i + 1}jo' argument 'adad' khapyo paye, par "
+                    f"'{arg.type.name}' milyo."
+                )
         if len(args) == 1:
             start, end, step = 0, int(args[0].value), 1
         elif len(args) == 2:
