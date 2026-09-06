@@ -77,9 +77,9 @@ Three mechanisms, three different guarantees:
 | `l[-1]` | allowed — negative indexing from the end |
 | `d["missing"]` | `Key … na mili.` (use `.hasil(key, default)` for the gentle version) |
 | `{[1,2]}` — unhashable set member | `QisamJeghalti` at build time, mapped from raw TypeError |
-| `nums.wadha("str")` into `fehrist[adad]` | ⚠️ passes today — element pushes aren't re-checked yet |
+| `nums.wadha("str")` into `fehrist[adad]` | rejected at mutation — `wadha`/`wajh`/`wadhayo` and `x[i] = v` re-check the declared element type |
 
-That last row is the honest hole in the fence, logged and waiting for a contributor.
+A `fehrist[adad]` binding stamps the element declaration onto the list object (`objects/collections.py:_check_list_element`), so an annotation survives aliasing: no matter how the list is reached, a wrong-kind push, insert, extend, or subscript write raises the same element `QisamJeGhalti` at the mutation line.
 
 ## Promise 5 · Truthiness can't blow up the VM
 
@@ -100,6 +100,7 @@ Where each promise physically lives — your cheat sheet for future work:
 | discarded Ghalti raises | top-level & block `POP_TOP` | `backend/vm.py:_op_pop_top`, `compiler.py:compile_ProgramNode` |
 | Ghalti survives boundaries | typed params/slots | `backend/vm.py:_call_sd_function`, `_call_simple_function`, `_check_type` |
 | exception laundering | dispatch boundary | `objects/base.py:call_method`, `backend/vm.py:_invoke`, `_op_call_method` |
+| runaway recursion | frame push | `backend/vm.py:_push_frame` (10,000-frame cap) |
 | pretty reports | final render | `errors.py:ErrorReporter.report` |
 | safe truthiness | all jumps/logic | `objects/base.py:sd_truthy` |
 
@@ -107,5 +108,4 @@ Where each promise physically lives — your cheat sheet for future work:
 <p>Safety = alarms on a ladder: syntax → resolution → runtime edges → values.</p>
 <p>Recoverable failures arrive as Ok/Ghalti VALUES; postfix binds tight, so parenthesize <code>(a/b)?</code>.</p>
 <p><code>pakko</code>, annotations, and <code>bahari</code> give bindings meaning; collections check borders.</p>
-<p>Known hole (element-push checks) is logged in roadmap/TODO.md.</p>
 </div>
