@@ -1,4 +1,4 @@
-from ..errors import QisamJeGhalti
+from ..errors import IndexJeGhalti, QisamJeGhalti
 from ..frontend.tokens import TokenType
 from .base import SdShey, SdType
 from .core import SdNull
@@ -41,7 +41,7 @@ class SdList(SdShey):
         try:
             return self.elements[int(index.value)]
         except IndexError:
-            raise QisamJeGhalti(
+            raise IndexJeGhalti(
                 f"Fehrist jo index {int(index.value)} hadd khaan bahar aahe."
             )
 
@@ -52,7 +52,7 @@ class SdList(SdShey):
             self.elements[int(index.value)] = value
             return SdNull()
         except IndexError:
-            raise QisamJeGhalti(
+            raise IndexJeGhalti(
                 f"Fehrist jo index {int(index.value)} hadd khaan bahar aahe."
             )
 
@@ -97,7 +97,7 @@ class SdList(SdShey):
             try:
                 return self.elements.pop(idx)
             except IndexError:
-                raise QisamJeGhalti(f"Fehrist jo index {idx} hadd khaan bahar aahe.")
+                raise IndexJeGhalti(f"Fehrist jo index {idx} hadd khaan bahar aahe.")
         else:
             if len(self.elements) == 0:
                 raise QisamJeGhalti("Khaali Fehrist maan natho kadhi (pop) saghjay.")
@@ -146,7 +146,7 @@ class SdRange(SdShey):
         if idx < 0:
             idx += length
         if not 0 <= idx < length:
-            raise QisamJeGhalti(
+            raise IndexJeGhalti(
                 f"Silsilo jo index {int(index.value)} hadd khaan bahar aahe."
             )
         return SdNumber(self.start + idx * self.step)

@@ -296,6 +296,10 @@ class SdShey:
                 raise
             except TypeError as e:
                 raise QisamJeGhalti(str(e), line, column, code)
+            except IndexError as e:
+                raise IndexJeGhalti(str(e), line, column, code)
+            except ZeroDivisionError as e:
+                raise ZeroVindJeGhalti(str(e), line, column, code)
             except Exception as e:  # noqa: BLE001 - any unexpected protocol error -> runtime
                 raise HalndeVaktGhalti(str(e), line, column, code)
 
@@ -303,7 +307,7 @@ class SdShey:
         method = self._type.lookup_method(name)
 
         if not method:
-            raise QisamJeGhalti(
+            raise NaleJeGhalti(
                 details=f"'{self.type.name}' object mein '{name}' nale jo ko bh method na aahe.",
                 line=line,
                 column=column,
@@ -323,5 +327,9 @@ class SdShey:
             raise
         except TypeError as e:
             raise QisamJeGhalti(str(e), line, column, code)
+        except IndexError as e:
+            raise IndexJeGhalti(str(e), line, column, code)
+        except ZeroDivisionError as e:
+            raise ZeroVindJeGhalti(str(e), line, column, code)
         except Exception as e:  # noqa: BLE001 - any unexpected method error -> runtime
             raise HalndeVaktGhalti(str(e), line, column, code)

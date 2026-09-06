@@ -21,10 +21,12 @@ from dataclasses import dataclass
 from ..errors import (
     ERROR_MAP,
     HalndeVaktGhalti,
-    LikhaiJeGhalti,
+    IndexJeGhalti,
+    MatalabJeGhalti,
     NaleJeGhalti,
     QisamJeGhalti,
     SindhiBaseError,
+    ZeroVindJeGhalti,
 )
 from ..frontend.tokens import TokenType
 from ..objects import (
@@ -486,6 +488,21 @@ class VM:
             )
         cell.value = value
 
+    def _launder_dispatch_error(self, e, line: int, column: int) -> None:
+        """Map raw Python exceptions thrown inside native callables/methods.
+
+        Mirrors ``SdShey.call_method`` so no dispatch edge leaks an untyped
+        exception: ``TypeError`` -> kind, ``IndexError`` -> index,
+        ``ZeroDivisionError`` -> zero-div, everything else -> runtime.
+        """
+        if isinstance(e, TypeError):
+            raise QisamJeGhalti(str(e), line, column, self.code_string)
+        if isinstance(e, IndexError):
+            raise IndexJeGhalti(str(e), line, column, self.code_string)
+        if isinstance(e, ZeroDivisionError):
+            raise ZeroVindJeGhalti(str(e), line, column, self.code_string)
+        raise HalndeVaktGhalti(str(e), line, column, self.code_string)
+
     def _binary_op_result(
         self, left: object, right: object, dunder: str, line: int, column: int
     ) -> object:
@@ -748,6 +765,8 @@ class VM:
                     e.line, e.column = line, column
                     e.code_string = self.code_string
                 raise
+            except Exception as e:  # noqa: BLE001 - native callable boundary
+                self._launder_dispatch_error(e, line, column)
 
     def _expand_call_args(self, args_list: list, line: int, column: int) -> tuple[list, dict]:
         """Split raw stack slots into positional values and kwargs.
@@ -835,7 +854,7 @@ class VM:
         if plan.known_names is not None:
             for key in kwargs:
                 if key not in plan.known_names:
-                    raise LikhaiJeGhalti(
+                    raise MatalabJeGhalti(
                         f"Achanak keyword argument '{key}' milo.",
                         line,
                         column,
@@ -855,7 +874,7 @@ class VM:
             elif param.name in defaults_map:
                 val = defaults_map[param.name]
             else:
-                raise LikhaiJeGhalti(
+                raise MatalabJeGhalti(
                     f"Parameter '{param.name}' laai value lazmi aahe.",
                     line,
                     column,
@@ -889,7 +908,7 @@ class VM:
 
         extra_positional = positional[pos_idx:]
         if extra_positional and not has_star_param:
-            raise LikhaiJeGhalti(
+            raise MatalabJeGhalti(
                 f"{len(extra_positional)} wadhoo arguments mile; kaam khe itna khapay na tha.",
                 line,
                 column,
@@ -898,7 +917,7 @@ class VM:
 
         if kwargs and not has_kw_param:
             unknown = next(iter(kwargs))
-            raise LikhaiJeGhalti(
+            raise MatalabJeGhalti(
                 f"Achanak keyword argument '{unknown}' milo.",
                 line,
                 column,
@@ -953,13 +972,13 @@ class VM:
         supplied = len(positional)
         if supplied != n:
             if supplied < n:
-                raise LikhaiJeGhalti(
+                raise MatalabJeGhalti(
                     f"Parameter '{params[supplied].name}' laai value lazmi aahe.",
                     line,
                     column,
                     self.code_string,
                 )
-            raise LikhaiJeGhalti(
+            raise MatalabJeGhalti(
                 f"{supplied - n} wadhoo arguments mile; kaam khe itna khapay na tha.",
                 line,
                 column,
@@ -1074,6 +1093,8 @@ class VM:
                     e.line, e.column = line, column
                     e.code_string = self.code_string
                 raise
+            except Exception as e:  # noqa: BLE001 - native method boundary
+                self._launder_dispatch_error(e, line, column)
         else:
             raise NaleJeGhalti(
                 f"Method '{method_name}' ji wazahat na milyo.",
