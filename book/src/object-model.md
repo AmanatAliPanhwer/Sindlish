@@ -46,8 +46,8 @@ flowchart TD
     B -->|no| D["type.lookup_method()<br>walks MRO skill lists"]
     D --> E{"found?"}
     E -->|yes| F["call registered native"]
-    E -->|no| G["QisamJeGhalti:<br>'no method by that name'"]
-    C --> H["map TypeError→QisamJeGhalti,<br>others→HalndeVaktGhalti"]
+    E -->|no| G["NaleJeGhalti:<br>'no method by that name'"]
+    C --> H["map TypeError→QisamJeGhalti,<br>IndexError→IndexJeGhalti,<br>others→HalndeVaktGhalti"]
     F --> H
 ```
 

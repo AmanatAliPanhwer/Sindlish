@@ -58,11 +58,13 @@ Every error class is a tiny Sindhi sentence ending in **Ghalti** (*mistake*):
 | Class | Literal reading | Fires when |
 |---|---|---|
 | `LikhaiJeGhalti` | *writing-mistake* | lexer/parser rejects syntax |
-| `NaleJeGhalti` | *name-mistake* | unknown variable/function |
+| `NaleJeGhalti` | *name-mistake* | unknown variable/function/method |
 | `QisamJeGhalti` | *type-mistake* | wrong kind of value |
 | `HalndeVaktGhalti` | *right-now-mistake* | runtime violations, `pakko` reassignment, panic |
 | `ZeroVindJeGhalti` | *zero-point-mistake* | divide/mod by zero |
 | `IndexJeGhalti` | *index-mistake* | out-of-bounds access |
+| `TarteebJeGhalti` | *structure-mistake* | declarations out of program position |
+| `MatalabJeGhalti` | *meaning-mistake* | wrong argument count |
 
 ## Interpreter-internal names you'll meet
 

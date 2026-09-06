@@ -27,7 +27,7 @@ Details worth knowing (`vm.py:_call_sd_function`):
 
 - **Binding priority**: explicit kwargs beat positionals; defaults evaluated *at definition time* ride on the `SdFunction`.
 - **Result-aware binding**: an Ok parcel passed to a parameter is unwrapped before the declared type check; Ghalti passes through.
-- **`*param` collects leftovers into a list, `**kw` into a dict.** Unknown kwarg names → clean `LikhaiJeGhalti`.
+- **`*param` collects leftovers into a list, `**kw` into a dict.** Unknown kwarg names → clean `MatalabJeGhalti`.
 - The caller's stack is untouched by the callee — it gets a fresh frame with its own slots.
 
 ## Flow 2 · Method dispatch

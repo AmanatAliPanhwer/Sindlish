@@ -32,7 +32,7 @@ Now each promise in detail.
 Every failure path ends in a `SindhiBaseError` with **file position and source text attached** — rendered as the caret display you've seen throughout this book. Python exceptions leaking to users are treated as interpreter bugs: `call_method` (`objects/base.py:249`) maps `TypeError → QisamJeGhalti`, `IndexError → IndexJeGhalti`, `ZeroDivisionError → ZeroVindJeGhalti`, everything else → `HalndeVaktGhalti`. Verified example of the worst ordinary accident — an out-of-bounds index:
 
 ```text
-QisamJeGhalti: Fehrist jo index 10 hadd khaan bahar aahe.
+IndexJeGhalti: Fehrist jo index 10 hadd khaan bahar aahe.
 Call Stack (most recent call last):
   --> Line 2, in main
     likh(l[10])
@@ -96,10 +96,10 @@ Where each promise physically lives — your cheat sheet for future work:
 | const/type on globals | every store | `backend/vm.py:_op_store_global` |
 | const/type on locals | every store | `backend/vm.py:_op_store_fast` |
 | param/return types | call boundaries | `backend/vm.py:_call_sd_function`, `_op_return_value` |
-| errors-as-values | arithmetic wrapped at the VM | `backend/vm.py:_binary_op_result` (489), `objects/numbers.py:50` (`__truediv__`) |
+| errors-as-values | arithmetic wrapped at the VM | `backend/vm.py:_binary_op_result` (506), `objects/numbers.py:50` (`__truediv__`) |
 | discarded Ghalti raises | top-level & block `POP_TOP` | `backend/vm.py:_op_pop_top`, `compiler.py:compile_ProgramNode` |
 | Ghalti survives boundaries | typed params/slots | `backend/vm.py:_call_sd_function`, `_call_simple_function`, `_check_type` |
-| exception laundering | dispatch boundary | `objects/base.py:call_method` |
+| exception laundering | dispatch boundary | `objects/base.py:call_method`, `backend/vm.py:_invoke`, `_op_call_method` |
 | pretty reports | final render | `errors.py:ErrorReporter.report` |
 | safe truthiness | all jumps/logic | `objects/base.py:sd_truthy` |
 

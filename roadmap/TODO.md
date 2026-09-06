@@ -121,7 +121,8 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 ## 4. Quality
 
 - [x] Unify error philosophy across operators — **shipped with #33** (2026-09): all six arithmetic ops (`+ - * ^ / %`) return Ghalti parcels on failure; ordering comparisons (`< <= > >=`) raise `QisamJeGhalti`; `== !=` stay total. **#57** (top-level surfacing of a discarded Ghalti — the original "silent error bug") also fixed here via discard-aware `POP_TOP`.
-- [ ] Tests for every fix above (currently 236 passing)
+- [x] Tighten the error-class taxonomy (follow-up audit of #33, 2026-09): out-of-bounds reaches `IndexJeGhalti` everywhere (`SdList`/`SdRange`/string OOB + native `kadh`/`pop`); method/name misses are `NaleJeGhalti`; runtime argument-count errors became `MatalabJeGhalti` (parse-time typecast arity stays `LikhaiJeGhalti`); `bahari` misuse is `TarteebJeGhalti` vs unknown-outer-name `NaleJeGhalti`; `call_method` + VM native-call edges both launder raw `IndexError`/`ZeroDivisionError` so no dispatch boundary leaks Python exceptions.
+- [x] Tests for every fix above (currently 501 passing)
 - [ ] VM performance pass guided by `bench/run_benchmarks.py`
 - [ ] Sync docs website (`docs/` submodule) with language changes
 - [x] Remove vestigial code: `SdShey._ref_count`, unused `Environment.global_names/nonlocal_names` — shipped with #32
