@@ -220,10 +220,11 @@ class Compiler:
         one slot).
         """
         for i, existing in enumerate(self.constants):
-            if type(existing) is type(value):
-                if hasattr(value, "value") and existing.value == value.value:
-                    return i
-            elif existing == value:
+            if type(existing) is not type(value):
+                continue
+            if hasattr(value, "value") and existing.value == value.value:
+                return i
+            if existing == value:
                 return i
         self.constants.append(value)
         return len(self.constants) - 1
@@ -253,9 +254,16 @@ class Compiler:
         )
 
     def compile_ProgramNode(self, node: ProgramNode) -> ProgramArtifacts:
-        """Compile every top-level statement and cap the program with ``HALT``."""
+        """Compile every top-level statement and cap the program with ``HALT``.
+
+        Statement-expression values are popped exactly as block bodies do
+        (``compile_BlockNode``), so a discarded top-level Ghalti parcel raises
+        when the VM reaches ``POP_TOP`` instead of dangling unused.
+        """
         for stmt in node.statements:
             self.compile(stmt)
+            if isinstance(stmt, EXPRESSION_NODES):
+                self.emit(OpCode.POP_TOP, node=stmt)
         self.emit(OpCode.HALT, line=0, column=0)
         return self.instructions, self.constants, self.line_col_map
 
@@ -743,6 +751,15 @@ class Compiler:
     def compile_ReturnNode(self, node: ReturnNode) -> None:
         """Compile ``wapas``. RETURN_VALUE unwraps ok(*)/raw into the value
         and preserves ghalti() error results, so no MAKE_OK is needed."""
+        if not self.fn_stack:
+            line = getattr(node, "line", 0)
+            column = getattr(node, "column", 0)
+            raise TarteebJeGhalti(
+                "wapas (return) kaam khaan baahar istamal natho kare saghjay.",
+                line,
+                column,
+                self.code,
+            )
         if node.value:
             self.compile(node.value)
         else:

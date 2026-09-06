@@ -120,8 +120,10 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 
 ## 4. Quality
 
-- [ ] Unify error philosophy across operators
-- [ ] Tests for every fix above (currently 236 passing)
+- [x] Unify error philosophy across operators — **shipped with #33** (2026-09): all six arithmetic ops (`+ - * ^ / %`) return Ghalti parcels on failure; ordering comparisons (`< <= > >=`) raise `QisamJeGhalti`; `== !=` stay total. **#57** (top-level surfacing of a discarded Ghalti — the original "silent error bug") also fixed here via discard-aware `POP_TOP`.
+- [x] Tighten the error-class taxonomy (follow-up audit of #33, 2026-09): out-of-bounds reaches `IndexJeGhalti` everywhere (`SdList`/`SdRange`/string OOB + native `kadh`/`pop`); method/name misses are `NaleJeGhalti`; runtime argument-count errors became `MatalabJeGhalti` (parse-time typecast arity stays `LikhaiJeGhalti`); `bahari` misuse is `TarteebJeGhalti` vs unknown-outer-name `NaleJeGhalti`; `call_method` + VM native-call edges both launder raw `IndexError`/`ZeroDivisionError` so no dispatch boundary leaks Python exceptions.
+- [x] Close the five remaining safety gaps found in that audit (2026-09, `tests/test_safety_gaps.py`): (1) runaway recursion now stops with `HalndeVaktGhalti` at a 10,000-frame cap (`vm.py:_push_frame`) instead of hanging; (2) top-level `wapas` is a `TarteebJeGhalti` structure error (`compiler.compile_ReturnNode`); (3) duplicate keyword args raise `MatalabJeGhalti` instead of silently last-wins (`vm.py:_expand_call_args`); (4) `silsilo()` rejects non-`adad` args with a clean `QisamJeGhalti` instead of leaking Python's `int()` message (`builtins.py`); (5) `fehrist[adad]` stamps its element type onto the list so `wadha`/`wajh`/`wadhayo` and `x[i] = v` re-check at mutation time (`objects/collections.py:_check_list_element`). The safety.md Promise-4 "element pushes aren't re-checked" hole is now closed.
+- [x] Tests for every fix above (currently 512 passing)
 - [ ] VM performance pass guided by `bench/run_benchmarks.py`
 - [ ] Sync docs website (`docs/` submodule) with language changes
 - [x] Remove vestigial code: `SdShey._ref_count`, unused `Environment.global_names/nonlocal_names` — shipped with #32

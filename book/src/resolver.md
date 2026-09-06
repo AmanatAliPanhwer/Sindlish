@@ -187,7 +187,7 @@ flowchart LR
 **Writing** is stricter: assigning to `count` without declaring `bahari count` raises a helpful error immediately during resolution (verified):
 
 ```text
-QisamJeGhalti: 'count' baharli kaam jo variable aahe;
+TarteebJeGhalti: 'count' baharli kaam jo variable aahe;
 us khe badhayn laai 'bahari count' likho.
 ```
 

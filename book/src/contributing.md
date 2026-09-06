@@ -53,7 +53,7 @@ self.dispatch_table[OpCode.BINARY_QAMP] = self._op_binary_qamp
 The fork in step 8 decides your feature's personality:
 
 - **Always-succeeds operation** (concat, compare): plain dunder on the object classes; raise `QisamJeGhalti` for bad pairs. Cheap and simple.
-- **Can-fail operation** (division-like): return `Ok/Ghalti` from the dunder so users get parcels, not crashes — mirror `__truediv__` in `objects/numbers.py:43`.
+- **Can-fail operation** (division-like): return `Ok/Ghalti` from the dunder so users get parcels, not crashes — mirror `__truediv__` in `objects/numbers.py:50`. A plain-raising dunder (`__add__` etc.) works too: `_binary_op_result` (`backend/vm.py:509`) wraps the raise into the same parcel. Ordering comparisons differ — kind mismatches **raise** `QisamJeGhalti` per the RFC in issue #33.
 
 ## Feature checklist before opening the PR
 

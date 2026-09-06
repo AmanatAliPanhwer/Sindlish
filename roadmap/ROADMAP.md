@@ -1,7 +1,7 @@
 # Sindlish — Development Roadmap
 
 **Version:** 0.1.1
-**Status:** Core language usable · 236 tests passing · bytecode VM architecture
+**Status:** Core language usable · 512 tests passing · bytecode VM architecture
 
 Sindlish runs a classic five-stage pipeline: **Lexer → Parser → Resolver → Compiler → VM**.
 This roadmap tracks what is done and what comes next. Feature-level detail lives in
@@ -72,9 +72,9 @@ user-facing classes build on it:
 
 - Grow test suite alongside every feature above
 - VM throughput work (benchmarks vs Python/Rust live in `bench/`)
-- Consistent error philosophy (division returns `Result`, other ops raise — unify)
+- Consistent error philosophy — **decided 2026-09 (RFC in #33):** all six arithmetic ops return `Result` (parcels) on failure; ordering comparisons raise; equality is total. TODO.md item shipped with #33.
 - Docs website sync (`docs/` submodule)
 
 ---
 
-*Last updated: August 2026*
+*Last updated: September 2026*

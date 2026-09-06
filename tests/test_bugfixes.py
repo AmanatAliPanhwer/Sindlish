@@ -5,7 +5,9 @@ import pytest
 from interpreter.analysis.resolver import Resolver
 from interpreter.errors import (
     HalndeVaktGhalti,
+    IndexJeGhalti,
     LikhaiJeGhalti,
+    MatalabJeGhalti,
     NaleJeGhalti,
     QisamJeGhalti,
     SindhiBaseError,
@@ -84,7 +86,7 @@ class TestScoping:
 
     def test_bahari_unknown_name_rejected(self):
         # bahari is supported since closures landed; unknown targets still error
-        with pytest.raises(QisamJeGhalti, match="bahari"):
+        with pytest.raises(NaleJeGhalti, match="bahari"):
             run("kaam f() { bahari x }")
 
     def test_undefined_variable_still_raises(self):
@@ -198,7 +200,7 @@ class TestParams:
         assert "Salam Ali" in out
 
     def test_missing_required_param_raises(self):
-        with pytest.raises(LikhaiJeGhalti, match="lazmi"):
+        with pytest.raises(MatalabJeGhalti, match="lazmi"):
             run("kaam f(a) { wapas a }\nf()")
 
 
@@ -307,11 +309,11 @@ class TestCallArgs:
         assert extract_value(interp.variables["x"]["value"]) == 2
 
     def test_unknown_kwarg_raises(self):
-        with pytest.raises(LikhaiJeGhalti, match="Achanak keyword"):
+        with pytest.raises(MatalabJeGhalti, match="Achanak keyword"):
             run("kaam f(a) { wapas a }\nf(b = 1)")
 
     def test_extra_positional_raises(self):
-        with pytest.raises(LikhaiJeGhalti, match="wadhoo"):
+        with pytest.raises(MatalabJeGhalti, match="wadhoo"):
             run("kaam f(a) { wapas a }\nf(1, 2)")
 
     def test_builtin_rejects_kwargs(self):
@@ -572,7 +574,7 @@ class TestLazysilsilo:
         assert "big" in out
 
     def test_out_of_bounds_index_raises(self):
-        with pytest.raises(QisamJeGhalti, match="bahar"):
+        with pytest.raises(IndexJeGhalti, match="bahar"):
             run("r = silsilo(3)\nr[7]")
 
 

@@ -6,7 +6,7 @@ Standalone functions available in the global scope: lambi, likh, majmuo, puch, q
 
 from typing import ClassVar
 
-from ..errors import HalndeVaktGhalti, QisamJeGhalti
+from ..errors import HalndeVaktGhalti, MatalabJeGhalti, QisamJeGhalti
 from ..objects import SdNull, SdNumber, SdRange, SdSet, SdString
 
 
@@ -32,13 +32,13 @@ class SimpleBuiltins:
             return SdSet(set())
         if len(args) == 1:
             return SdSet(set(args[0]))
-        raise HalndeVaktGhalti("majmuo() khe 0 ya 1 argument khapay.")
+        raise MatalabJeGhalti("majmuo() khe 0 ya 1 argument khapay.")
 
     @register(functions)
     def lambi(self, args):
         """Return the length of a collection or string."""
         if len(args) != 1:
-            raise HalndeVaktGhalti("lambi() khe sirf 1 argument khapay.")
+            raise MatalabJeGhalti("lambi() khe sirf 1 argument khapay.")
         obj = args[0]
         if isinstance(obj, SdRange):
             return SdNumber(len(obj))
@@ -65,6 +65,17 @@ class SimpleBuiltins:
     @register(functions)
     def silsilo(self, args):
         """Return a lazy range of numbers from start (inclusive) to end (exclusive) with step."""
+        for i, arg in enumerate(args):
+            if not isinstance(arg, SdNumber):
+                raise QisamJeGhalti(
+                    f"silsilo() khe '{i + 1}jo' argument 'adad' khapyo paye, par "
+                    f"'{arg.type.name}' milyo."
+                )
+            if not isinstance(arg.value, int):
+                raise QisamJeGhalti(
+                    f"silsilo() khe '{i + 1}jo' argument 'adad' khapyo paye, par "
+                    f"'dahai' milyo."
+                )
         if len(args) == 1:
             start, end, step = 0, int(args[0].value), 1
         elif len(args) == 2:
@@ -76,7 +87,7 @@ class SimpleBuiltins:
                 int(args[2].value),
             )
         else:
-            raise HalndeVaktGhalti("silsilo() khe 1, 2, ya 3 arguments khapan.")
+            raise MatalabJeGhalti("silsilo() khe 1, 2, ya 3 arguments khapan.")
         if step == 0:
             raise HalndeVaktGhalti("silsilo() jo step zero (0) natho thi saghjay.")
 
@@ -86,7 +97,7 @@ class SimpleBuiltins:
     def qisam(self, args):
         """Returns the type of the object."""
         if len(args) != 1:
-            raise HalndeVaktGhalti("qisam() khe sirf 1 argument khapay.")
+            raise MatalabJeGhalti("qisam() khe sirf 1 argument khapay.")
         try:
             return SdString(args[0].type.name)
         except AttributeError:

@@ -9,14 +9,13 @@ end-to-end through the real call path.
 
 import pytest
 
-from interpreter.errors import LikhaiJeGhalti
+from interpreter.errors import MatalabJeGhalti
 from interpreter.frontend.ast_nodes import ParamNode
 from interpreter.frontend.tokens import TokenType
 from interpreter.objects import SdNumber
 from interpreter.objects.core import CallPlan
 from interpreter.objects.numbers import ADAD_TYPE
 from interpreter.objects.strings import LAFZ_TYPE
-
 from tests.conftest import extract_value, run
 
 
@@ -89,13 +88,13 @@ class TestBindingOrder:
         assert extract_value(interp.variables["x"]["value"]) == 16
 
     def test_missing_required_argument_raises(self):
-        with pytest.raises(LikhaiJeGhalti, match="lazmi aahe"):
+        with pytest.raises(MatalabJeGhalti, match="lazmi aahe"):
             run("kaam f(a, b) { wapas a + b }\nf(1)")
 
     def test_too_many_positional_arguments_raises(self):
-        with pytest.raises(LikhaiJeGhalti, match="wadhoo"):
+        with pytest.raises(MatalabJeGhalti, match="wadhoo"):
             run("kaam f(a, b) { wapas a + b }\nf(1, 2, 3)")
 
     def test_unknown_keyword_argument_raises(self):
-        with pytest.raises(LikhaiJeGhalti, match="Achanak keyword"):
+        with pytest.raises(MatalabJeGhalti, match="Achanak keyword"):
             run("kaam f(a) { wapas a }\nf(b = 1)")

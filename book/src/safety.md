@@ -32,7 +32,7 @@ Now each promise in detail.
 Every failure path ends in a `SindhiBaseError` with **file position and source text attached** — rendered as the caret display you've seen throughout this book. Python exceptions leaking to users are treated as interpreter bugs: `call_method` (`objects/base.py:249`) maps `TypeError → QisamJeGhalti`, `IndexError → IndexJeGhalti`, `ZeroDivisionError → ZeroVindJeGhalti`, everything else → `HalndeVaktGhalti`. Verified example of the worst ordinary accident — an out-of-bounds index:
 
 ```text
-QisamJeGhalti: Fehrist jo index 10 hadd khaan bahar aahe.
+IndexJeGhalti: Fehrist jo index 10 hadd khaan bahar aahe.
 Call Stack (most recent call last):
   --> Line 2, in main
     likh(l[10])
@@ -46,7 +46,7 @@ No stack dumps, no hex addresses. Same for missing dict keys: `Key 'z' Lughat me
 
 ## Promise 2 · Recoverable errors are values, not surprises
 
-The division you *expected* to fail shouldn't nuke your program. So arithmetic that can fail (`/`, `%`) returns a **Result** — `Ok(value)` or `Ghalti(message)` — and Results are inert until consumed ([full chapter](results.md)):
+The division you *expected* to fail shouldn't nuke your program. So all six arithmetic operators (`+ - * ^ / %`) are fallible: success returns the **raw value**, and any failure returns a **Result** — `Ok(value)` or `Ghalti(message)` — and Results are inert until consumed ([full chapter](results.md)). Ordering comparisons (`< <= > >=`) don't have that luxury — a kind mismatch raises `QisamJeGhalti` on the spot; `==`/`!=` are total booleans.
 
 ```sd
 likh(10 / 0)              # verified: prints the error MESSAGE, program lives
@@ -58,7 +58,8 @@ fallback = (9 / 0).bachao(0)   # ✓ verified: fallback wins, program lives
 Two verified subtleties worth tattooing somewhere visible:
 
 1. **Postfix binds tight.** `a / b?` means `a / (b?)`, exactly like Rust's `a / b?`. Wrap the whole expression when you mean it: `(a / b)?`. Even `.method()` binds to the literal: un-parenthesized `9 / 0.bachao(0)` dies with `Nalo 'bachao' na milyo` because it calls a method on the *number 0*.
-2. **Errors must stay consumable across typed boundaries** — currently storing an Err into an annotated variable misfires (bug logged in `roadmap/TODO.md`). Until fixed, propagate through untyped locals.
+2. **Errors must be acknowledged.** A bare statement whose value is a Ghalti (e.g. `bhag(9, 0)`) raises it at the discard — errors demand acknowledgment. Storing, printing, or inspecting one keeps it a value.
+3. **A Ghalti survives every boundary.** It passes through annotated parameters and typed slots untouched — only `Ok` unwraps on return. The error class raised on strict consumption is the class the failure was *born with* (`ZeroVindJeGhalti` for `% 0`, `QisamJeGhalti` for kind mismatches), with the creation-site traceback intact.
 
 ## Promise 3 · Bindings say what they mean
 
@@ -76,13 +77,13 @@ Three mechanisms, three different guarantees:
 | `l[-1]` | allowed — negative indexing from the end |
 | `d["missing"]` | `Key … na mili.` (use `.hasil(key, default)` for the gentle version) |
 | `{[1,2]}` — unhashable set member | `QisamJeghalti` at build time, mapped from raw TypeError |
-| `nums.wadha("str")` into `fehrist[adad]` | ⚠️ passes today — element pushes aren't re-checked yet |
+| `nums.wadha("str")` into `fehrist[adad]` | rejected at mutation — `wadha`/`wajh`/`wadhayo` and `x[i] = v` re-check the declared element type |
 
-That last row is the honest hole in the fence, logged and waiting for a contributor.
+A `fehrist[adad]` binding stamps the element declaration onto the list object (`objects/collections.py:_check_list_element`), so an annotation survives aliasing: no matter how the list is reached, a wrong-kind push, insert, extend, or subscript write raises the same element `QisamJeGhalti` at the mutation line.
 
 ## Promise 5 · Truthiness can't blow up the VM
 
-Conditions used to crash when fed dicts or sets. Now every condition, loop guard, and logical operator routes through one helper, `sd_truthy()` (`objects/base.py:163`): containers are true when non-empty, Results unwrap success / treat errors as truthy (an error is information!), and nothing raises. One definition, zero special cases in the VM.
+Conditions used to crash when fed dicts or sets. Now every condition, loop guard, and logical operator routes through one helper, `sd_truthy()` (`objects/base.py:163`): containers are true when non-empty; an `Ok` unwraps to its value, and a Ghalti parcel raises itself there — conditions strictly consume errors instead of guessing. One definition, zero special cases in the VM. (The pre-#33 "errors are truthy" behavior is gone.)
 
 ## The enforcement map
 
@@ -95,8 +96,11 @@ Where each promise physically lives — your cheat sheet for future work:
 | const/type on globals | every store | `backend/vm.py:_op_store_global` |
 | const/type on locals | every store | `backend/vm.py:_op_store_fast` |
 | param/return types | call boundaries | `backend/vm.py:_call_sd_function`, `_op_return_value` |
-| errors-as-values | arithmetic + Result opcodes | `objects/numbers.py:43`, `vm.py:683-731` |
-| exception laundering | dispatch boundary | `objects/base.py:call_method` |
+| errors-as-values | arithmetic wrapped at the VM | `backend/vm.py:_binary_op_result` (509), `objects/numbers.py:50` (`__truediv__`) |
+| discarded Ghalti raises | top-level & block `POP_TOP` | `backend/vm.py:_op_pop_top`, `compiler.py:compile_ProgramNode` |
+| Ghalti survives boundaries | typed params/slots | `backend/vm.py:_call_sd_function`, `_call_simple_function`, `_check_type` |
+| exception laundering | dispatch boundary | `objects/base.py:call_method`, `backend/vm.py:_invoke`, `_op_call_method` |
+| runaway recursion | frame push | `backend/vm.py:_push_frame` (10,000-frame cap) |
 | pretty reports | final render | `errors.py:ErrorReporter.report` |
 | safe truthiness | all jumps/logic | `objects/base.py:sd_truthy` |
 
@@ -104,5 +108,4 @@ Where each promise physically lives — your cheat sheet for future work:
 <p>Safety = alarms on a ladder: syntax → resolution → runtime edges → values.</p>
 <p>Recoverable failures arrive as Ok/Ghalti VALUES; postfix binds tight, so parenthesize <code>(a/b)?</code>.</p>
 <p><code>pakko</code>, annotations, and <code>bahari</code> give bindings meaning; collections check borders.</p>
-<p>Known holes (element-push checks, Err-through-typed-slots) are logged in roadmap/TODO.md.</p>
 </div>

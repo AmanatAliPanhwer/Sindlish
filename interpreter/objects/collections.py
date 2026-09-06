@@ -1,8 +1,9 @@
-from ..errors import QisamJeGhalti
+from ..errors import IndexJeGhalti, QisamJeGhalti
 from ..frontend.tokens import TokenType
 from .base import SdShey, SdType
-from .core import SdNull
+from .core import SdNull, SdResult
 from .numbers import SdBool, SdNumber
+from .strings import SdString
 
 FEHRIST_TYPE = SdType("FEHRIST", TokenType.FEHRIST)
 LUGHAT_TYPE = SdType("LUGHAT", TokenType.LUGHAT)
@@ -10,12 +11,50 @@ MAJMUO_TYPE = SdType("MAJMUO", TokenType.MAJMUO)
 SILSILO_TYPE = SdType("SILSILO", TokenType.FEHRIST)
 
 
-class SdList(SdShey):
-    __slots__ = ("elements",)
+def _check_list_element(value, element_type):
+    """Reject a value that doesn't match a typed list's declared element type.
 
-    def __init__(self, elements):
+    Mirrors ``VM._check_element_type`` so ``fehrist[...]`` containers stay
+    honest at mutation time (push / insert / extend / subscript write), not
+    just when the list is bound to a typed variable.
+    """
+    if element_type is None:
+        return
+    if isinstance(value, SdResult):
+        if value.is_ok():
+            value = value.value
+        else:
+            return
+    match element_type:
+        case TokenType.ADAD:
+            if not isinstance(value, SdNumber) or not isinstance(value.value, int):
+                raise QisamJeGhalti(
+                    f"Fehrist je elements jo qisam 'adad' hujjhan lazmi aahe, par '{value.type.name}' milyo."
+                )
+        case TokenType.DAHAI:
+            if not isinstance(value, SdNumber) or not isinstance(value.value, float):
+                raise QisamJeGhalti(
+                    f"Fehrist je elements jo qisam 'dahai' hujjhan lazmi aahe, par '{value.type.name}' milyo."
+                )
+        case TokenType.LAFZ:
+            if not isinstance(value, SdString):
+                raise QisamJeGhalti(
+                    f"Fehrist je elements jo qisam 'lafz' hujjhan lazmi aahe, par '{value.type.name}' milyo."
+                )
+        case TokenType.FAISLO:
+            if not isinstance(value, SdBool):
+                raise QisamJeGhalti(
+                    f"Fehrist je elements jo qisam 'faislo' hujjhan lazmi aahe, par '{value.type.name}' milyo."
+                )
+
+
+class SdList(SdShey):
+    __slots__ = ("element_type", "elements")
+
+    def __init__(self, elements, element_type=None):
         super().__init__(FEHRIST_TYPE)
         self.elements = elements
+        self.element_type = element_type
 
     def __add__(self, other):
         if not isinstance(other, SdList):
@@ -41,18 +80,19 @@ class SdList(SdShey):
         try:
             return self.elements[int(index.value)]
         except IndexError:
-            raise QisamJeGhalti(
+            raise IndexJeGhalti(
                 f"Fehrist jo index {int(index.value)} hadd khaan bahar aahe."
             )
 
     def __setitem__(self, index, value):
         if not isinstance(index, SdNumber):
             raise QisamJeGhalti("Fehrist jo index Adad hujjhan lazmi aahe.")
+        _check_list_element(value, self.element_type)
         try:
             self.elements[int(index.value)] = value
             return SdNull()
         except IndexError:
-            raise QisamJeGhalti(
+            raise IndexJeGhalti(
                 f"Fehrist jo index {int(index.value)} hadd khaan bahar aahe."
             )
 
@@ -97,7 +137,7 @@ class SdList(SdShey):
             try:
                 return self.elements.pop(idx)
             except IndexError:
-                raise QisamJeGhalti(f"Fehrist jo index {idx} hadd khaan bahar aahe.")
+                raise IndexJeGhalti(f"Fehrist jo index {idx} hadd khaan bahar aahe.")
         else:
             if len(self.elements) == 0:
                 raise QisamJeGhalti("Khaali Fehrist maan natho kadhi (pop) saghjay.")
@@ -146,7 +186,7 @@ class SdRange(SdShey):
         if idx < 0:
             idx += length
         if not 0 <= idx < length:
-            raise QisamJeGhalti(
+            raise IndexJeGhalti(
                 f"Silsilo jo index {int(index.value)} hadd khaan bahar aahe."
             )
         return SdNumber(self.start + idx * self.step)
@@ -378,6 +418,7 @@ class SdSet(SdShey):
 
 # Fehrist (List) Methods
 def fehrist_wadha(obj, args):
+    _check_list_element(args[0], obj.element_type)
     obj.elements.append(args[0])
     return obj
 
@@ -386,6 +427,8 @@ def fehrist_wadhayo(obj, args):
     other = args[0]
     if not isinstance(other, SdList):
         raise QisamJeGhalti("Wadhayo laai argument Fehrist hujjhan lazmi aahe.")
+    for elem in other.elements:
+        _check_list_element(elem, obj.element_type)
     obj.elements.extend(other.elements)
     return obj
 
@@ -394,6 +437,7 @@ def fehrist_wajh(obj, args):
     if len(args) < 2:
         raise QisamJeGhalti("Wajh khe 2 arguments khapan: index aen value.")
     idx = args[0].value if hasattr(args[0], "value") else args[0]
+    _check_list_element(args[1], obj.element_type)
     obj.elements.insert(idx, args[1])
     return obj
 

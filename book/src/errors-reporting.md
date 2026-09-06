@@ -41,24 +41,27 @@ classDiagram
     class HalndeVaktGhalti
     class ZeroVindJeGhalti
     class IndexJeGhalti
+    class TarteebJeGhalti
+    class MatalabJeGhalti
     Exception~Python~ <|-- SindhiBaseError
-    SindhiBaseError <|-- LikhaiJeGhalti : syntax
-    SindhiBaseError <|-- NaleJeGhalti : unknown name
+    SindhiBaseError <|-- LikhaiJeGhalti : lexer/parser syntax
+    SindhiBaseError <|-- NaleJeGhalti : unknown name/method
     SindhiBaseError <|-- QisamJeGhalti : wrong type
     SindhiBaseError <|-- HalndeVaktGhalti : const/panic/general
     SindhiBaseError <|-- ZeroVindJeGhalti : divide by zero
     SindhiBaseError <|-- IndexJeGhalti : out of bounds
+    SindhiBaseError <|-- TarteebJeGhalti : program structure
+    SindhiBaseError <|-- MatalabJeGhalti : argument-count
 ```
 
-All six subclasses live in `interpreter/errors.py:87-109` and differ only in their name — the payload shape is identical, which keeps raising sites terse.
+All eight subclasses live in `interpreter/errors.py:116-186` and differ only in their name — the payload shape is identical, which keeps raising sites terse.
 
 ### The anatomy of a report
 
-`ErrorReporter.report()` (`errors.py:41`) writes to **stderr** in three sections:
+`ErrorReporter.report()` (`errors.py:55`) writes to **stderr** in three sections:
 
 ```text
-QisamJeGhalti: 'x' baharli kaam jo variable aahe;      ① header
-us khe badhayn laai 'bahari x' likho.
+ZeroVindJeGhalti: Zero (0) saan vand natho kare saghjay.   ① header
 
 Call Stack (most recent call last):                    ② call stack (optional)
   --> Line 6, in main
@@ -84,7 +87,7 @@ This detail explains most "why does this error show different info" confusion:
 
 | Source | Filled by | When |
 |---|---|---|
-| **VM walk** | `VM._build_traceback()` (`vm.py:225`) | exception raised during execution; walks live frames using `line_col_map[ip-1]` |
+| **VM walk** | `VM._build_traceback()` (`vm.py:323`) | exception raised during execution; walks live frames using `line_col_map[ip-1]` |
 | **Parcel capture** | `SdResult.capture_traceback()` (`objects/core.py:25`) | frozen at Ghalti *creation*; replayed verbatim if raised later via `!!` / `.lazmi()` |
 
 `_build_traceback` deliberately skips work when `error.traceback` is already non-empty — a Result-born exception arrives pre-traced, and its original birthplace wins over where it finally detonated. That's why `.lazmi()` reports show where the division failed, not just where you panicked about it.
@@ -94,7 +97,7 @@ This detail explains most "why does this error show different info" confusion:
 One more piece earns its keep at runtime:
 
 ```python
-# interpreter/errors.py:112
+# interpreter/errors.py:191
 ERROR_MAP = {
     "LikhaiJeGhalti": LikhaiJeGhalti,
     …
@@ -110,7 +113,8 @@ Python exceptions crossing into user programs would leak internals, so `SdShey.c
 | Python raises | User sees |
 |---|---|
 | `TypeError` | `QisamJeGhalti` |
-| `IndexError` → via raisers | `IndexJeGhalti`-style clean messages |
+| `IndexError` | `IndexJeGhalti` |
+| `ZeroDivisionError` | `ZeroVindJeGhalti` |
 | already-`SindhiBaseError` | passed through untouched (position preserved) |
 | anything else | generic `HalndeVaktGhalti` |
 

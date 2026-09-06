@@ -52,7 +52,7 @@ class SdResult(SdShey):
 
 > 🗑️ The old `kharabi(msg)` keyword was removed in the v0.2 refactor. A bare `ghalti(msg)` statement is now the only spelling — and since `kharabi` lexes as a plain identifier, using it dies with `Nalo 'kharabi' na milyo`.
 
-You rarely write these by hand: `/`, `%`, and friends already return Results internally (`objects/numbers.py:43`). Function `wapas` auto-wraps in Ok at the boundary.
+You rarely write these by hand: all six arithmetic operators are fallible — `+ - * ^` raise inside their dunders and the VM wraps the raise into a Ghalti parcel (`vm.py:_binary_op_result`); `/ %` return parcels directly (`objects/numbers.py:50`). Function `wapas` auto-wraps in Ok at the boundary.
 
 ### The consumption toolbox — all six moves, all verified
 
@@ -107,7 +107,7 @@ At Location:
               ^
 ```
 
-Every binary operator unwraps operands first (`vm.py:_unwrap_val`); encountering a Ghalti raises with the *creation-site* traceback attached. Silent propagation of garbage is structurally impossible — that's the safety payoff of parcels over error codes.
+Every binary operator unwraps operands first (`vm.py:_unwrap_val`); encountering a Ghalti raises with the *creation-site* traceback attached. **Discarding is consumption too**: a bare expression statement whose value is a Ghalti — `bhag(9, 0)` sitting on its own line — raises it at the `POP_TOP` (`vm.py:_op_pop_top`). Storing, printing, or inspecting one never reaches that opcode, so day-to-day code stays calm. Silent propagation of garbage is structurally impossible — that's the safety payoff of parcels over error codes.
 
 ### Propagation across functions
 
@@ -119,13 +119,11 @@ kaam bhag(adad a, adad b) {
     wapas r * 10
 }
 likh(bhag(9, 3))   # 30.0
-bhag(9, 0)         # ZeroVindJeGhalti raised at top level,
+bhag(9, 0)         # a discarded Ghalti → ZeroVindJeGhalti raised here,
                    # traceback: main → bhag, pointing at line 2
 ```
 
-Boundaries cooperate: function returns unwrap Ok (callers see values, not wrappers), parameter binding likewise, and conditions unwrap too. Ghalti parcels are the only Results that survive across a boundary — which keeps the mental model tiny: *"values flow; errors travel until someone consumes them."*
-
-> ⚠️ One logged exception to that story: pushing an Err into an *explicitly typed* variable currently trips the type check (`'RESULT' milyo`) instead of propagating — see `roadmap/TODO.md`. Until fixed, propagate through untyped locals.
+Boundaries cooperate: function returns unwrap Ok (callers see values, not wrappers), and parameter binding accepts a Ghalti untouched. Conditions unwrap Ok and strictly consume — a Ghalti fed to `agar` raises itself. Ghalti parcels are the only Results that survive across a boundary — which keeps the mental model tiny: *"values flow; errors travel until someone consumes them."*
 
 ## The precedence trap (read twice)
 
@@ -158,11 +156,11 @@ flowchart TD
     O6 --> R
 ```
 
-All handlers live in `interpreter/backend/vm.py:683-731`. Creation-time capture happens in `SdResult.capture_traceback` (`objects/core.py:25`).
+All handlers live in `interpreter/backend/vm.py:1101-1167`. Creation-time capture happens in `SdResult.capture_traceback` (`objects/core.py:25`).
 
 <div class="recap">
 <p>Fallible ops return Ok/Ghalti parcels; printing or storing them is harmless.</p>
-<p>Six moves: <code>? ! ! .ok/.ghalti</code>, <code>.bachao()</code>, <code>.lazmi()</code> — plus strict-consumption law for arithmetic.</p>
+<p>Six moves: <code>? ! ! .ok/.ghalti</code>, <code>.bachao()</code>, <code>.lazmi()</code> — plus the strict-consumption laws: using a Ghalti in further arithmetic, or discarding it as a bare statement, raises.</p>
 <p><code>lazmi</code> swaps the message but keeps the error class; tracebacks freeze at creation.</p>
 <p>Raw values = success everywhere; boundaries auto-unwrap Ok.</p>
 <p>Postfix binds tight — parenthesize <code>(a/b)?</code>.</p>

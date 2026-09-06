@@ -21,10 +21,12 @@ from dataclasses import dataclass
 from ..errors import (
     ERROR_MAP,
     HalndeVaktGhalti,
-    LikhaiJeGhalti,
+    IndexJeGhalti,
+    MatalabJeGhalti,
     NaleJeGhalti,
     QisamJeGhalti,
     SindhiBaseError,
+    ZeroVindJeGhalti,
 )
 from ..frontend.tokens import TokenType
 from ..objects import (
@@ -90,6 +92,8 @@ def _type_label(type_hint):
 
 
 class VM:
+    MAX_FRAME_DEPTH = 10_000
+
     def __init__(
         self,
         code_string: str,
@@ -137,20 +141,23 @@ class VM:
     def pop(self) -> object:
         return self.stack.pop()
 
+    def _raise_from_result(self, val: SdResult, line: int, column: int) -> None:
+        """Raise the error a Ghalti parcel remembers, with its frozen traceback."""
+        error_cls = ERROR_MAP.get(val._error_cls, HalndeVaktGhalti)
+        raise error_cls(
+            str(val.value),
+            line,
+            column,
+            self.code_string,
+            traceback=val._captured_traceback,
+        )
+
     def _unwrap_val(self, val: object, line: int, column: int) -> object:
         """Extracts the value from an Ok result, or panics on a Ghalti result."""
         if isinstance(val, SdResult):
             if val.is_ok():
                 return val.value
-            else:
-                error_cls = ERROR_MAP.get(val._error_cls, HalndeVaktGhalti)
-                raise error_cls(
-                    str(val.value),
-                    line,
-                    column,
-                    self.code_string,
-                    traceback=val._captured_traceback,
-                )
+            self._raise_from_result(val, line, column)
         return val
 
     def _check_type(
@@ -212,6 +219,7 @@ class VM:
                 if element_type is not None:
                     for elem in value.elements:
                         self._check_element_type(elem, element_type, line, column)
+                    value.element_type = element_type
 
             case TokenType.MAJMUO:
                 if not isinstance(value, SdSet):
@@ -483,6 +491,21 @@ class VM:
             )
         cell.value = value
 
+    def _launder_dispatch_error(self, e, line: int, column: int) -> None:
+        """Map raw Python exceptions thrown inside native callables/methods.
+
+        Mirrors ``SdShey.call_method`` so no dispatch edge leaks an untyped
+        exception: ``TypeError`` -> kind, ``IndexError`` -> index,
+        ``ZeroDivisionError`` -> zero-div, everything else -> runtime.
+        """
+        if isinstance(e, TypeError):
+            raise QisamJeGhalti(str(e), line, column, self.code_string)
+        if isinstance(e, IndexError):
+            raise IndexJeGhalti(str(e), line, column, self.code_string)
+        if isinstance(e, ZeroDivisionError):
+            raise ZeroVindJeGhalti(str(e), line, column, self.code_string)
+        raise HalndeVaktGhalti(str(e), line, column, self.code_string)
+
     def _binary_op_result(
         self, left: object, right: object, dunder: str, line: int, column: int
     ) -> object:
@@ -745,6 +768,8 @@ class VM:
                     e.line, e.column = line, column
                     e.code_string = self.code_string
                 raise
+            except Exception as e:  # noqa: BLE001 - native callable boundary
+                self._launder_dispatch_error(e, line, column)
 
     def _expand_call_args(self, args_list: list, line: int, column: int) -> tuple[list, dict]:
         """Split raw stack slots into positional values and kwargs.
@@ -766,7 +791,15 @@ class VM:
                         column,
                         self.code_string,
                     )
-                kwargs[val.value] = args_list[i + 1]
+                key = val.value
+                if key in kwargs:
+                    raise MatalabJeGhalti(
+                        f"Dobara bayo keyword argument '{key}' milo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+                kwargs[key] = args_list[i + 1]
                 i += 2
             elif isinstance(val, StarArgsMarker):
                 if i + 1 >= n:
@@ -805,6 +838,13 @@ class VM:
                     )
                 for k, v in d.pairs.items():
                     key = k.value if isinstance(k, SdString) else str(k)
+                    if key in kwargs:
+                        raise MatalabJeGhalti(
+                            f"Dobara bayo keyword argument '{key}' milo.",
+                            line,
+                            column,
+                            self.code_string,
+                        )
                     kwargs[key] = v
                 i += 2
             else:
@@ -832,7 +872,7 @@ class VM:
         if plan.known_names is not None:
             for key in kwargs:
                 if key not in plan.known_names:
-                    raise LikhaiJeGhalti(
+                    raise MatalabJeGhalti(
                         f"Achanak keyword argument '{key}' milo.",
                         line,
                         column,
@@ -852,7 +892,7 @@ class VM:
             elif param.name in defaults_map:
                 val = defaults_map[param.name]
             else:
-                raise LikhaiJeGhalti(
+                raise MatalabJeGhalti(
                     f"Parameter '{param.name}' laai value lazmi aahe.",
                     line,
                     column,
@@ -861,6 +901,12 @@ class VM:
 
             if isinstance(val, SdResult) and val.is_ok():
                 val = val.value
+
+            if isinstance(val, SdResult) and val.is_error():
+                # Ghalti survives the boundary like a value; the type check
+                # applies only to real values (mirrors _check_type).
+                bound[param.name] = val
+                continue
 
             expected = expected_types[i]
             if expected is not None and val.type != expected:
@@ -880,7 +926,7 @@ class VM:
 
         extra_positional = positional[pos_idx:]
         if extra_positional and not has_star_param:
-            raise LikhaiJeGhalti(
+            raise MatalabJeGhalti(
                 f"{len(extra_positional)} wadhoo arguments mile; kaam khe itna khapay na tha.",
                 line,
                 column,
@@ -889,7 +935,7 @@ class VM:
 
         if kwargs and not has_kw_param:
             unknown = next(iter(kwargs))
-            raise LikhaiJeGhalti(
+            raise MatalabJeGhalti(
                 f"Achanak keyword argument '{unknown}' milo.",
                 line,
                 column,
@@ -922,7 +968,7 @@ class VM:
 
         new_frame.return_type = func.return_type
         new_frame.function_name = func.name
-        self.frames.append(new_frame)
+        self._push_frame(new_frame, line, column)
 
     def _call_simple_function(
         self,
@@ -944,13 +990,13 @@ class VM:
         supplied = len(positional)
         if supplied != n:
             if supplied < n:
-                raise LikhaiJeGhalti(
+                raise MatalabJeGhalti(
                     f"Parameter '{params[supplied].name}' laai value lazmi aahe.",
                     line,
                     column,
                     self.code_string,
                 )
-            raise LikhaiJeGhalti(
+            raise MatalabJeGhalti(
                 f"{supplied - n} wadhoo arguments mile; kaam khe itna khapay na tha.",
                 line,
                 column,
@@ -971,6 +1017,10 @@ class VM:
             val = positional[i]
             if isinstance(val, SdResult) and val.is_ok():
                 val = val.value
+            if isinstance(val, SdResult) and val.is_error():
+                # Ghalti survives the boundary like a value.
+                new_frame.slots[i] = val
+                continue
             expected = expected_types[i]
             if expected is not None and val.type != expected:
                 raise QisamJeGhalti(
@@ -984,7 +1034,18 @@ class VM:
         if func.return_type is not None:
             new_frame.return_type = func.return_type
             new_frame.function_name = func.name
-        self.frames.append(new_frame)
+        self._push_frame(new_frame, line, column)
+
+    def _push_frame(self, frame: BytecodeFrame, line: int, column: int) -> None:
+        """Append a call frame, stopping runaway recursion at the depth cap."""
+        if len(self.frames) >= self.MAX_FRAME_DEPTH:
+            raise HalndeVaktGhalti(
+                "Kaam jo wandh (call depth) hadd khaan bahar aahe.",
+                line,
+                column,
+                self.code_string,
+            )
+        self.frames.append(frame)
 
     def _op_make_function(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
         """Pop a function and optional defaults; push it bound to cells/defs."""
@@ -1061,6 +1122,8 @@ class VM:
                     e.line, e.column = line, column
                     e.code_string = self.code_string
                 raise
+            except Exception as e:  # noqa: BLE001 - native method boundary
+                self._launder_dispatch_error(e, line, column)
         else:
             raise NaleJeGhalti(
                 f"Method '{method_name}' ji wazahat na milyo.",
@@ -1325,8 +1388,14 @@ class VM:
         self.push(val)
 
     def _op_pop_top(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
-        """Discard the top value (``value -- >``)."""
-        self.stack.pop()
+        """Discard the top value (``value -- >``).
+
+        Discarding a Ghalti parcel raises it: errors demand acknowledgment.
+        Storing, printing, or inspecting a Ghalti never reaches this opcode.
+        """
+        val = self.stack.pop()
+        if isinstance(val, SdResult) and val.is_error():
+            self._raise_from_result(val, line, column)
 
     def _op_return_value(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
         """Pop the return value, pop the frame, and push it onto the caller's stack."""

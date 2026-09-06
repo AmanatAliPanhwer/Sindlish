@@ -23,7 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from ..backend.hints import CompilerHints
-from ..errors import QisamJeGhalti
+from ..errors import NaleJeGhalti, QisamJeGhalti, TarteebJeGhalti
 from ..frontend.ast_nodes import (
     AssignNode,
     BinaryOpNode,
@@ -406,7 +406,7 @@ class Resolver:
             # Writes require an explicit 'bahari' declaration.
             line = getattr(node, "line", 0)
             column = getattr(node, "column", 0)
-            raise QisamJeGhalti(
+            raise TarteebJeGhalti(
                 f"'{node.name}' baharli kaam jo variable aahe; us khe badhayn laai 'bahari {node.name}' likho.",
                 line,
                 column,
@@ -779,13 +779,14 @@ class Resolver:
         The nearest enclosing scope owned by an enclosing ``_FnRec`` that
         binds the name becomes its owner; the name is registered as a capture
         and added to the current function's ``nonlocal_names``. Program-level
-        use and unknown targets raise ``QisamJeGhalti``.
+        use raises ``TarteebJeGhalti`` (a structure misuse); unknown targets
+        raise ``NaleJeGhalti`` (a name lookup miss).
         """
         name = node.name
         line = getattr(node, "line", 0)
         column = getattr(node, "column", 0)
         if len(self.fn_records) == 1:
-            raise QisamJeGhalti(
+            raise TarteebJeGhalti(
                 "'bahari' sirf kaam ke andar istemaal thyo sendho.",
                 line,
                 column,
@@ -801,7 +802,7 @@ class Resolver:
             if owner is not None:
                 break
         if owner is None:
-            raise QisamJeGhalti(
+            raise NaleJeGhalti(
                 f"'bahari {name}' laai baharli kaam mein '{name}' naatho milio.",
                 line,
                 column,

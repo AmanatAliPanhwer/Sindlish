@@ -272,6 +272,7 @@ PROGRAMS = [
             ("LOAD_CONST", 0),
             ("LOAD_CONST", 8),
             ("STORE_SUBSCRIPT", None),
+            ("POP_TOP", None),
             ("HALT", None),
         ),
     ),

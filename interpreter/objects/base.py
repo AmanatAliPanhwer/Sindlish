@@ -1,9 +1,9 @@
 from ..errors import (
     HalndeVaktGhalti,
     IndexJeGhalti,
-    LikhaiJeGhalti,
     NaleJeGhalti,
     QisamJeGhalti,
+    SindhiBaseError,
     ZeroVindJeGhalti,
 )
 from ..frontend.tokens import TokenType
@@ -283,19 +283,16 @@ class SdShey:
         if protocol_method and callable(protocol_method):
             try:
                 return protocol_method(*args)
-            except (
-                QisamJeGhalti,
-                HalndeVaktGhalti,
-                NaleJeGhalti,
-                ZeroVindJeGhalti,
-                IndexJeGhalti,
-                LikhaiJeGhalti,
-            ) as e:
+            except SindhiBaseError as e:
                 if e.line is None:
                     e.line, e.column, e.code_string = line, column, code
                 raise
             except TypeError as e:
                 raise QisamJeGhalti(str(e), line, column, code)
+            except IndexError as e:
+                raise IndexJeGhalti(str(e), line, column, code)
+            except ZeroDivisionError as e:
+                raise ZeroVindJeGhalti(str(e), line, column, code)
             except Exception as e:  # noqa: BLE001 - any unexpected protocol error -> runtime
                 raise HalndeVaktGhalti(str(e), line, column, code)
 
@@ -303,7 +300,7 @@ class SdShey:
         method = self._type.lookup_method(name)
 
         if not method:
-            raise QisamJeGhalti(
+            raise NaleJeGhalti(
                 details=f"'{self.type.name}' object mein '{name}' nale jo ko bh method na aahe.",
                 line=line,
                 column=column,
@@ -312,16 +309,13 @@ class SdShey:
 
         try:
             return method(*args)
-        except (
-            QisamJeGhalti,
-            HalndeVaktGhalti,
-            NaleJeGhalti,
-            ZeroVindJeGhalti,
-            IndexJeGhalti,
-            LikhaiJeGhalti,
-        ):
+        except SindhiBaseError:
             raise
         except TypeError as e:
             raise QisamJeGhalti(str(e), line, column, code)
+        except IndexError as e:
+            raise IndexJeGhalti(str(e), line, column, code)
+        except ZeroDivisionError as e:
+            raise ZeroVindJeGhalti(str(e), line, column, code)
         except Exception as e:  # noqa: BLE001 - any unexpected method error -> runtime
             raise HalndeVaktGhalti(str(e), line, column, code)
