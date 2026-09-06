@@ -72,7 +72,7 @@ user-facing classes build on it:
 
 - Grow test suite alongside every feature above
 - VM throughput work (benchmarks vs Python/Rust live in `bench/`)
-- Consistent error philosophy (division returns `Result`, other ops raise — unify)
+- Consistent error philosophy — **decided 2026-09 (RFC in #33):** all six arithmetic ops return `Result` (parcels) on failure; ordering comparisons raise; equality is total. TODO.md item shipped with #33.
 - Docs website sync (`docs/` submodule)
 
 ---

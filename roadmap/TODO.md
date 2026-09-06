@@ -120,7 +120,7 @@ Items marked [x] are fixed with regression coverage in `tests/test_bugfixes.py`.
 
 ## 4. Quality
 
-- [ ] Unify error philosophy across operators
+- [x] Unify error philosophy across operators — **shipped with #33** (2026-09): all six arithmetic ops (`+ - * ^ / %`) return Ghalti parcels on failure; ordering comparisons (`< <= > >=`) raise `QisamJeGhalti`; `== !=` stay total. **#57** (top-level surfacing of a discarded Ghalti — the original "silent error bug") also fixed here via discard-aware `POP_TOP`.
 - [ ] Tests for every fix above (currently 236 passing)
 - [ ] VM performance pass guided by `bench/run_benchmarks.py`
 - [ ] Sync docs website (`docs/` submodule) with language changes
