@@ -92,6 +92,8 @@ def _type_label(type_hint):
 
 
 class VM:
+    MAX_FRAME_DEPTH = 10_000
+
     def __init__(
         self,
         code_string: str,
@@ -217,6 +219,7 @@ class VM:
                 if element_type is not None:
                     for elem in value.elements:
                         self._check_element_type(elem, element_type, line, column)
+                    value.element_type = element_type
 
             case TokenType.MAJMUO:
                 if not isinstance(value, SdSet):
@@ -788,7 +791,15 @@ class VM:
                         column,
                         self.code_string,
                     )
-                kwargs[val.value] = args_list[i + 1]
+                key = val.value
+                if key in kwargs:
+                    raise MatalabJeGhalti(
+                        f"Dobara bayo keyword argument '{key}' milo.",
+                        line,
+                        column,
+                        self.code_string,
+                    )
+                kwargs[key] = args_list[i + 1]
                 i += 2
             elif isinstance(val, StarArgsMarker):
                 if i + 1 >= n:
@@ -950,7 +961,7 @@ class VM:
 
         new_frame.return_type = func.return_type
         new_frame.function_name = func.name
-        self.frames.append(new_frame)
+        self._push_frame(new_frame, line, column)
 
     def _call_simple_function(
         self,
@@ -1016,7 +1027,18 @@ class VM:
         if func.return_type is not None:
             new_frame.return_type = func.return_type
             new_frame.function_name = func.name
-        self.frames.append(new_frame)
+        self._push_frame(new_frame, line, column)
+
+    def _push_frame(self, frame: BytecodeFrame, line: int, column: int) -> None:
+        """Append a call frame, stopping runaway recursion at the depth cap."""
+        if len(self.frames) >= self.MAX_FRAME_DEPTH:
+            raise HalndeVaktGhalti(
+                "Kaam jo wandh (call depth) hadd khaan bahar aahe.",
+                line,
+                column,
+                self.code_string,
+            )
+        self.frames.append(frame)
 
     def _op_make_function(self, frame: BytecodeFrame, arg: object, line: int, column: int) -> None:
         """Pop a function and optional defaults; push it bound to cells/defs."""
