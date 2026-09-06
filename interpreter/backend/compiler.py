@@ -750,6 +750,15 @@ class Compiler:
     def compile_ReturnNode(self, node: ReturnNode) -> None:
         """Compile ``wapas``. RETURN_VALUE unwraps ok(*)/raw into the value
         and preserves ghalti() error results, so no MAKE_OK is needed."""
+        if not self.fn_stack:
+            line = getattr(node, "line", 0)
+            column = getattr(node, "column", 0)
+            raise TarteebJeGhalti(
+                "wapas (return) kaam khaan baahar istamal natho kare saghjay.",
+                line,
+                column,
+                self.code,
+            )
         if node.value:
             self.compile(node.value)
         else:
