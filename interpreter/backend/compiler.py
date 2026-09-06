@@ -220,10 +220,11 @@ class Compiler:
         one slot).
         """
         for i, existing in enumerate(self.constants):
-            if type(existing) is type(value):
-                if hasattr(value, "value") and existing.value == value.value:
-                    return i
-            elif existing == value:
+            if type(existing) is not type(value):
+                continue
+            if hasattr(value, "value") and existing.value == value.value:
+                return i
+            if existing == value:
                 return i
         self.constants.append(value)
         return len(self.constants) - 1

@@ -838,6 +838,13 @@ class VM:
                     )
                 for k, v in d.pairs.items():
                     key = k.value if isinstance(k, SdString) else str(k)
+                    if key in kwargs:
+                        raise MatalabJeGhalti(
+                            f"Dobara bayo keyword argument '{key}' milo.",
+                            line,
+                            column,
+                            self.code_string,
+                        )
                     kwargs[key] = v
                 i += 2
             else:
