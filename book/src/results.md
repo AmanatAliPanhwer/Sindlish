@@ -52,7 +52,7 @@ class SdResult(SdShey):
 
 > 🗑️ The old `kharabi(msg)` keyword was removed in the v0.2 refactor. A bare `ghalti(msg)` statement is now the only spelling — and since `kharabi` lexes as a plain identifier, using it dies with `Nalo 'kharabi' na milyo`.
 
-You rarely write these by hand: all six arithmetic operators are fallible — `+ - * ^` raise inside their dunders and the VM wraps the raise into a Ghalti parcel (`vm.py:_binary_op_result`); `/ % //` return parcels directly (`objects/numbers.py:50`). Function `wapas` auto-wraps in Ok at the boundary.
+You rarely write these by hand: all six arithmetic operators are fallible — `+ - * ^` raise inside their dunders and the VM wraps the raise into a Ghalti parcel (`vm.py:_binary_op_result`); `/ %` return parcels directly (`objects/numbers.py:50`). Function `wapas` auto-wraps in Ok at the boundary.
 
 ### The consumption toolbox — all six moves, all verified
 

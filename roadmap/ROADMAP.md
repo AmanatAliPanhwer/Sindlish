@@ -1,7 +1,7 @@
 # Sindlish — Development Roadmap
 
 **Version:** 0.1.1
-**Status:** Core language usable · 236 tests passing · bytecode VM architecture
+**Status:** Core language usable · 512 tests passing · bytecode VM architecture
 
 Sindlish runs a classic five-stage pipeline: **Lexer → Parser → Resolver → Compiler → VM**.
 This roadmap tracks what is done and what comes next. Feature-level detail lives in
@@ -77,4 +77,4 @@ user-facing classes build on it:
 
 ---
 
-*Last updated: August 2026*
+*Last updated: September 2026*

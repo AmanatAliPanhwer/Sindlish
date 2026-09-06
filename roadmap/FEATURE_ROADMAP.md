@@ -548,5 +548,5 @@ This roadmap is part of the Sindlish programming language project.
 
 ---
 
-*Last updated: August 2026 — reflects v0.1.1*
-*All 236 tests passing*
+*Last updated: September 2026 — reflects v0.1.1*
+*All 512 tests passing*

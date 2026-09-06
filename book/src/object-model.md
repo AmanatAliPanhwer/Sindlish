@@ -47,7 +47,7 @@ flowchart TD
     D --> E{"found?"}
     E -->|yes| F["call registered native"]
     E -->|no| G["NaleJeGhalti:<br>'no method by that name'"]
-    C --> H["map TypeError→QisamJeGhalti,<br>IndexError→IndexJeGhalti,<br>others→HalndeVaktGhalti"]
+    C --> H["map TypeError→QisamJeGhalti,<br>IndexError→IndexJeGhalti,<br>ZeroDivisionError→ZeroVindJeGhalti,<br>others→HalndeVaktGhalti"]
     F --> H
 ```
 

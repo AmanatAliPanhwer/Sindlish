@@ -63,8 +63,8 @@ Every error class is a tiny Sindhi sentence ending in **Ghalti** (*mistake*):
 | `HalndeVaktGhalti` | *right-now-mistake* | runtime violations, `pakko` reassignment, panic |
 | `ZeroVindJeGhalti` | *zero-point-mistake* | divide/mod by zero |
 | `IndexJeGhalti` | *index-mistake* | out-of-bounds access |
-| `TarteebJeGhalti` | *structure-mistake* | declarations out of program position |
-| `MatalabJeGhalti` | *meaning-mistake* | wrong argument count |
+| `TarteebJeGhalti` | *structure-mistake* | declarations out of program position; top-level `wapas`; `bahari`/closure writes without declaration |
+| `MatalabJeGhalti` | *meaning-mistake* | wrong argument count; unknown or duplicate keyword names |
 
 ## Interpreter-internal names you'll meet
 

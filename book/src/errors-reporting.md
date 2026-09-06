@@ -61,8 +61,7 @@ All eight subclasses live in `interpreter/errors.py:116-186` and differ only in 
 `ErrorReporter.report()` (`errors.py:55`) writes to **stderr** in three sections:
 
 ```text
-TarteebJeGhalti: 'x' baharli kaam jo variable aahe;      ① header
-us khe badhayn laai 'bahari x' likho.
+ZeroVindJeGhalti: Zero (0) saan vand natho kare saghjay.   ① header
 
 Call Stack (most recent call last):                    ② call stack (optional)
   --> Line 6, in main
